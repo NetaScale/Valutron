@@ -1,3 +1,4 @@
+#include <cassert>
 
 #include "AST.hh"
 
@@ -213,7 +214,7 @@ classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 
 	for (int i = 1; i <= aClass->nstVars()->size(); i++)
 		scope->addIvar(
-		    aClass->nstVars()->basicAt(i)->asSymbolOop()->asString());
+		    aClass->nstVars()->basicAt(i).as<SymbolOop>()->asString());
 }
 
 void
@@ -233,9 +234,9 @@ ClassNode::synthInNamespace(DictionaryOop ns)
 	ClassOop superCls;
 
 	if (superName != "nil") {
-		superCls = ns->symbolLookupNamespaced(superName)->asClassOop();
+		superCls = ns->symbolLookupNamespaced(superName).as<ClassOop>();
 		if (superCls.isNil()) {
-			memMgr.objGlobals->print(5);
+			// memMgr.objGlobals->print(5);
 		}
 		assert(!superCls.isNil());
 	}

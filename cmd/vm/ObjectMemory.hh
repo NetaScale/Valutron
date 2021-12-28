@@ -33,9 +33,44 @@ class ObjectMemory {
 	static inline uint32_t getHashCode();
 
     public:
-	DictionaryOop globals;
+	static Oop objNil;
+	static Oop objTrue;
+	static Oop objFalse;
+	/* Indexed by string hash */
+	static DictionaryOop objSymbolTable;
+	/* Indexed by value */
+	static DictionaryOop objGlobals;
+	static Oop objsmalltalk;
+	static Oop objUnused1;
+	static Oop objUnused2;
+	static Oop objUnused3;
+	static Oop objMinClass;
+	static ClassOop clsObjectMeta;
+	static ClassOop clsObject;
+	static ClassOop clsSymbol;
+	static ClassOop clsInteger;
+	static ClassOop clsArray;
+	static ClassOop clsByteArray;
+	static ClassOop clsString;
+	static ClassOop clsMethod;
+	static ClassOop clsProcess;
+	static ClassOop clsUndefinedObject;
+	static ClassOop clsTrue;
+	static ClassOop clsFalse;
+	static ClassOop clsLink;
+	static ClassOop clsDictionary;
+	static ClassOop clsBlock;
+	static ClassOop clsContext;
+	static ClassOop clsSymbolTable;
+	static ClassOop clsSystemDictionary;
+	static ClassOop clsFloat;
+	static ClassOop clsVM;
+	static ClassOop clsChar;
+	static ClassOop clsProcessor;
+	static ClassOop clsNativeCode;
+	static ClassOop clsNativePointer;
 
-	ObjectMemory(void * stackMarker);
+	ObjectMemory(void *stackMarker);
 
 	/**
 	 * Allocates an object composed of object pointers.

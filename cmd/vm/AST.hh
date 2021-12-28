@@ -20,6 +20,15 @@ struct MethodScope;
 struct ClassScope;
 struct ClassNode;
 
+class SynthContext {
+	ObjectMemory & m_omem;
+
+	public:
+	SynthContext(ObjectMemory & omem) : m_omem(omem) {};
+
+	ObjectMemory&omem() { return m_omem; }
+};
+
 struct Var {
 	bool promoted;
 	int promotedIndex;
@@ -303,7 +312,6 @@ struct ClassNode : public DeclNode {
 
 struct NamespaceNode : public DeclNode {
 	std::string name;
-	// std::vector<std:
 	std::vector<DeclNode *> decls;
 
 	NamespaceNode(std::string name, std::vector<DeclNode *> decls)
@@ -328,13 +336,13 @@ struct ProgramNode : public DeclNode {
 	void registerNamesIn(DictionaryOop ns);
 	void registerNames()
 	{
-		registerNamesIn (ObjectMemory::globals);
+		registerNamesIn (ObjectMemory::objGlobals);
 	}
 
 	void synthInNamespace(DictionaryOop ns);
 	void synth()
 	{
-		synthInNamespace (ObjectMemory::globals);
+		synthInNamespace (ObjectMemory::objGlobals);
 	}
 	void generate();
 

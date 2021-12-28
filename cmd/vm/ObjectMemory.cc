@@ -165,7 +165,7 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 	mps_message_type_enable(m_arena, mps_message_type_gc_start());
 
 	MPS_ARGS_BEGIN (args) {
-		MPS_ARGS_ADD(args, MPS_KEY_FMT_ALIGN, 8);
+		MPS_ARGS_ADD(args, MPS_KEY_FMT_ALIGN, ALIGNMENT);
 		MPS_ARGS_ADD(args, MPS_KEY_FMT_SCAN, MemOopDesc::mpsScan);
 		MPS_ARGS_ADD(args, MPS_KEY_FMT_SKIP, MemOopDesc::mpsSkip);
 		MPS_ARGS_ADD(args, MPS_KEY_FMT_FWD, MemOopDesc::mpsFwd);
@@ -184,7 +184,7 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_mpsChain);
 #endif
 		MPS_ARGS_ADD(args, MPS_KEY_FORMAT, m_objFmt);
-		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, 32);
+		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGNMENT);
 		MPS_ARGS_DONE(args);
 		res = mps_pool_create_k(&m_amczPool, m_arena, mps_class_amcz(),
 		    args);
@@ -199,7 +199,7 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_mpsChain);
 #endif
 		MPS_ARGS_ADD(args, MPS_KEY_FORMAT, m_objFmt);
-		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, 32);
+		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGNMENT);
 		MPS_ARGS_DONE(args);
 		res = mps_pool_create_k(&m_amcPool, m_arena, mps_class_amc(),
 		    args);
