@@ -1,0 +1,3 @@
+*.ll linguist-language=Lex
+lib/mps/* linguist-vendored
+tools/lemon/* linguist-vendored
