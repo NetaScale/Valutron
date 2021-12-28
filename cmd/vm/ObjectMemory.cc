@@ -8,21 +8,45 @@ extern "C" {
 
 #include "ObjectMemory.hh"
 
-#define ALIGNMENT 8
-#define ALIGN(size) (((size) + ALIGNMENT - 1) & ~(ALIGNMENT - 1))
-#define FATAL(...) errx(EXIT_FAILURE, __VA_ARGS__)
-
 mps_arena_t ObjectMemory::m_arena = NULL;
 uint32_t ObjectMemory::s_hashCounter = 1;
 
-static uint32_t
-hash(uint32_t x)
-{
-	x = ((x >> 16) ^ x) * 0x119de1f3;
-	x = ((x >> 16) ^ x) * 0x119de1f3;
-	x = (x >> 16) ^ x;
-	return x >> 8;
-}
+Oop ObjectMemory::objNil;
+Oop ObjectMemory::objTrue;
+Oop ObjectMemory::objFalse;
+/* Indexed by string hash */
+DictionaryOop ObjectMemory::objSymbolTable;
+/* Indexed by value */
+DictionaryOop ObjectMemory::objGlobals;
+Oop ObjectMemory::objsmalltalk;
+Oop ObjectMemory::objUnused1;
+Oop ObjectMemory::objUnused2;
+Oop ObjectMemory::objUnused3;
+Oop ObjectMemory::objMinClass;
+ClassOop ObjectMemory::clsObjectMeta;
+ClassOop ObjectMemory::clsObject;
+ClassOop ObjectMemory::clsSymbol;
+ClassOop ObjectMemory::clsInteger;
+ClassOop ObjectMemory::clsArray;
+ClassOop ObjectMemory::clsByteArray;
+ClassOop ObjectMemory::clsString;
+ClassOop ObjectMemory::clsMethod;
+ClassOop ObjectMemory::clsProcess;
+ClassOop ObjectMemory::clsUndefinedObject;
+ClassOop ObjectMemory::clsTrue;
+ClassOop ObjectMemory::clsFalse;
+ClassOop ObjectMemory::clsLink;
+ClassOop ObjectMemory::clsDictionary;
+ClassOop ObjectMemory::clsBlock;
+ClassOop ObjectMemory::clsContext;
+ClassOop ObjectMemory::clsSymbolTable;
+ClassOop ObjectMemory::clsSystemDictionary;
+ClassOop ObjectMemory::clsFloat;
+ClassOop ObjectMemory::clsVM;
+ClassOop ObjectMemory::clsChar;
+ClassOop ObjectMemory::clsProcessor;
+ClassOop ObjectMemory::clsNativeCode;
+ClassOop ObjectMemory::clsNativePointer;
 
 #define FIXOOP(oop)                                         \
 	if (MPS_FIX1(ss, &*oop)) {                          \
@@ -134,15 +158,7 @@ MemOopDesc::mpsPad(mps_addr_t addr, size_t size)
 	obj->m_kind = kPad;
 }
 
-uint32_t
-ObjectMemory::getHashCode()
-{
-	do {
-		int x = hash(s_hashCounter++);
-		if (x != 0)
-			return x;
-	} while (true);
-}
+
 
 ObjectMemory::ObjectMemory(void *stackMarker)
 {

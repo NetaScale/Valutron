@@ -1,17 +1,189 @@
 #include <cassert>
 #include <iostream>
+#include <string.h>
 
 #include "Misc.hh"
 #include "ObjectMemory.hh"
 #include "Oops.hh"
+
+int
+strHash(std::string str)
+{
+	int32_t hash;
+	const char *p;
+
+	hash = 0;
+	for (p = str.c_str(); *p; p++)
+		hash += *p;
+	if (hash < 0)
+		hash = -hash;
+	/* scale to proper size */
+	while (hash > (1 << 24))
+		hash >>= 2;
+	return hash;
+}
+
+ArrayOop
+ArrayOopDesc::newWithSize(ObjectMemory &omem, size_t size)
+{
+	ArrayOop newArr = omem.newOopObj<ArrayOop>(size);
+	return newArr;
+}
+
+ArrayOop
+ArrayOopDesc::fromVector(ObjectMemory &omem, std::vector<Oop> vec)
+{
+	ArrayOop newArr = newWithSize(omem, vec.size());
+	std::copy(vec.begin(), vec.end(), newArr->vns());
+	return newArr;
+}
+
+ArrayOop
+ArrayOopDesc::symbolArrayFromStringVector(ObjectMemory &omem,
+    std::vector<std::string> vec)
+{
+	std::vector<Oop> symVec;
+
+	for (auto s : vec)
+		symVec.push_back(SymbolOopDesc::fromString(omem, s));
+
+	return fromVector(omem, symVec);
+}
+
+ByteArrayOop
+ByteArrayOopDesc::newWithSize(ObjectMemory &omem, size_t size)
+{
+	ByteArrayOop newArr = omem.newByteObj<ByteArrayOop>(size);
+	newArr.setIsa(ObjectMemory::clsByteArray);
+	return newArr;
+}
+
+ByteArrayOop
+ByteArrayOopDesc::fromVector(ObjectMemory &omem, std::vector<uint8_t> vec)
+{
+	ByteArrayOop newArr = newWithSize(omem, vec.size());
+	std::copy(vec.begin(), vec.end(), newArr->vns());
+	return newArr;
+}
+
+CharOop
+CharOopDesc::newWith(ObjectMemory &omem, intptr_t value)
+{
+	CharOop newChar = omem.newOopObj<CharOop>(1);
+	newChar.setIsa(ObjectMemory::clsChar);
+	newChar->setValue(value);
+	return newChar;
+}
+
+LinkOop
+LinkOopDesc::newWith(ObjectMemory &omem, Oop a, Oop b)
+{
+	LinkOop newLink = omem.newOopObj<LinkOop>(3);
+	newLink.setIsa(ObjectMemory::clsLink);
+	newLink->setOne(a);
+	newLink->setTwo(b);
+	return newLink;
+}
+
+/**
+ * \defgroup ClassOop
+ * @{
+ */
+
+void
+ClassOopDesc::addMethod(ObjectMemory &omem, MethodOop method)
+{
+	if (methods().isNil())
+		setMethods(DictionaryOopDesc::newWithSize(omem, 20));
+	methods()->symbolInsert(omem, method->selector(), method);
+	method->setMethodClass(this);
+}
+
+void
+ClassOopDesc::addClassMethod(ObjectMemory &omem, MethodOop method)
+{
+	isa()->addMethod(omem, method);
+}
+
+void
+ClassOopDesc::setupClass(ObjectMemory &omem, ClassOop superClass,
+    std::string name)
+{
+	/* allocate metaclass if necessary */
+	if (isa().isNil())
+		setIsa(ClassOopDesc::allocateRawClass(omem));
+
+	/* set metaclass isa to object metaclass */
+	isa().setIsa(ObjectMemory::clsObjectMeta);
+
+	isa()->setName(SymbolOopDesc::fromString(omem, name + "Meta"));
+	setName(SymbolOopDesc::fromString(omem, name));
+
+	setupSuperclass(superClass);
+}
+
+void
+ClassOopDesc::setupSuperclass(ClassOop superClass)
+{
+	if (!superClass.isNil()) {
+		isa()->setSuperClass(superClass.isa());
+		setSuperClass(superClass);
+	} else /* root object */
+	{
+		isa()->setSuperClass(this);
+		/* class of Object is the terminal class for both the metaclass
+		 * and class hierarchy */
+	}
+}
+
+ClassOop
+ClassOopDesc::allocateRawClass(ObjectMemory &omem)
+{
+	ClassOop cls = omem.newOopObj<ClassOop>(clsInstLength);
+	return cls;
+}
+
+ClassOop
+ClassOopDesc::allocate(ObjectMemory &omem, ClassOop superClass,
+    std::string name)
+{
+	ClassOop metaCls = omem.newOopObj<ClassOop>(clsInstLength),
+		 cls = omem.newOopObj<ClassOop>(clsInstLength);
+
+	cls->setIsa(metaCls);
+	cls->setupClass(omem, superClass, name);
+
+	return cls;
+}
+
+ClassPair
+ClassPair::allocateRaw(ObjectMemory &omem)
+{
+	ClassOop metaCls = ClassOopDesc::allocateRawClass(omem);
+	ClassOop cls = ClassOopDesc::allocateRawClass(omem);
+	return ClassPair(cls, metaCls);
+}
+
+/**
+ * @}
+ */
 
 /**
  * \defgroup DictionaryOop
  * @{
  */
 
+int
+hashCmp(Oop key, Oop match)
+{
+	/*  DEBUG  printf ("Compare %s to %s\n",
+		   key->asStringOop ()->asCStr (),
+		   match->asStringOop ()->asCStr ());*/
+	return key.hashCode() == match.hashCode();
+}
+
 void
-DictionaryOopDesc::insert(intptr_t hash, Oop key, Oop value)
+DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 {
 	ArrayOop table;
 	LinkOop link, nwLink, nextLink;
@@ -37,7 +209,7 @@ DictionaryOopDesc::insert(intptr_t hash, Oop key, Oop value)
 			table->basicAtPut(hash, key);
 			table->basicAtPut(hash + 1, value);
 		} else {
-			nwLink = LinkOopDesc::newWith(key, value);
+			nwLink = LinkOopDesc::newWith(omem, key, value);
 			link = table->basicAt(hash + 2).as<LinkOop>();
 			if (link.isNil()) {
 				table->basicAtPut(hash + 2, nwLink);
@@ -61,17 +233,53 @@ DictionaryOopDesc::insert(intptr_t hash, Oop key, Oop value)
 	}
 }
 
+template <typename ExtraType>
+std::pair<Oop, Oop>
+DictionaryOopDesc::findPairByFun(intptr_t hash, ExtraType extraVal,
+    int (*fun)(Oop, ExtraType))
+{
+	ArrayOop table = basicAt(0).as<ArrayOop>();
+	Oop key, value;
+	LinkOop link;
+	Oop *hp;
+	int tablesize;
+
+	/* now see if table is valid */
+	if ((tablesize = table->size()) < 3) {
+		printf("Table Size: %d\n", tablesize);
+		perror("system error lookup on null table");
+	} else {
+		hash = 1 + (3 * (hash % (tablesize / 3)));
+		assert(hash <= tablesize - 2);
+		hp = (Oop *)table->vns() + (hash - 1);
+		key = *hp++;   /* table at: hash */
+		value = *hp++; /* table at: hash + 1 */
+		if ((!key.isNil()) && (*fun)(key, extraVal))
+			return { key, value };
+		for (link = *(LinkOop *)hp; !link.isNil();
+		     link = *(LinkOop *)hp) {
+			hp = (Oop *)link->vns();
+			key = *hp++;   /* link at: 1 */
+			value = *hp++; /* link at: 2 */
+			if (!key.isNil() && (*fun)(key, extraVal))
+				return { key, value };
+		}
+	}
+
+	return { Oop(), Oop() };
+}
+
 ClassOop
 DictionaryOopDesc::findOrCreateClass(ObjectMemory &omem, ClassOop superClass,
     std::string name)
 {
-	ClassOop result = symbolLookup(name).as<ClassOop>();
+	ClassOop result = symbolLookup(omem, name).as<ClassOop>();
 
 	if (result.isNil()) {
 		printf("Nil - allocating new class %s\n", name.c_str());
 		result = ClassOopDesc::allocate(omem, superClass, name);
 	} else
-		result->setupClass(superClass, name);
+		result->setupClass(omem, superClass, name);
 
 	return result;
 }
@@ -105,13 +313,14 @@ DictionaryOopDesc::symbolLookupNamespaced(ObjectMemory &omem, std::string name)
 	std::string first = ind != std::string::npos ? name.substr(0, ind) :
 							     name;
 	SymbolOop sym = SymbolOopDesc::fromString(omem, name);
-	Oop res = symbolLookup(first);
+	Oop res = symbolLookup(omem, first);
 
 	printf("Lookup %s/%s\n", first.c_str(),
 	    ind != std::string::npos ? name.substr(ind + 1).c_str() : "");
 
 	if (res.isNil()) {
-		DictionaryOop super = symbolLookup("Super").as<DictionaryOop>();
+		DictionaryOop super =
+		    symbolLookup(omem, "Super").as<DictionaryOop>();
 		if (!super.isNil())
 			res = super->symbolLookupNamespaced(omem, name);
 	}
@@ -127,7 +336,7 @@ DictionaryOopDesc::newWithSize(ObjectMemory &omem, size_t numBuckets)
 {
 	DictionaryOop dict = omem.newOopObj<DictionaryOop>(1);
 	dict->setIsa(ObjectMemory::clsDictionary);
-	dict->basicAtPut(1, ArrayOopDesc::newWithSize(numBuckets * 3));
+	dict->basicAtPut(0, ArrayOopDesc::newWithSize(omem, numBuckets * 3));
 	return dict;
 }
 
@@ -182,6 +391,54 @@ DictionaryOopDesc::print(int in)
 	std::cout << blanks(in) + "}\n";
 }
 
+void
+DictionaryOopDesc::symbolInsert(ObjectMemory &omem, SymbolOop key, Oop value)
+{
+	insert(omem, key.hashCode(), key, value);
+}
+
+Oop
+DictionaryOopDesc::symbolLookup(SymbolOop aSymbol)
+{
+	return findPairByFun<Oop>(aSymbol->hashCode(), aSymbol, hashCmp).second;
+}
+
+Oop
+DictionaryOopDesc::symbolLookup(ObjectMemory &omem, std::string aString)
+{
+	SymbolOop sym = SymbolOopDesc::fromString(omem, aString);
+	return symbolLookup(sym);
+}
+
 /**
  * @}
  */
+
+int
+strTest(Oop key, std::string aString)
+{
+	if (key.as<StringOop>()->strEquals(aString))
+		return 1;
+	return 0;
+}
+
+SymbolOop
+SymbolOopDesc::fromString(ObjectMemory &omem, std::string aString)
+{
+	SymbolOop newObj = ObjectMemory::objSymbolTable->
+	    findPairByFun(strHash(aString), aString,strTest).first.
+	    as<SymbolOop>();
+
+	if (!newObj.isNil())
+		return newObj;
+
+	/* not found, must make */
+	newObj = omem.newByteObj<SymbolOop>(aString.size() + 1);
+
+	newObj.setIsa(ObjectMemory::clsSymbol);
+	strncpy((char *)newObj->vns(), aString.c_str(), aString.size());
+	ObjectMemory::objSymbolTable->insert(omem, strHash(aString.c_str()),
+	    newObj, Oop());
+
+	return newObj;
+}

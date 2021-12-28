@@ -38,7 +38,7 @@ function (LemonComp path)
     add_custom_command(
         OUTPUT ${file}.tab.cc ${file}.tab.h ${file}.out
         COMMAND $<TARGET_FILE:lemonxx>
-        ARGS ${CMAKE_CURRENT_SOURCE_DIR}/${path} 
+        ARGS ${CMAKE_CURRENT_SOURCE_DIR}/${path}
             -d. -p -T${CMAKE_SOURCE_DIR}/tools/lemon/lemxx.tpl
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${path})
 endfunction (LemonComp)

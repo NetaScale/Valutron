@@ -218,23 +218,25 @@ classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 }
 
 void
-ClassNode::registerNamesIn(DictionaryOop ns)
+ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 {
-	cls = ns->findOrCreateClass(ClassOop(), name);
-	cls->setNstVars(ArrayOopDesc::symbolArrayFromStringVector(iVars));
+	cls = ns->findOrCreateClass(sctx.omem(), ClassOop(), name);
+	cls->setNstVars(
+	    ArrayOopDesc::symbolArrayFromStringVector(sctx.omem(), iVars));
 	cls->setDictionary(ns);
-	ns->symbolInsert(cls->name(), cls);
+	ns->symbolInsert(sctx.omem(), cls->name(), cls);
 }
 
 void
-ClassNode::synthInNamespace(DictionaryOop ns)
+ClassNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 {
 	int index = 0;
 	scope = new ClassScope;
 	ClassOop superCls;
 
 	if (superName != "nil") {
-		superCls = ns->symbolLookupNamespaced(superName).as<ClassOop>();
+		superCls = ns->symbolLookupNamespaced(sctx.omem(), superName)
+			       .as<ClassOop>();
 		if (superCls.isNil()) {
 			// memMgr.objGlobals->print(5);
 		}
@@ -255,31 +257,31 @@ ClassNode::synthInNamespace(DictionaryOop ns)
 }
 
 void
-NamespaceNode::registerNamesIn(DictionaryOop ns)
+NamespaceNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 {
-	DictionaryOop newNs = ns->subNamespaceNamed(name);
+	DictionaryOop newNs = ns->subNamespaceNamed(sctx.omem(), name);
 	for (auto d : decls)
-		d->registerNamesIn(newNs);
+		d->registerNamesIn(sctx, newNs);
 }
 
 void
-NamespaceNode::synthInNamespace(DictionaryOop ns)
+NamespaceNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 {
-	DictionaryOop newNs = ns->subNamespaceNamed(name);
+	DictionaryOop newNs = ns->subNamespaceNamed(sctx.omem(), name);
 	for (auto d : decls)
-		d->synthInNamespace(newNs);
+		d->synthInNamespace(sctx, newNs);
 }
 
 void
-ProgramNode::registerNamesIn(DictionaryOop ns)
+ProgramNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 {
 	for (auto d : decls)
-		d->registerNamesIn(ns);
+		d->registerNamesIn(sctx, ns);
 }
 
 void
-ProgramNode::synthInNamespace(DictionaryOop ns)
+ProgramNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 {
 	for (auto d : decls)
-		d->synthInNamespace(ns);
+		d->synthInNamespace(sctx, ns);
 }

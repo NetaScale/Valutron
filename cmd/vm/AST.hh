@@ -253,8 +253,8 @@ struct ReturnStmtNode : StmtNode {
 };
 
 struct DeclNode : Node {
-	virtual void registerNamesIn(DictionaryOop ns) = 0;
-	virtual void synthInNamespace(DictionaryOop ns) = 0;
+	virtual void registerNamesIn(SynthContext & sctx, DictionaryOop ns) = 0;
+	virtual void synthInNamespace(SynthContext & sctx, DictionaryOop ns) = 0;
 	virtual void generate() = 0;
 };
 
@@ -303,8 +303,8 @@ struct ClassNode : public DeclNode {
 
 	void addMethods(std::vector<MethodNode *> meths);
 
-	void registerNamesIn(DictionaryOop ns);
-	void synthInNamespace(DictionaryOop ns);
+	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
+	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
 	void generate();
 
 	void print(int in);
@@ -320,8 +320,8 @@ struct NamespaceNode : public DeclNode {
 	{
 	}
 
-	void registerNamesIn(DictionaryOop ns);
-	void synthInNamespace(DictionaryOop ns);
+	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
+	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
 	void generate();
 };
 
@@ -333,16 +333,16 @@ struct ProgramNode : public DeclNode {
 	{
 	}
 
-	void registerNamesIn(DictionaryOop ns);
-	void registerNames()
+	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
+	void registerNames(SynthContext & sctx )
 	{
-		registerNamesIn (ObjectMemory::objGlobals);
+		registerNamesIn (sctx, ObjectMemory::objGlobals);
 	}
 
-	void synthInNamespace(DictionaryOop ns);
-	void synth()
+	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void synth(SynthContext & sctx )
 	{
-		synthInNamespace (ObjectMemory::objGlobals);
+		synthInNamespace (sctx, ObjectMemory::objGlobals);
 	}
 	void generate();
 

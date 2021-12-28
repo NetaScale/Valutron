@@ -123,10 +123,8 @@ Position MVST_Parser::pos()
 	std::string eLine = fText.substr(m_pos, eolPos - m_pos);
 	size_t i;
 
-	std::cerr << "PDST: " << fName << "(" << std::to_string(m_line) + "," 
-			  << std::to_string(m_col) << "): "
-			  << "Error V1001: Syntax error: unexpected " 
-			  << yyTokenName[yymajor] << "\n";
+	std::cerr << "PDST: " << fName << "(" << std::to_string(m_line) + ","			  << std::to_string(m_col) << "): "
+			  << "Error V1001: Syntax error: unexpected "			  << yyTokenName[yymajor] << "\n";
 
 	std::cerr << "+ " << eLine << "\n";
 	std::cerr << "+ ";
@@ -215,8 +213,7 @@ lIvar(L) ::= IDENTIFIER(i). { L = {i}; }
 lIvar(L) ::= lIvar(l) IDENTIFIER(i).
 	{
 		L = l;
-		L.push_back(i); 
-	}
+		L.push_back(i);	}
 
 %type olMethDecl { std::vector<MethodNode *> }
 %type lMethDecl { std::vector<MethodNode *> }
@@ -229,12 +226,10 @@ lMethDecl(L) ::= methDecl(d). { L = {d}; }
 lMethDecl(L) ::= lMethDecl(l) methDecl(d).
 	{
 		L = l;
-		L.push_back(d); 
-	}
+		L.push_back(d);	}
 
 methDecl(D) ::= oCLASSRR(isClass) sel_decl(s)
-	SQB_OPEN 
-		oIvarDefs(locals)
+	SQB_OPEN		oIvarDefs(locals)
 		statementList(stmts)
 		oFinalDot
 	SQB_CLOSE.
@@ -256,8 +251,7 @@ statementList(L) ::= statement(s). { L = {s}; }
 statementList(L) ::= statementList(l) DOT statement(s).
 	{
 		L = l;
-		L.push_back(s); 
-	}
+		L.push_back(s);	}
 
 statement(S) ::= UP sExpression(e). { S = new ReturnStmtNode(e);  }
 statement(S) ::= sExpression(e). { S = new ExprStmtNode(e); }
@@ -335,8 +329,7 @@ keywordList(L) ::= keywordList(l) keyword(k) binary(e).
 binary(E) ::= unary(e). { E = e; }
 binary(E) ::= binary(r) binOp(s) unary(a).
 	{
-		E  = new MessageExprNode(r, s, { a }); 
-	}
+		E  = new MessageExprNode(r, s, { a });	}
 
 unary(E) ::= primary(e). { E = e; }
 unary(U) ::= unary(p) identifier(i). { U  = new MessageExprNode(p, i); }
@@ -433,13 +426,11 @@ oStatementList(L) ::= statementList(l). { L = l; }
 oBlockVarList(L) ::= colonVarList(l) BAR. { L = l; }
 oBlockVarList ::= .
 
-colonVarList(L) ::= COLONVAR(v). 
-	{
+colonVarList(L) ::= COLONVAR(v).	{
 		std::string s = v;
 		s.erase(s.begin());
 		L = {s};
-	} 
-colonVarList(L) ::= colonVarList(l) COLONVAR(v).
+	}colonVarList(L) ::= colonVarList(l) COLONVAR(v).
 	{
 		L = l;
 		std::string s = v;
@@ -452,8 +443,7 @@ colonVarList(L) ::= colonVarList(l) COLONVAR(v).
 sel_decl(S) ::= identifier(i). { S = {i, {}};  }
 sel_decl(S)
 	::= binary_decl(b).
-	{ 
-		S = {b.first, {b.second}};
+	{		S = {b.first, {b.second}};
 	}
 sel_decl(S)
 	::= keyw_decl_list(k).
@@ -466,8 +456,7 @@ sel_decl(S)
 keyw_decl_list(L) ::= keyw_decl(k). {
     L = {k.first, {k.second}};
 }
-keyw_decl_list(L) ::= keyw_decl_list(l) keyw_decl(k). { 
-    L = l;
+keyw_decl_list(L) ::= keyw_decl_list(l) keyw_decl(k). {    L = l;
 	L.first += k.first;
 	L.second.push_back(k.second);
 }
