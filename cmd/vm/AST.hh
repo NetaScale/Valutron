@@ -221,7 +221,7 @@ struct Node {
 
 struct StmtNode : Node {
 	virtual void synthInScope(Scope *scope) = 0;
-	virtual void generateOn(CodeGen &gen) = 0;
+	virtual void generateOn(CodeGen &gen) { throw std::runtime_error("No generation support"); };
 };
 
 struct ExprStmtNode : StmtNode {
@@ -255,7 +255,7 @@ struct ReturnStmtNode : StmtNode {
 struct DeclNode : Node {
 	virtual void registerNamesIn(SynthContext & sctx, DictionaryOop ns) = 0;
 	virtual void synthInNamespace(SynthContext & sctx, DictionaryOop ns) = 0;
-	virtual void generate() = 0;
+	virtual void generate(ObjectMemory & omem) = 0;
 };
 
 struct MethodNode : public Node {
@@ -279,7 +279,7 @@ struct MethodNode : public Node {
 	}
 
 	MethodNode *synthInClassScope(ClassScope *clsScope);
-	MethodOop generate();
+	MethodOop generate(ObjectMemory & omem);
 
 	void print(int in);
 };
@@ -305,7 +305,7 @@ struct ClassNode : public DeclNode {
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
-	void generate();
+	void generate(ObjectMemory & omem);
 
 	void print(int in);
 };
@@ -322,7 +322,7 @@ struct NamespaceNode : public DeclNode {
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
-	void generate();
+	void generate(ObjectMemory & omem);
 };
 
 struct ProgramNode : public DeclNode {
@@ -344,7 +344,7 @@ struct ProgramNode : public DeclNode {
 	{
 		synthInNamespace (sctx, ObjectMemory::objGlobals);
 	}
-	void generate();
+	void generate(ObjectMemory & omem);
 
 	void print(int in);
 };

@@ -65,7 +65,6 @@ RegularChar [^ \t\n.()\[]
 Exponent (e[-+]?[0-9]+)
 RadixInteger [0-9]+r-?[0-9A-Z]+
 
-
 %%
 
 {QuotedComment}			{}
@@ -78,8 +77,6 @@ RadixInteger [0-9]+r-?[0-9A-Z]+
 "subclass:"			{ p(SUBCLASSCOLON); }
 "Namespace"			{ p(NAMESPACE); }
 "current:"			{ p(CURRENTCOLON); }
-
-["][^"]*["]			{ /* ignore comment */ }
 
 ${RegularChar}					{ ps(CHAR); }
 #{RegularChar}+					{ ps(SYMBOL); }
@@ -108,5 +105,7 @@ ${RegularChar}					{ ps(CHAR); }
 ">"				{ p(RCARET); }
 "#"				{ p(HASH); }
 
-[^ \t{LTR}]			{ ps(BINARY); }
 {LineTerminator}	{}
+[ \t\h\v]		{}
+
+.			{ ps(BINARY); }

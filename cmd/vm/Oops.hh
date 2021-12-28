@@ -100,18 +100,22 @@ template <class T> class OopRef {
 
 	template <typename OT> inline bool operator==(const OT &other)
 	{
-		return !operator==(other);
+		return !operator!=(other);
 	}
 	template <typename OT> inline bool operator!=(const OT &other)
 	{
-		return other->m_ptr == m_ptr;
+		return other.m_ptr != m_ptr;
 	}
 	inline T *operator->() const { return m_ptr; }
 	inline T &operator*() const { return *m_ptr; }
 	inline operator Oop() const { return m_ptr; }
 };
 
-class MemOopDesc {
+class OopDesc {
+
+};
+
+class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
 

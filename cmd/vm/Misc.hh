@@ -5,7 +5,7 @@
 
 static inline std::string blanks (size_t n)
 {
-    return std::string (n, ' ');
+	return std::string (n, ' ');
 }
 
 #endif /* MISC_HH_ */

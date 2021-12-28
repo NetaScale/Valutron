@@ -40,18 +40,18 @@ class ObjectMemory {
 	static inline uint32_t getHashCode();
 
     public:
-	static Oop objNil;
-	static Oop objTrue;
-	static Oop objFalse;
+	static MemOop objNil;
+	static MemOop objTrue;
+	static MemOop objFalse;
 	/* Indexed by string hash */
 	static DictionaryOop objSymbolTable;
-	/* Indexed by value */
+	/* Indexed by object hashcode */
 	static DictionaryOop objGlobals;
-	static Oop objsmalltalk;
-	static Oop objUnused1;
-	static Oop objUnused2;
-	static Oop objUnused3;
-	static Oop objMinClass;
+	static MemOop objsmalltalk;
+	static MemOop objUnused1;
+	static MemOop objUnused2;
+	static MemOop objUnused3;
+	static MemOop objMinClass;
 	static ClassOop clsObjectMeta;
 	static ClassOop clsObject;
 	static ClassOop clsSymbol;
@@ -146,6 +146,7 @@ ObjectMemory::newOopObj(size_t len)
 			FATAL("out of memory in newOopObj");
 		obj->m_kind = MemOopDesc::kOops;
 		obj->m_hash = getHashCode();
+		obj->m_size = len;
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 
 	return obj;
@@ -164,6 +165,7 @@ ObjectMemory::newByteObj(size_t len)
 			FATAL("out of memory in newByteObj");
 		obj->m_kind = MemOopDesc::kBytes;
 		obj->m_hash = getHashCode();
+		obj->m_size = len;
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 
 	return obj;

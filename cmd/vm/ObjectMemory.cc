@@ -11,18 +11,18 @@ extern "C" {
 mps_arena_t ObjectMemory::m_arena = NULL;
 uint32_t ObjectMemory::s_hashCounter = 1;
 
-Oop ObjectMemory::objNil;
-Oop ObjectMemory::objTrue;
-Oop ObjectMemory::objFalse;
+MemOop ObjectMemory::objNil;
+MemOop ObjectMemory::objTrue;
+MemOop ObjectMemory::objFalse;
 /* Indexed by string hash */
 DictionaryOop ObjectMemory::objSymbolTable;
 /* Indexed by value */
 DictionaryOop ObjectMemory::objGlobals;
-Oop ObjectMemory::objsmalltalk;
-Oop ObjectMemory::objUnused1;
-Oop ObjectMemory::objUnused2;
-Oop ObjectMemory::objUnused3;
-Oop ObjectMemory::objMinClass;
+MemOop ObjectMemory::objsmalltalk;
+MemOop ObjectMemory::objUnused1;
+MemOop ObjectMemory::objUnused2;
+MemOop ObjectMemory::objUnused3;
+MemOop ObjectMemory::objMinClass;
 ClassOop ObjectMemory::clsObjectMeta;
 ClassOop ObjectMemory::clsObject;
 ClassOop ObjectMemory::clsSymbol;
@@ -242,11 +242,68 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 		FATAL("Couldn't create root");
 }
 
-int
-main()
+void
+ObjectMemory::setupInitialObjects()
 {
-	void *marker = &marker;
-	ObjectMemory omem(marker);
+#define CreateObj(Name, Size) obj##Name = newOopObj<MemOop>(Size)
+	CreateObj(Nil, 0);
+	CreateObj(True, 0);
+	CreateObj(False, 0);
+	objSymbolTable = newOopObj<DictionaryOop>(1);
+	objGlobals = newOopObj<DictionaryOop>(1);
+	CreateObj(smalltalk, 0);
 
-	return 0;
+	clsSymbol = ClassOopDesc::allocateRawClass(*this);
+	clsArray = ClassOopDesc::allocateRawClass(*this);
+
+	objSymbolTable->basicAtPut(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
+	objGlobals->basicAtPut(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
+
+	objGlobals->symbolInsert(*this,
+	    SymbolOopDesc::fromString(*this, "Symbol"), clsSymbol);
+	objGlobals->symbolInsert(*this,
+	    SymbolOopDesc::fromString(*this, "Array"), clsArray);
+
+#define CreateClassPair(Name)                                        \
+	cls##Name = ClassOopDesc::allocateRawClass(*this);           \
+	cls##Name->setName(SymbolOopDesc::fromString(*this, #Name)); \
+	objGlobals->symbolInsert(*this,                              \
+	    SymbolOopDesc::fromString(*this, #Name), cls##Name)
+
+	CreateClassPair(ObjectMeta);
+	CreateClassPair(Object);
+	clsObject.setIsa(clsObjectMeta);
+	CreateClassPair(Integer);
+	CreateClassPair(ByteArray);
+	CreateClassPair(String);
+	CreateClassPair(Method);
+	CreateClassPair(Process);
+	CreateClassPair(UndefinedObject);
+	CreateClassPair(True);
+	CreateClassPair(False);
+	CreateClassPair(Link);
+	CreateClassPair(Dictionary);
+	CreateClassPair(Block);
+	CreateClassPair(Context);
+	CreateClassPair(SymbolTable);
+	CreateClassPair(SystemDictionary);
+	CreateClassPair(Float);
+	CreateClassPair(VM);
+	CreateClassPair(Char);
+	CreateClassPair(NativeCode);
+	CreateClassPair(NativePointer);
+
+#define AddGlobal(name, obj)            				       \
+	objGlobals->symbolInsert(*this, SymbolOopDesc::fromString(*this,       \
+	    name), obj)
+
+	AddGlobal("nil", objNil);
+	AddGlobal("true", objTrue);
+	AddGlobal("false", objFalse);
+
+	objNil.setIsa(clsUndefinedObject);
+	objTrue.setIsa(clsTrue);
+	objFalse.setIsa(clsFalse);
+	objSymbolTable.setIsa(clsDictionary);
+	objGlobals.setIsa(clsSystemDictionary);
 }

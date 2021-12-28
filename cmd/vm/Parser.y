@@ -63,7 +63,7 @@ ProgramNode * MVST_Parser::parseFile (std::string fName)
 
     parser = MVST_Parser::create(fName, src);
     if (1)//0)
-        //parser->trace(stdout, "<parser>: ");
+        parser->trace(stdout, "<parser>: ");
 
     parser->path =  fPath.parent_path();
 
