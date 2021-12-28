@@ -20,6 +20,8 @@ struct MethodScope;
 struct ClassScope;
 struct ClassNode;
 
+typedef int RegisterID;
+
 class SynthContext {
 	ObjectMemory & m_omem;
 
@@ -55,8 +57,8 @@ struct Var {
 	{
 	}
 
-	void generateOn(CodeGen &gen);
-	void generateAssignOn(CodeGen &gen, ExprNode *expr);
+	RegisterID generateOn(CodeGen &gen);
+	RegisterID generateAssignOn(CodeGen &gen, ExprNode *expr);
 
 	/*
 	 * Generates code to move up this variable into myHeapVars.
@@ -224,6 +226,258 @@ struct StmtNode : Node {
 	virtual void generateOn(CodeGen &gen) { throw std::runtime_error("No generation support"); };
 };
 
+/**
+ * \defgroup Expression nodes
+ * @{
+ */
+
+struct ExprNode : Node {
+	virtual void synthInScope(Scope *scope) = 0;
+	virtual RegisterID generateOn(CodeGen &gen) = 0;
+
+	virtual bool isSuper() { return false; }
+};
+
+struct LiteralExprNode : ExprNode {
+	virtual void synthInScope(Scope *parentScope) { }
+};
+
+/* Character literal */
+struct CharExprNode : LiteralExprNode {
+	std::string khar;
+
+	CharExprNode(std::string aChar)
+	    : khar(aChar)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+/* Symbol literal */
+struct SymbolExprNode : LiteralExprNode {
+	std::string sym;
+
+	SymbolExprNode(std::string aSymbol)
+	    : sym(aSymbol)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+/* Integer literal */
+struct IntExprNode : LiteralExprNode {
+	int num;
+
+	IntExprNode(int aNum)
+	    : num(aNum)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+/* String literal */
+struct StringExprNode : LiteralExprNode {
+	std::string str;
+
+	StringExprNode(std::string aString)
+	    : str(aString)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+/* Integer literal */
+struct FloatExprNode : LiteralExprNode {
+	double num;
+
+	FloatExprNode(double aNum)
+	    : num(aNum)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+struct ArrayExprNode : LiteralExprNode {
+	std::vector<ExprNode *> elements;
+
+	ArrayExprNode(std::vector<ExprNode *> exprs)
+	    : elements(exprs)
+	{
+	}
+
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+struct PrimitiveExprNode : ExprNode {
+	int num;
+	std::vector<ExprNode *> args;
+
+	PrimitiveExprNode(int num, std::vector<ExprNode *> args)
+	    : num(num)
+	    , args(args)
+	{
+	}
+
+	virtual void print(int in);
+
+	virtual void synthInScope(Scope *scope);
+	virtual RegisterID generateOn(CodeGen &gen);
+};
+
+struct IdentExprNode : ExprNode {
+	std::string id;
+	Var *var;
+
+	virtual bool isSuper() { return id == "super"; }
+
+	IdentExprNode(std::string id)
+	    : id(id)
+	    , var(NULL)
+	{
+	}
+
+	virtual void synthInScope(Scope *scope);
+	virtual RegisterID generateOn(CodeGen &gen);
+	virtual RegisterID generateAssignOn(CodeGen &gen, ExprNode *rValue);
+
+	void print(int in);
+};
+
+struct AssignExprNode : ExprNode {
+	IdentExprNode *left;
+	ExprNode *right;
+
+	AssignExprNode(IdentExprNode *l, ExprNode *r)
+	    : left(l)
+	    , right(r)
+	{
+	}
+
+	virtual void synthInScope(Scope *scope);
+	virtual RegisterID generateOn(CodeGen &gen);
+
+	void print(int in)
+	{
+		std::cout << blanks(in) << "<assign>\n";
+		std::cout << blanks(in + 1) << "<left: " << left->id << ">\n";
+		std::cout << blanks(in + 1) << "<right>\n";
+		right->print(in + 2);
+		std::cout << blanks(in + 1) << "</right>\n";
+		std::cout << "</assign>";
+	}
+};
+
+struct MessageExprNode : ExprNode {
+	ExprNode *receiver;
+	std::string selector;
+	std::vector<ExprNode *> args;
+
+	MessageExprNode(ExprNode *receiver, std::string selector,
+	    std::vector<ExprNode *> args = {})
+	    : receiver(receiver)
+	    , selector(selector)
+	    , args(args)
+	{
+	}
+
+	MessageExprNode(ExprNode *receiver,
+	    std::vector<std::pair<std::string, ExprNode *>> list)
+	    : receiver(receiver)
+	{
+		for (auto &p : list) {
+			selector += p.first;
+			args.push_back(p.second);
+		}
+	}
+
+	virtual void synthInScope(Scope *scope);
+	virtual RegisterID generateOn(CodeGen &gen);
+	RegisterID generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
+
+	void print(int in)
+	{
+		std::cout << blanks(in) << "<message>\n";
+
+		std::cout << blanks(in + 1) << "<receiver>\n";
+		receiver->print(in + 2);
+		std::cout << blanks(in + 1) << "</receiver>\n";
+
+		std::cout << blanks(in + 1) << "<selector:#" << selector
+			  << "\n";
+
+		for (auto e : args) {
+			std::cout << blanks(in + 1) << "<arg>\n";
+			e->print(in + 2);
+			std::cout << blanks(in + 1) << "</arg>\n";
+		}
+
+		std::cout << blanks(in) << "</message>\n";
+	}
+};
+
+struct CascadeExprNode : ExprNode {
+	ExprNode *receiver;
+	std::vector<MessageExprNode *> messages;
+
+	CascadeExprNode(ExprNode *r)
+	    : receiver(r)
+	{
+		MessageExprNode *m = dynamic_cast<MessageExprNode *>(r);
+		if (m) {
+			receiver = m->receiver;
+			messages.push_back(m);
+		}
+	}
+
+	virtual void synthInScope(Scope *scope);
+	virtual RegisterID generateOn(CodeGen &gen);
+
+	void print(int in)
+	{
+		std::cout << blanks(in) << "<cascade>\n";
+
+		std::cout << blanks(in + 1) << "<receiver>\n";
+		receiver->print(in + 2);
+		std::cout << blanks(in + 1) << "</receiver>\n";
+
+		for (auto e : messages) {
+			e->print(in + 1);
+		}
+
+		std::cout << blanks(in) << "</cascade>\n";
+	}
+};
+
+struct BlockExprNode : ExprNode {
+    private:
+	void generateReturnPreludeOn(CodeGen &gen);
+
+    public:
+	BlockScope *scope;
+	std::vector<std::string> args;
+	std::vector<StmtNode *> stmts;
+
+	BlockExprNode(std::vector<std::string> a, std::vector<StmtNode *> s)
+	    : args(a)
+	    , stmts(s)
+	{
+	}
+
+	virtual void synthInScope(Scope *parentScope);
+	virtual RegisterID generateOn(CodeGen &gen);
+
+	void print(int in);
+};
+
+/**
+ * @}
+ */
+
 struct ExprStmtNode : StmtNode {
 	ExprNode *expr;
 
@@ -349,256 +603,5 @@ struct ProgramNode : public DeclNode {
 	void print(int in);
 };
 
-/**
- * \defgroup Expression nodes
- * @{
- */
-
-struct ExprNode : Node {
-	virtual void synthInScope(Scope *scope) = 0;
-	virtual void generateOn(CodeGen &gen) = 0;
-
-	virtual bool isSuper() { return false; }
-};
-
-struct LiteralExprNode : ExprNode {
-	virtual void synthInScope(Scope *parentScope) { }
-};
-
-/* Character literal */
-struct CharExprNode : LiteralExprNode {
-	std::string khar;
-
-	CharExprNode(std::string aChar)
-	    : khar(aChar)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-/* Symbol literal */
-struct SymbolExprNode : LiteralExprNode {
-	std::string sym;
-
-	SymbolExprNode(std::string aSymbol)
-	    : sym(aSymbol)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-/* Integer literal */
-struct IntExprNode : LiteralExprNode {
-	int num;
-
-	IntExprNode(int aNum)
-	    : num(aNum)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-/* String literal */
-struct StringExprNode : LiteralExprNode {
-	std::string str;
-
-	StringExprNode(std::string aString)
-	    : str(aString)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-/* Integer literal */
-struct FloatExprNode : LiteralExprNode {
-	double num;
-
-	FloatExprNode(double aNum)
-	    : num(aNum)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-struct ArrayExprNode : LiteralExprNode {
-	std::vector<ExprNode *> elements;
-
-	ArrayExprNode(std::vector<ExprNode *> exprs)
-	    : elements(exprs)
-	{
-	}
-
-	virtual void generateOn(CodeGen &gen);
-};
-
-struct PrimitiveExprNode : ExprNode {
-	int num;
-	std::vector<ExprNode *> args;
-
-	PrimitiveExprNode(int num, std::vector<ExprNode *> args)
-	    : num(num)
-	    , args(args)
-	{
-	}
-
-	virtual void print(int in);
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-};
-
-struct IdentExprNode : ExprNode {
-	std::string id;
-	Var *var;
-
-	virtual bool isSuper() { return id == "super"; }
-
-	IdentExprNode(std::string id)
-	    : id(id)
-	    , var(NULL)
-	{
-	}
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-	virtual void generateAssignOn(CodeGen &gen, ExprNode *rValue);
-
-	void print(int in);
-};
-
-struct AssignExprNode : ExprNode {
-	IdentExprNode *left;
-	ExprNode *right;
-
-	AssignExprNode(IdentExprNode *l, ExprNode *r)
-	    : left(l)
-	    , right(r)
-	{
-	}
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-
-	void print(int in)
-	{
-		std::cout << blanks(in) << "<assign>\n";
-		std::cout << blanks(in + 1) << "<left: " << left->id << ">\n";
-		std::cout << blanks(in + 1) << "<right>\n";
-		right->print(in + 2);
-		std::cout << blanks(in + 1) << "</right>\n";
-		std::cout << "</assign>";
-	}
-};
-
-struct MessageExprNode : ExprNode {
-	ExprNode *receiver;
-	std::string selector;
-	std::vector<ExprNode *> args;
-
-	MessageExprNode(ExprNode *receiver, std::string selector,
-	    std::vector<ExprNode *> args = {})
-	    : receiver(receiver)
-	    , selector(selector)
-	    , args(args)
-	{
-	}
-
-	MessageExprNode(ExprNode *receiver,
-	    std::vector<std::pair<std::string, ExprNode *>> list)
-	    : receiver(receiver)
-	{
-		for (auto &p : list) {
-			selector += p.first;
-			args.push_back(p.second);
-		}
-	}
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen) { generateOn(gen, false); }
-	virtual void generateOn(CodeGen &gen, bool cascade);
-
-	void print(int in)
-	{
-		std::cout << blanks(in) << "<message>\n";
-
-		std::cout << blanks(in + 1) << "<receiver>\n";
-		receiver->print(in + 2);
-		std::cout << blanks(in + 1) << "</receiver>\n";
-
-		std::cout << blanks(in + 1) << "<selector:#" << selector
-			  << "\n";
-
-		for (auto e : args) {
-			std::cout << blanks(in + 1) << "<arg>\n";
-			e->print(in + 2);
-			std::cout << blanks(in + 1) << "</arg>\n";
-		}
-
-		std::cout << blanks(in) << "</message>\n";
-	}
-};
-
-struct CascadeExprNode : ExprNode {
-	ExprNode *receiver;
-	std::vector<MessageExprNode *> messages;
-
-	CascadeExprNode(ExprNode *r)
-	    : receiver(r)
-	{
-		MessageExprNode *m = dynamic_cast<MessageExprNode *>(r);
-		if (m) {
-			receiver = m->receiver;
-			messages.push_back(m);
-		}
-	}
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-
-	void print(int in)
-	{
-		std::cout << blanks(in) << "<cascade>\n";
-
-		std::cout << blanks(in + 1) << "<receiver>\n";
-		receiver->print(in + 2);
-		std::cout << blanks(in + 1) << "</receiver>\n";
-
-		for (auto e : messages) {
-			e->print(in + 1);
-		}
-
-		std::cout << blanks(in) << "</cascade>\n";
-	}
-};
-
-struct BlockExprNode : ExprNode {
-    private:
-	void generateReturnPreludeOn(CodeGen &gen);
-
-    public:
-	BlockScope *scope;
-	std::vector<std::string> args;
-	std::vector<StmtNode *> stmts;
-
-	BlockExprNode(std::vector<std::string> a, std::vector<StmtNode *> s)
-	    : args(a)
-	    , stmts(s)
-	{
-	}
-
-	virtual void synthInScope(Scope *parentScope);
-	virtual void generateOn(CodeGen &gen);
-
-	void print(int in);
-};
-
-/**
- * @}
- */
 
 #endif /* AST_HH_ */

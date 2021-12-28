@@ -60,6 +60,9 @@ typedef OopRef    <ByteArrayOopDesc>	ByteArrayOop;
 /* clang-format on */
 
 template <class T> class OopRef {
+    protected:
+	friend class OopRef<OopDesc>;
+
 	enum Tag {
 		kPtr = 0,
 		kSmi = 1,
@@ -93,6 +96,8 @@ template <class T> class OopRef {
 	inline ClassOop &isa(); //{ return isSmi() ? 0 : as<MemOop>()->isa(); }
 	inline ClassOop &setIsa(ClassOop oop);
 
+	void print(size_t in);
+
 	uint32_t hashCode()
 	{
 		return isSmi() ? m_smi : as<MemOop>()->hashCode();
@@ -118,6 +123,7 @@ class OopDesc {
 class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
+	friend class OopRef<OopDesc>;
 
 	enum Kind {
 		kOops,
@@ -357,7 +363,7 @@ class ByteArrayOopDesc : public ByteOopDesc {
 
 class StringOopDesc : public ByteArrayOopDesc {
     public:
-	static StringOop fromString(std::string aString);
+	static StringOop fromString(ObjectMemory & omem, std::string aString);
 
 	inline bool strEquals(std::string aString)
 	{
@@ -439,7 +445,7 @@ class BlockOopDesc : public OopOopDesc {
 	/**
 	 * Allocates a new empty block.
 	 */
-	static BlockOop allocate();
+	static BlockOop allocate(ObjectMemory & omem);
 
 	void print(int in);
 };

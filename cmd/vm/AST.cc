@@ -1,4 +1,6 @@
+#include <stdexcept>
 #include "AST.hh"
+#include "Generation.hh"
 
 ClassNode::ClassNode(std::string name, std::string superName,
     std::vector<std::string> cVars, std::vector<std::string> iVars)
@@ -131,106 +133,99 @@ ProgramNode::print(int in)
 /*
  * generation
  */
-void
+RegisterID
 Var::generateOn(CodeGen &gen)
 {
-#if 0
-    switch (kind)
-    {
-    case kInstance:
-        gen.genPushInstanceVar (getIndex ());
-        return;
-    case kArgument:
-        if (!promoted)
-            gen.genPushArgument (getIndex ());
-        else
-            gen.genPushMyHeapVar (promotedIndex);
-        return;
-    case kLocal:
-        if (!promoted)
-            gen.genPushLocal (getIndex ());
-        else
-            gen.genPushMyHeapVar (promotedIndex);
-        return;
-    case kParentsHeapVar:
-    {
-        std::map<int, int>::iterator it =
-            gen.currentScope ()->parentHeapVarToMyHeapVar.find (getIndex ());
-        if (promoted ||
-            it != gen.currentScope ()->parentHeapVarToMyHeapVar.end ())
-            gen.genPushMyHeapVar (it->second);
-        else
-            gen.genPushParentHeapVar (getIndex ());
-        return;
-    }
-    case kHeapVar:
-        gen.genPushMyHeapVar (getIndex ());
-        return;
-    }
+	switch (kind) {
+	case kInstance:
+		return gen.genLoadInstanceVar(getIndex());
 
-    gen.genPushGlobal (name);
-#endif
+	case kArgument:
+		if (!promoted)
+			return gen.genLoadArgument(getIndex());
+		else
+			return gen.genLoadMyHeapVar(promotedIndex);
+
+	case kLocal:
+		if (!promoted)
+			return gen.genLoadLocal(getIndex());
+		else
+			return gen.genLoadMyHeapVar(promotedIndex);
+
+	case kParentsHeapVar: {
+		std::map<int, int>::iterator it = gen.scope()->
+		    parentHeapVarToMyHeapVar.find(getIndex());
+
+		if (promoted || it != gen.scope()->parentHeapVarToMyHeapVar.
+		    end())
+			return gen.genLoadMyHeapVar(it->second);
+		else
+			return gen.genLoadParentHeapVar(getIndex());
+	}
+
+	case kHeapVar:
+		return gen.genLoadMyHeapVar(getIndex());
+
+	default:
+		return gen.genLoadGlobal(name);
+	}
 }
 
-void
+RegisterID
 Var::generateAssignOn(CodeGen &gen, ExprNode *expr)
 {
-#if 0
-    expr->generateOn (gen);
-    switch (kind)
-    {
-    case kInstance:
-        gen.genStoreInstanceVar (getIndex ());
-        return;
-    case kLocal:
-        if (!promoted)
-            gen.genStoreLocal (getIndex ());
-        else
-            gen.genStoreMyHeapVar (promotedIndex);
-        return;
-    case kParentsHeapVar:
-    {
-        std::map<int, int>::iterator it =
-            gen.currentScope ()->parentHeapVarToMyHeapVar.find (getIndex ());
-        if (promoted ||
-            it != gen.currentScope ()->parentHeapVarToMyHeapVar.end ())
-            gen.genStoreMyHeapVar (it->second);
-        else
-            gen.genStoreParentHeapVar (getIndex ());
-        return;
-    }
-    case kHeapVar:
-        gen.genStoreMyHeapVar (getIndex ());
-        return;
-    }
+	RegisterID val = expr->generateOn(gen);
 
-    gen.genStoreGlobal (name);
-#endif
+	switch (kind) {
+	case kInstance:
+		return gen.genStoreInstanceVar(getIndex(), val);
+
+	case kLocal:
+		if (!promoted)
+			return gen.genStoreLocal(getIndex(), val);
+		else
+			return gen.genStoreMyHeapVar(promotedIndex, val);
+
+	case kParentsHeapVar: {
+		std::map<int, int>::iterator it = gen.scope()->
+		    parentHeapVarToMyHeapVar.find(getIndex());
+
+		if (promoted || it != gen.scope()->
+		    parentHeapVarToMyHeapVar.end())
+			return gen.genStoreMyHeapVar(it->second, val);
+		else
+			return gen.genStoreParentHeapVar(getIndex(), val);
+	}
+
+	case kHeapVar:
+		return gen.genStoreMyHeapVar(getIndex(), val);
+
+	default:
+		return gen.genStoreGlobal(name, val);
+	}
 }
 
 void
 Var::generatePromoteOn(CodeGen &gen)
 {
-#if 0
-    switch (kind)
-    {
-    case kParentsHeapVar:
-        gen.genMoveParentHeapVarToMyHeapVars (getIndex (), promotedIndex);
-        gen.currentScope ()->parentHeapVarToMyHeapVar[getIndex ()] =
-            promotedIndex;
-        return;
+	switch (kind) {
+	case kParentsHeapVar:
+		gen.genMoveParentHeapVarToMyHeapVars(getIndex(), promotedIndex);
+		gen.scope()->parentHeapVarToMyHeapVar[getIndex()] =
+		    promotedIndex;
+		return;
 
-    case kLocal:
-        gen.genMoveLocalToMyHeapVars (getIndex (), promotedIndex);
-        return;
+	case kLocal:
+		gen.genMoveLocalToMyHeapVars(getIndex(), promotedIndex);
+		return;
 
-    case kArgument:
-        gen.genMoveArgumentToMyHeapVars (getIndex (), promotedIndex);
-        return;
-    }
+	case kArgument:
+		gen.genMoveArgumentToMyHeapVars(getIndex(), promotedIndex);
+		return;
 
-    assert (!"Unreached\n");
-#endif
+	default:
+		abort();
+	}
 }
 
 /**
@@ -240,74 +235,64 @@ Var::generatePromoteOn(CodeGen &gen)
 void
 Var::generateRestoreOn(CodeGen &gen)
 {
-#if 0
-    switch (kind)
-    {
-    case kParentsHeapVar:
-        gen.genMoveMyHeapVarToParentHeapVars (promotedIndex, getIndex ());
-        return;
-    }
-#endif
+	switch (kind) {
+	case kParentsHeapVar:
+		gen.genMoveMyHeapVarToParentHeapVars(promotedIndex, getIndex());
+		return;
+	default:
+		throw std::runtime_error("unreachable");
+	}
 }
 
-void
+RegisterID
 IntExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushInteger (num);
-#endif
+	return gen.genLoadInteger(num);
 }
 
-void
+RegisterID
 CharExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushLiteralObject (CharOopDesc::newWith (khar[0]));
-#endif
+	return gen.genLoadLiteralObject(CharOopDesc::newWith(gen.omem(),
+	    khar[0]));
 }
 
-void
+RegisterID
 SymbolExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushLiteralObject (SymbolOopDesc::fromString (sym));
-#endif
+	return gen.genLoadLiteralObject(SymbolOopDesc::fromString(gen.omem(),
+	    sym));
 }
 
-void
+RegisterID
 StringExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushLiteralObject (StringOopDesc::fromString (str));
-#endif
+	return gen.genLoadLiteralObject(StringOopDesc::fromString(gen.omem(),
+	    str));
 }
 
-void
+RegisterID
 FloatExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushLiteralObject (Oop::nilObj ());
-    /*int litNum = gen.genLiteral ((objRef)newFloat (num));
-    if (!gen.inLiteralArray ())
-        gen.genInstruction (PushLiteral, litNum);*/
-#endif
+	return gen.genLoadLiteralObject(Oop());
+	/*int litNum = gen.genLiteral ((objRef)newFloat (num));
+	if (!gen.inLiteralArray ())
+	    gen.genInstruction (PushLiteral, litNum);*/
 }
 
-void
+RegisterID
 ArrayExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    gen.genPushLiteralObject (Oop::nilObj ());
-    /*int litNum;
+	return gen.genLoadLiteralObject(Oop());
+	/*int litNum;
 
-    gen.beginLiteralArray ();
-    for (auto el : elements)
-        el->generateOn (gen);
-    litNum = gen.endLiteralArray ();
+	gen.beginLiteralArray ();
+	for (auto el : elements)
+	    el->generateOn (gen);
+	litNum = gen.endLiteralArray ();
 
-    if (!gen.inLiteralArray ())
-        gen.genInstruction (PushLiteral, litNum);*/
-#endif
+	if (!gen.inLiteralArray ())
+	    gen.genInstruction (PushLiteral, litNum);*/
 }
 
 #pragma mark expressions
@@ -325,20 +310,20 @@ tccErr(void *opaqueError, const char *msg)
 #include "JITPrelude.rh"
     0};*/
 
-void
+RegisterID
 PrimitiveExprNode::generateOn(CodeGen &gen)
 {
+	std::string name;
+
+	if (num != 0) {
+		std::vector<RegisterID> argRegs;
+		for (auto arg : args)
+			argRegs.push_back(arg->generateOn(gen));
+		return gen.genPrimitive(num, argRegs);
+	} else
+		abort();
+
 #if 0
-    std::string name;
-
-    if (num != 0)
-    {
-        for (auto arg : args)
-            arg->generateOn (gen);
-        gen.genPrimitive (num, args.size ());
-        return;
-    }
-
     name = dynamic_cast<IdentExprNode *> (args[0])->id;
 
     if (name == "C")
@@ -371,144 +356,120 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 #endif
 }
 
-void
+RegisterID
 IdentExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    if (isSuper () || id == "self")
-        gen.genPushSelf ();
-    else if (id == "nil")
-        gen.genPushNil ();
-    else if (id == "true")
-        gen.genPushTrue ();
-    else if (id == "false")
-        gen.genPushFalse ();
-    else if (id == "Smalltalk")
-        gen.genPushSmalltalk ();
-    else if (id == "thisContext")
-        gen.genPushThisContext ();
-    else
-        var->generateOn (gen);
-#endif
+	if (isSuper() || id == "self")
+		return gen.genLoadSelf();
+	else if (id == "nil")
+		return gen.genLoadNil();
+	else if (id == "true")
+		return gen.genLoadTrue();
+	else if (id == "false")
+		return gen.genLoadFalse();
+	else if (id == "Smalltalk")
+		return gen.genLoadSmalltalk();
+	else if (id == "thisContext")
+		return gen.genLoadThisContext();
+	else
+		return var->generateOn(gen);
 }
 
-void
+RegisterID
 IdentExprNode::generateAssignOn(CodeGen &gen, ExprNode *rValue)
 {
-#if 0
-    var->generateAssignOn (gen, rValue);
-#endif
+	return var->generateAssignOn(gen, rValue);
 }
 
-void
+RegisterID
 AssignExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    left->generateAssignOn (gen, right);
-#endif
+	return left->generateAssignOn(gen, right);
 }
 
-void
-MessageExprNode::generateOn(CodeGen &gen, bool cascade)
+RegisterID
+MessageExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    if (!cascade)
-        receiver->generateOn (gen);
-
-    for (auto a : args)
-        a->generateOn (gen);
-
-    if (selector == std::string ("ifTrue:ifFalse:"))
-    {
-        gen.genIfTrueIfFalse ();
-    }
-    else
-    {
-        gen.genMessage (receiver->isSuper (), args.size (), selector);
-    }
-#endif
+	return generateOn(gen, receiver->generateOn(gen), receiver->isSuper());
 }
 
-void
+RegisterID
+MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
+{
+	std::vector<RegisterID> argRegs;
+
+	for (auto a : args)
+		argRegs.push_back(a->generateOn(gen));
+
+#if 0
+	if (selector == std::string ("ifTrue:ifFalse:"))
+		gen.genIfTrueIfFalse ();
+	else
+#endif
+	return gen.genMessage(isSuper, selector, argRegs);
+}
+
+RegisterID
 CascadeExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    receiver->generateOn (gen);
-    messages.front ()->generateOn (gen, true);
-    /* duplicate result of first send so it remains after message send */
-    gen.genDup ();
+	RegisterID recv = receiver->generateOn(gen);
+	RegisterID first = messages.front()->generateOn(gen, recv,
+	    receiver->isSuper());
 
-    for (auto it = ++std::begin (messages); it != std::end (messages); it++)
-    {
-        if (*it == messages.back ())
-            /* as we are the last one, get rid of the original receiver
-             * duplicate; we are consuming it. */
-            gen.genPop ();
-        (*it)->generateOn (gen, true);
-        if (*it != messages.back ())
-        {
-            /* pop result of this send */
-            gen.genPop ();
-            /* duplicate receiver so it remains after next send*/
-            gen.genDup ();
-        }
-    }
-#endif
+	for (auto it = ++std::begin(messages); it != std::end(messages); it++)
+		(*it)->generateOn(gen);
+
+	return first;
 }
 
 void
 BlockExprNode::generateReturnPreludeOn(CodeGen &gen)
 {
-#if 0
     for (auto & v : scope->myHeapVars)
         v.second->generateRestoreOn (gen);
-#endif
 }
 
-void
+RegisterID
 BlockExprNode::generateOn(CodeGen &gen)
 {
-#if 0
-    BlockOop block = BlockOopDesc::allocate ();
-    CodeGen blockGen (true);
+	BlockOop block = BlockOopDesc::allocate(gen.omem());
+	CodeGen blockGen(gen.omem(), args.size(), 0, true);
 
-    blockGen.pushCurrentScope (scope);
+	blockGen.pushCurrentScope(scope);
 
-    for (auto & v : scope->myHeapVars)
-        v.second->generatePromoteOn (blockGen);
+	for (auto &v : scope->myHeapVars)
+		v.second->generatePromoteOn(blockGen);
 
-    for (auto & s : stmts)
-    {
-        s->generateOn (blockGen);
-        if (s != stmts.back ())
-            blockGen.genPop ();
-        else if (!dynamic_cast<ReturnStmtNode *> (s))
-        {
-            generateReturnPreludeOn (blockGen);
-            blockGen.genReturn ();
-        }
-    }
+	for (auto &s : stmts) {
+		if (s != stmts.back())
+			s->generateOn(blockGen);
+		else if (!dynamic_cast<ReturnStmtNode *>(s)) {
+			RegisterID reg = dynamic_cast<ExprStmtNode*>(s)->expr->
+			    generateOn(blockGen);
+			generateReturnPreludeOn(blockGen);
+			blockGen.genReturn(reg);
+		}
+	}
 
-    if (stmts.empty ())
-    {
-        generateReturnPreludeOn (blockGen);
-        blockGen.genPushNil ();
-        blockGen.genReturn ();
-    }
+	if (stmts.empty()) {
+		generateReturnPreludeOn(blockGen);
+		blockGen.genReturn(blockGen.genLoadNil());
+	}
 
-    block->setBytecode (ByteArrayOopDesc::fromVector (blockGen.bytecode ()));
-    block->setLiterals (ArrayOopDesc::fromVector (blockGen.literals ()));
-    block->setArgumentCount (SmiOop (args.size ()));
-    block->setTemporarySize (SmiOop ((intptr_t)0));
-    block->setHeapVarsSize (SmiOop (scope->myHeapVars.size ()));
-    block->setStackSize (SmiOop (blockGen.maxStackSize ()));
+	block->setBytecode(
+	    ByteArrayOopDesc::fromVector(gen.omem(), blockGen.bytecode()));
+	block->setLiterals(
+	    ArrayOopDesc::fromVector(gen.omem(), blockGen.literals()));
+	block->setArgumentCount(SmiOop(args.size()));
+	block->setTemporarySize(SmiOop((intptr_t)0));
+	block->setHeapVarsSize(SmiOop(scope->myHeapVars.size()));
+	block->setStackSize(SmiOop(blockGen.nRegs()));
 
-    // gen.popCurrentScope ();
-    // if (!blockGen._blockHasBlockReturn)
-    //    gen.genPushLiteralObject (block);
-    // else
-    gen.genPushBlockCopy (block);
-#endif
+	// gen.popCurrentScope ();
+	// if (!blockGen._blockHasBlockReturn)
+	//    gen.genPushLiteralObject (block);
+	// else
+	return gen.genLoadBlockCopy(block);
 }
 
 #pragma mark statements
@@ -522,15 +483,10 @@ ExprStmtNode::generateOn(CodeGen &gen)
 void
 ReturnStmtNode::generateOn(CodeGen &gen)
 {
-#if 0
-    expr->generateOn (gen);
-    //  FIXME: Do we need to do anything with parents' heapvars? Set them back
-    //  or something like that?
-    if (gen.isBlock ())
-        gen.genBlockReturn ();
-    else
-        gen.genReturn ();
-#endif
+	if (gen.isBlock())
+		gen.genBlockReturn(expr->generateOn(gen));
+	else
+		gen.genReturn(expr->generateOn(gen));
 }
 
 #pragma mark decls
@@ -538,46 +494,34 @@ ReturnStmtNode::generateOn(CodeGen &gen)
 MethodOop
 MethodNode::generate(ObjectMemory &omem)
 {
-#if 0
-    bool finalIsReturn;
-    MethodOop meth = MethodOopDesc::allocate ();
-    CodeGen gen;
+	bool finalIsReturn;
+	MethodOop meth = MethodOopDesc::allocate();
+	CodeGen gen(omem, args.size(), locals.size());
 
-    gen.pushCurrentScope (scope);
+	gen.pushCurrentScope(scope);
 
-    for (auto & v : scope->myHeapVars)
-        v.second->generatePromoteOn (gen);
+	for (auto &v : scope->myHeapVars)
+		v.second->generatePromoteOn(gen);
 
-    for (auto s : stmts)
-    {
-        s->generateOn (gen);
-        if (s != stmts.back () ||
-            !(finalIsReturn = dynamic_cast<ReturnStmtNode *> (s)))
-            gen.genPop ();
-    }
+	for (auto s : stmts) {
+		s->generateOn(gen);
+	}
 
-    if (!finalIsReturn)
-    {
-        gen.genPushSelf ();
-        gen.genReturn ();
-    }
+	if (!finalIsReturn) {
+		gen.genReturnSelf();
+	}
 
-    meth->setSelector (SymbolOopDesc::fromString (sel));
-    meth->setBytecode (ByteArrayOopDesc::fromVector (gen.bytecode ()));
-    meth->setLiterals (ArrayOopDesc::fromVector (gen.literals ()));
-    meth->setArgumentCount (args.size ());
-    meth->setTemporarySize (locals.size ());
-    meth->setHeapVarsSize (scope->myHeapVars.size ());
-    meth->setStackSize (gen.maxStackSize ());
+	meth->setSelector(SymbolOopDesc::fromString(omem, sel));
+	meth->setBytecode(ByteArrayOopDesc::fromVector(omem, gen.bytecode()));
+	meth->setLiterals(ArrayOopDesc::fromVector(omem, gen.literals()));
+	meth->setArgumentCount(args.size());
+	meth->setTemporarySize(locals.size());
+	meth->setHeapVarsSize(scope->myHeapVars.size());
+	meth->setStackSize(gen.nRegs());
 
-    // meth->print (2);
+	gen.popCurrentScope();
 
-    gen.popCurrentScope ();
-
-    // REMOVE printf ("\nEnd a method\n\n\n\n\n");
-
-    return meth;
-#endif
+	return meth;
 }
 
 void

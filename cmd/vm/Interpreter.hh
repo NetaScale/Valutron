@@ -3,7 +3,7 @@
 
 /**
  * Layout of context registers:
- * [arguments] [heapvars] [locals] [temporaries]
+ * [arguments] [locals] [temporaries]
  */
 
 class Op {

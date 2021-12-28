@@ -34,46 +34,46 @@ static std::string removeFirstAndLastChar(std::string aString)
 %code {
 ProgramNode * MVST_Parser::parseFile (std::string fName)
 {
-    MVST_Parser *parser;
-    std::string src;
-    std::ifstream f;
-	std::filesystem::path fPath(fName);
-    yyscan_t scanner;
-    YY_BUFFER_STATE yyb;
+	MVST_Parser *parser;
+	std::string src;
+	std::ifstream f;
+		std::filesystem::path fPath(fName);
+	yyscan_t scanner;
+	YY_BUFFER_STATE yyb;
 
-    f.exceptions(std::ios::failbit | std::ios::badbit);
+	f.exceptions(std::ios::failbit | std::ios::badbit);
 
-    try
-    {
-        f.open(fName);
+	try
+	{
+		f.open(fName);
 
-        f.seekg(0, std::ios::end);
-        src.reserve(f.tellg());
-        f.seekg(0, std::ios::beg);
+		f.seekg(0, std::ios::end);
+		src.reserve(f.tellg());
+		f.seekg(0, std::ios::beg);
 
-        src.assign((std::istreambuf_iterator<char>(f)),
-                   std::istreambuf_iterator<char>());
-    }
+		src.assign((std::istreambuf_iterator<char>(f)),
+			std::istreambuf_iterator<char>());
+	}
 
-    catch (std::ios_base::failure &e)
-    {
-        std::cerr << "PDST: Error: File " + fName + " failed:\n\t" +
-                         e.code().message() + "\n";
-    }
+	catch (std::ios_base::failure &e)
+	{
+		std::cerr << "PDST: Error: File " + fName + " failed:\n\t" +
+				e.code().message() + "\n";
+	}
 
-    parser = MVST_Parser::create(fName, src);
-    if (1)//0)
-        parser->trace(stdout, "<parser>: ");
+	parser = MVST_Parser::create(fName, src);
+	if (0)
+		parser->trace(stdout, "<parser>: ");
 
-    parser->path =  fPath.parent_path();
+	parser->path =  fPath.parent_path();
 
-    mvstlex_init_extra(parser, &scanner);
-    /* Now we need to scan our string into the buffer. */
-    yyb = mvst_scan_string(src.c_str(), scanner);
+	mvstlex_init_extra(parser, &scanner);
+	/* Now we need to scan our string into the buffer. */
+	yyb = mvst_scan_string(src.c_str(), scanner);
 
-    while (mvstlex(scanner))
-        ;
-    parser->parse(TOK_EOF);
+	while (mvstlex(scanner))
+		;
+	parser->parse(TOK_EOF);
 	parser->parse(0);
 
 	return parser->program;
@@ -81,24 +81,24 @@ ProgramNode * MVST_Parser::parseFile (std::string fName)
 
 MethodNode * MVST_Parser::parseText (std::string src)
 {
-    MVST_Parser *parser;
-    yyscan_t scanner;
-    YY_BUFFER_STATE yyb;
+	MVST_Parser *parser;
+	yyscan_t scanner;
+	YY_BUFFER_STATE yyb;
 
-    parser = MVST_Parser::create("<no-file>", src);
-    if (1)//0)
-        //parser->trace(stdout, "<parser>: ");
+	parser = MVST_Parser::create("<no-file>", src);
+	if (1)//0)
+		//parser->trace(stdout, "<parser>: ");
 
-    mvstlex_init_extra(parser, &scanner);
+	mvstlex_init_extra(parser, &scanner);
 
 	printf("Compiling immediate method: [ %s ]\n", src.c_str());
-    /* Now we need to scan our string into the buffer. */
-    yyb = mvst_scan_string(src.c_str(), scanner);
+	/* Now we need to scan our string into the buffer. */
+	yyb = mvst_scan_string(src.c_str(), scanner);
 
 	parser->parse(TOK_DIRECTMETH);
-    while (mvstlex(scanner))
-        ;
-    parser->parse(TOK_EOF);
+	while (mvstlex(scanner))
+		;
+	parser->parse(TOK_EOF);
 	parser->parse(0);
 
 	return parser->meth;
@@ -123,11 +123,14 @@ Position MVST_Parser::pos()
 	std::string eLine = fText.substr(m_pos, eolPos - m_pos);
 	size_t i;
 
-	std::cerr << "PDST: " << fName << "(" << std::to_string(m_line) + ","			  << std::to_string(m_col) << "): "
-			  << "Error V1001: Syntax error: unexpected "			  << yyTokenName[yymajor] << "\n";
+	std::cerr << "PDST: " << fName << "(" << std::to_string(m_line) + ":" <<
+	    std::to_string(m_col) << "): " <<
+	    "Error V1001: Syntax error: unexpected " <<
+	    yyTokenName[yymajor] << "\n";
 
 	std::cerr << "+ " << eLine << "\n";
 	std::cerr << "+ ";
+
 	for (i = 0; i < m_oldCol; i++)
 		std::cerr << " ";
 	for (; i < m_col; i++)
@@ -135,8 +138,7 @@ Position MVST_Parser::pos()
 
 	std::cerr << "\n\texpected one of: \n";
 
-	for (unsigned i = 0; i < YYNTOKEN; ++i)
-	{
+	for (unsigned i = 0; i < YYNTOKEN; ++i) {
 		int yyact = yy_find_shift_action(i, stateno);
 		if (yyact != YY_ERROR_ACTION && yyact != YY_NO_ACTION)
 			std::cerr << "\t" << yyTokenName[i] << "\n";
@@ -296,7 +298,7 @@ uContinuation(C) ::= cExpression(r) SEMICOLON.
 		/* FIXME: To avoid false positives, put bracketed expressions in their
 		 * own thing. */
         CascadeExprNode * c = dynamic_cast<CascadeExprNode *> (r);
-        C = c ? c : new CascadeExprNode (r);	
+        C = c ? c : new CascadeExprNode (r);
 	}
 uContinuation(C) ::= uContinuation(c) identifier(i).
 	{

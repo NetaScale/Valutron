@@ -6,6 +6,37 @@
 #include "ObjectMemory.hh"
 #include "Oops.hh"
 
+template <class T>
+void OopRef<T>::print(size_t in)
+{
+    if (isNil ())
+        std::cout << blanks (in) + "<nil>\n";
+    else if (*this == ObjectMemory::objFalse)
+        std::cout << blanks (in) + "<FALSE>\n";
+    else if (*this == ObjectMemory::objTrue)
+        std::cout << blanks (in) + "<TRUE>\n";
+    else if (isa () == ObjectMemory::clsDictionary ||
+             isa () == ObjectMemory::clsSystemDictionary)
+        as<DictionaryOop> ()->print (in);
+#define Case(ClassName)                                                        \
+    else if (isa () == ObjectMemory::cls##ClassName)                    \
+        as<ClassName##Oop> ()->print (in)
+    else if (isa () == ObjectMemory::clsInteger)
+        std::cout << blanks(in) + "<SMI: " << m_smi << ">\n";
+    else if (isa () == ObjectMemory::clsString)
+        as<SymbolOop> ()->print (in);
+    Case (Symbol);
+//    Case (Method);
+//    Case (Block);
+    Case (Link);
+    /*else if ((anOop->index () > ObjectMemory::clsObject ().index ()) &&
+             (anOop->index () < ObjectMemory::clsSystemDictionary ().index ()))
+        anOop->asClassOop ()
+            ->print (in);*/
+    else std::cout << blanks (in) + "Unknown object: ptr " << m_ptr
+                   << " .\n";
+}
+
 int
 strHash(std::string str)
 {
@@ -84,6 +115,19 @@ LinkOopDesc::newWith(ObjectMemory &omem, Oop a, Oop b)
 	newLink->setTwo(b);
 	return newLink;
 }
+
+void LinkOopDesc::print (int in)
+{
+    std::cout << blanks (in) << "Link " << this << "{\n";
+    std::cout << blanks (in) << "One:\n";
+    one ().print (in + 2);
+    std::cout << blanks (in) << "Two:\n";
+    two ().print (in + 2);
+    std::cout << blanks (in) << "nextLink:\n";
+    nextLink ()->print (in + 2);
+    std::cout << blanks (in) << "}\n";
+}
+
 
 /**
  * \defgroup ClassOop
@@ -364,14 +408,14 @@ DictionaryOopDesc::print(int in)
 		value = *hp++; /* table at: hash + 1 */
 
 		std::cout << blanks(in + 1) + "{ Key:\n";
-		/*key->print (in + 2);
+		key.print (in + 2);
 		std::cout << blanks (in + 1) + " Value:\n";
-		if (!(key.isa () == memMgr.clsSymbol &&
+		if (!(key.isNil() || key.isa () == ObjectMemory::clsSymbol &&
 		      key.as<SymbolOop> ()->strEquals ("Super")))
-		    value->print (in + 2);
+		    value.print (in + 2);
 		else
 		    std::cout << blanks (in + 2) << "<Super-entry>\n";
-		    */
+
 
 		std::cout << blanks(in + 1) + "}\n";
 
@@ -381,9 +425,9 @@ DictionaryOopDesc::print(int in)
 			key = *hp++;   /* link at: 1 */
 			value = *hp++; /* link at: 2 */
 			std::cout << blanks(in + 1) + "{ Key:\n";
-			// key->print (in + 2);
+			key.print (in + 2);
 			std::cout << blanks(in + 1) + " Value:\n";
-			// value->print (in + 2);
+			value.print (in + 2);
 			std::cout << blanks(in + 1) + "}\n";
 		}
 	}
@@ -441,4 +485,10 @@ SymbolOopDesc::fromString(ObjectMemory &omem, std::string aString)
 	    newObj, Oop());
 
 	return newObj;
+}
+
+void SymbolOopDesc::print (int in)
+{
+    std::cout << blanks (in) << "Symbol " << this << ": "
+              << (const char *)vns () << "\n";
 }

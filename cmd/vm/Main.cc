@@ -14,7 +14,8 @@ main(int argc, char * argv[])
 	SynthContext sctx(omem);
 	node->registerNames(sctx);
 	node->synth(sctx);
-	node->generate(omem);
+	//node->generate(omem);
+	//omem.objGlobals->print(5);
 
 	return 0;
 }
