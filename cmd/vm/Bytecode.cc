@@ -24,13 +24,6 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
-		case Op::kStoreToMyHeapVars: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "Store: r" << src << " toMyHeapVar: " <<
-			    dst << "\n";
-			break;
-		}
-
 		case Op::kMoveMyHeapVarToParentHeapVars: {
 			unsigned src = FETCH, dst = FETCH;
 			std::cout << "MoveMyHeapVar: " << src <<
@@ -38,99 +31,91 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
-		/* u8 dest-reg */
-		case Op::kLoadNil: {
+		case Op::kLdaNil:
+			std::cout << "LdaNil\n";
+			break;
+
+		case Op::kLdaTrue:
+			std::cout << "LdaTrue\n";
+			break;
+
+		case Op::kLdaFalse:
+			std::cout << "LdaFalse\n";
+			break;
+
+		case Op::kLdaThisContext:
+			std::cout << "LdaThisContext\n";
+			break;
+
+		case Op::kLdaSmalltalk:
+			std::cout << "LdaSmalltalk\n";
+			break;
+
+		/* u8 index*/
+		case Op::kLdaParentHeapVar: {
+			unsigned src = FETCH;
+			std::cout << "LdaParentHeapVar: " << src;
+			break;
+		}
+
+		case Op::kLdaMyHeapVar: {
+			unsigned src = FETCH;
+			std::cout << "LdaMyHeapVar: " << src << "\n";
+			break;
+		}
+
+		case Op::kLdaGlobal: {
+			unsigned src = FETCH;
+			std::cout << "LdaGlobal: l" << src << "\n";
+			break;
+		}
+
+		case Op::kLdaNstVar: {
+			unsigned src = FETCH;
+			std::cout << "LdaNstVar: " << src << "\n";
+			break;
+		}
+
+		case Op::kLdaLiteral: {
+			unsigned src = FETCH;
+			std::cout << "LdaLiteral: l" << src << "\n";
+			break;
+		}
+
+		case Op::kLdar: {
+			unsigned src = FETCH;
+			std::cout << "Ldar: r" << src << "\n";
+			break;
+		}
+
+		/* u8 index */
+		case Op::kStaNstVar: {
 			unsigned dst = FETCH;
-			std::cout << "LoadNil: r" << dst <<"\n";
+			std::cout << "StoreNstVar: " << dst << "\n";
 			break;
 		}
 
-		case Op::kLoadTrue: {
+		case Op::kStaGlobal: {
 			unsigned dst = FETCH;
-			std::cout << "LoadTrue: r" << dst <<"\n";
+			std::cout << "StoreGlobal: l" << dst << "\n";
 			break;
 		}
 
-		case Op::kLoadFalse: {
+		case Op::kStaParentHeapVar: {
 			unsigned dst = FETCH;
-			std::cout << "LoadFalse: r" << dst <<"\n";
+			std::cout << "StaParentHeapVar: " << dst << "\n";
 			break;
 		}
 
-		case Op::kLoadThisContext: {
+		case Op::kStaMyHeapVar: {
 			unsigned dst = FETCH;
-			std::cout << "LoadThisContext: r" << dst <<"\n";
+			std::cout << "StaMyHeapVar: " << dst << "\n";
 			break;
 		}
 
-		case Op::kLoadSmalltalk: {
-			unsigned dst = FETCH;
-			std::cout << "LoadSmalltalk: r" << dst <<"\n";
-			break;
-		}
-
-		/* u8 index, u8 dest-reg */
-		case Op::kLoadParentHeapVar: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "LoadParentHeapVar: " << src <<
-			    " into: r" << dst << "\n";
-			break;
-		}
-
-		case Op::kLoadMyHeapVar: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "LoadMyHeapVar: " << src <<
-			    " into: r" << dst << "\n";
-			break;
-		}
-
-		case Op::kLoadGlobal: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "LoadGlobal: l" << src <<
-			    " into: r" << dst << "\n";
-			break;
-		}
-
-		case Op::kLoadNstVar: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "LoadNstVar: " << src <<
-			    " into: r" << dst << "\n";
-			break;
-		}
-
-		case Op::kLoadLiteral: {
-			unsigned src = FETCH, dst = FETCH;
-			std::cout << "LoadLiteral: l" << src <<
-			    " into: r" << dst << "\n";
-			break;
-		}
-
-		/* u8 index, u8 source-reg */
-		case Op::kStoreNstVar: {
-			unsigned dst = FETCH, src = FETCH;
-			std::cout << "Store: r" << src <<
-			    " intoNstVar: " << dst << "\n";
-			break;
-		}
-
-		case Op::kStoreGlobal: {
-			unsigned dst = FETCH, src = FETCH;
-			std::cout << "Store: r" << src <<
-			    " intoGlobal: l" << dst << "\n";
-			break;
-		}
-
-		case Op::kStoreParentHeapVar: {
-			unsigned dst = FETCH, src = FETCH;
-			std::cout << "Store: r" << src <<
-			    " intoParentHeapVar: " << dst << "\n";
-			break;
-		}
-
-		case Op::kStoreMyHeapVar: {
-			unsigned dst = FETCH, src = FETCH;
-			std::cout << "Store: r" << src <<
-			    " intoMyHeapVar: " << dst << "\n";
+		case Op::kStar: {
+			unsigned src = FETCH;
+			std::cout << "Star: r" << src << "\n";
 			break;
 		}
 
@@ -147,9 +132,8 @@ disassemble(uint8_t *code, int length)
 		 * u8 num-args, (u8 arg-reg)+
 		 */
 		case Op::kSend: {
-			unsigned dst = FETCH, rcvr = FETCH, selIdx = FETCH,
-			    nArgs = FETCH;
-			std::cout << "Send: r" << rcvr << " msg: l" << selIdx;
+			unsigned selIdx = FETCH, nArgs = FETCH;
+			std::cout << "SendMsg: l" << selIdx;
 
 			if (nArgs > 0) {
 				std::cout << " args: [";
@@ -161,7 +145,7 @@ disassemble(uint8_t *code, int length)
 				std::cout << "]";
 			}
 
-			std::cout << " storeIn: r" << dst << "\n";
+			std::cout << "\n";
 
 			break;
 		}
@@ -171,7 +155,7 @@ disassemble(uint8_t *code, int length)
 		 * (u8 arg-register)+
 		 */
 		case Op::kSendSuper: {
-			unsigned dst = FETCH, selIdx = FETCH, nArgs = FETCH;
+			unsigned selIdx = FETCH, nArgs = FETCH;
 			std::cout << "SendSuperMsg: l" << selIdx;
 
 			if (nArgs > 0) {
@@ -184,11 +168,11 @@ disassemble(uint8_t *code, int length)
 				std::cout << "]";
 			}
 
-			std::cout << " storeIn: r" << dst << "\n";
+			std::cout << "\n";
 			break;
 		}
 
-		/** u8 dest-register, u8 prim-num, u8 num-args, (u8 arg-reg)+ */
+		/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
 		case Op::kPrimitive: {
 			unsigned dst = FETCH, prim = FETCH, nArgs = FETCH;
 			std::cout << "Primitive: " << prim;
@@ -203,7 +187,7 @@ disassemble(uint8_t *code, int length)
 				std::cout << "]";
 			}
 
-			std::cout << " storeIn: r" << dst << "\n";
+			std::cout << "\n";
 			break;
 		}
 
@@ -215,13 +199,13 @@ disassemble(uint8_t *code, int length)
 		/* u8 source-register */
 		case Op::kReturn: {
 			unsigned src = FETCH;
-			std::cout << "Return: r" << src <<"\n";
+			std::cout << "ReturnA\n";
 			break;
 		}
 
 		case Op::kBlockReturn: {
 			unsigned src = FETCH;
-			std::cout << "BlockReturn: r" << src <<"\n";
+			std::cout << "BlockReturnA\n";
 			break;
 		}
 		}

@@ -10,11 +10,11 @@ template <class T>
 void OopRef<T>::print(size_t in)
 {
     if (isNil ())
-        std::cout << blanks (in) + "<nil>\n";
+        std::cout << blanks (in) + "nil\n";
     else if (*this == ObjectMemory::objFalse)
-        std::cout << blanks (in) + "<FALSE>\n";
+        std::cout << blanks (in) + "false\n";
     else if (*this == ObjectMemory::objTrue)
-        std::cout << blanks (in) + "<TRUE>\n";
+        std::cout << blanks (in) + "true\n";
     else if (isa () == ObjectMemory::clsDictionary ||
              isa () == ObjectMemory::clsSystemDictionary)
         as<DictionaryOop> ()->print (in);
@@ -22,7 +22,7 @@ void OopRef<T>::print(size_t in)
     else if (isa () == ObjectMemory::cls##ClassName)                    \
         as<ClassName##Oop> ()->print (in)
     else if (isa () == ObjectMemory::clsInteger)
-        std::cout << blanks(in) + "<SMI: " << m_smi << ">\n";
+        std::cout << blanks(in) << m_smi << "\n";
     else if (isa () == ObjectMemory::clsString)
         as<SymbolOop> ()->print (in);
     Case (Symbol);
@@ -489,8 +489,7 @@ SymbolOopDesc::fromString(ObjectMemory &omem, std::string aString)
 
 void SymbolOopDesc::print (int in)
 {
-    std::cout << blanks (in) << "Symbol " << this << ": "
-              << (const char *)vns () << "\n";
+    std::cout << blanks (in) << "#" << (const char *)vns () << "\n";
 }
 
 StringOop

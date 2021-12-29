@@ -60,13 +60,15 @@ CodeGen::genMoveParentHeapVarToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 void
 CodeGen::genMoveArgumentToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 {
-	gen(Op::kStoreToMyHeapVars, argIndex(index), promotedIndex);
+	gen(Op::kLdar, argIndex(index));
+	gen(Op::kStaMyHeapVar, promotedIndex);
 }
 
 void
 CodeGen::genMoveLocalToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 {
-	gen(Op::kStoreToMyHeapVars, localIndex(index), promotedIndex);
+	gen(Op::kLdar, localIndex(index));
+	gen(Op::kStaMyHeapVar, promotedIndex);
 }
 
 void
@@ -75,199 +77,172 @@ CodeGen::genMoveMyHeapVarToParentHeapVars(uint8_t myIndex, uint8_t parentIndex)
 	gen(Op::kMoveMyHeapVarToParentHeapVars, myIndex, parentIndex);
 }
 
-RegisterID
-CodeGen::genLoadArgument(uint8_t index)
+void
+CodeGen::genLdar(RegisterID reg)
 {
-	return argIndex(index);
-}
-
-RegisterID
-CodeGen::genLoadGlobal(std::string name)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadGlobal, addSym(name), id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadInstanceVar(uint8_t index)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadGlobal, index, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadLocal(uint8_t index)
-{
-	return localIndex(index);
-}
-
-RegisterID
-CodeGen::genLoadParentHeapVar(uint8_t index)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadParentHeapVar, index, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadMyHeapVar(uint8_t index)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadMyHeapVar, index, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadSelf()
-{
-	return 0;
-}
-
-RegisterID
-CodeGen::genLoadNil()
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadNil, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadTrue()
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadTrue, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadFalse()
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadFalse, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadSmalltalk()
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadSmalltalk, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadThisContext()
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadThisContext, id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadLiteral(uint8_t num)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadLiteral,num,  id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadLiteralObject(Oop anObj)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadLiteral, addLit(anObj), id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadInteger(int val)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadLiteral, addLit(val), id);
-	return id;
-}
-
-RegisterID
-CodeGen::genLoadBlockCopy(BlockOop block)
-{
-	RegisterID id = m_reg++;
-	gen(Op::kLoadLiteral, addLit(block), id);
-	return id;
-}
-
-RegisterID
-CodeGen::genStoreInstanceVar(uint8_t index, RegisterID val)
-{
-	gen(Op::kStoreNstVar, index, val);
-	return val;
-}
-
-RegisterID
-CodeGen::genStoreGlobal(std::string name, RegisterID val)
-{
-	gen(Op::kStoreGlobal, addSym(name), val);
-	return val;
-}
-
-RegisterID
-CodeGen::genStoreLocal(uint8_t index, RegisterID val)
-{
-	gen(Op::kMove, localIndex(index), val);
-	return localIndex(index);
-}
-
-RegisterID
-CodeGen::genStoreParentHeapVar(uint8_t index, RegisterID val)
-{
-	gen(Op::kStoreParentHeapVar, index, val);
-	return val;
-}
-
-RegisterID
-CodeGen::genStoreMyHeapVar(uint8_t index, RegisterID val)
-{
-	gen(Op::kStoreMyHeapVar, index, val);
-	return val;
-}
-
-RegisterID
-CodeGen::genMessage(bool isSuper, RegisterID receiver, std::string selector,
-    std::vector<RegisterID> args)
-{
-	RegisterID id = m_reg++;
-
-	if (isSuper)
-		gen(Op::kSendSuper, id, addSym(selector));
-	else
-	 	gen(Op::kSend, id, receiver, addSym(selector));
-
-	genCode(args.size());
-
-	for (auto arg: args)
-		genCode(arg);
-
-	return id;
-}
-
-RegisterID
-CodeGen::genPrimitive(uint8_t primNum, std::vector<RegisterID> args)
-{
-	RegisterID id = m_reg++;
-
-	gen(Op::kPrimitive, id, primNum, args.size());
-
-	for (auto arg: args)
-		genCode(arg);
-
-	return id;
+	gen(Op::kLdar, reg);
 }
 
 void
-CodeGen::genReturn(RegisterID reg)
+CodeGen::genLoadArgument(uint8_t index)
 {
-	gen(Op::kReturn, reg);
+	genLdar(argIndex(index));
+}
+
+void
+CodeGen::genLoadGlobal(std::string name)
+{
+	gen(Op::kLdaGlobal, addSym(name));
+}
+
+void
+CodeGen::genLoadInstanceVar(uint8_t index)
+{
+	gen(Op::kLdaGlobal, index);
+}
+
+void
+CodeGen::genLoadLocal(uint8_t index)
+{
+	genLdar(localIndex(index));
+}
+
+void
+CodeGen::genLoadParentHeapVar(uint8_t index)
+{
+	gen(Op::kLdaParentHeapVar, index);
+}
+
+void
+CodeGen::genLoadMyHeapVar(uint8_t index)
+{
+	gen(Op::kLdaMyHeapVar, index);
+}
+
+void
+CodeGen::genLoadSelf()
+{
+	gen(Op::kLdar, 0);
+}
+
+void
+CodeGen::genLoadNil()
+{
+	gen(Op::kLdaNil);
+}
+
+void
+CodeGen::genLoadTrue()
+{
+	gen(Op::kLdaTrue);
+}
+
+void
+CodeGen::genLoadFalse()
+{
+	gen(Op::kLdaFalse);
+}
+
+void
+CodeGen::genLoadSmalltalk()
+{
+	gen(Op::kLdaSmalltalk);
+}
+
+void
+CodeGen::genLoadThisContext()
+{
+	gen(Op::kLdaThisContext);
+}
+
+void
+CodeGen::genLoadLiteral(uint8_t num)
+{
+	gen(Op::kLdaLiteral,num);
+}
+
+void
+CodeGen::genLoadLiteralObject(Oop anObj)
+{
+	gen(Op::kLdaLiteral, addLit(anObj));
+}
+
+void
+CodeGen::genLoadInteger(int val)
+{
+	gen(Op::kLdaLiteral, addLit(val));
+}
+
+void
+CodeGen::genLoadBlockCopy(BlockOop block)
+{
+	gen(Op::kLdaLiteral, addLit(block));
+}
+
+RegisterID
+CodeGen::genStar()
+{
+	RegisterID reg = m_reg++;
+	gen(Op::kStar, reg);
+	return reg;
+}
+
+void
+CodeGen::genStoreInstanceVar(uint8_t index)
+{
+	gen(Op::kStaNstVar, index);
+}
+
+void
+CodeGen::genStoreGlobal(std::string name)
+{
+	gen(Op::kStaGlobal, addSym(name));
+}
+
+void
+CodeGen::genStoreLocal(uint8_t index)
+{
+	gen(Op::kStar, localIndex(index));
+}
+
+void
+CodeGen::genStoreParentHeapVar(uint8_t index)
+{
+	gen(Op::kStaParentHeapVar, index);
+}
+
+void
+CodeGen::genStoreMyHeapVar(uint8_t index)
+{
+	gen(Op::kStaMyHeapVar, index);
+}
+
+void
+CodeGen::genMessage(bool isSuper, std::string selector,
+    std::vector<RegisterID> args)
+{
+	if (isSuper)
+		gen(Op::kSendSuper, addSym(selector), args.size());
+	else
+	 	gen(Op::kSend, addSym(selector), args.size());
+
+	for (auto arg: args)
+		genCode(arg);
+}
+
+void
+CodeGen::genPrimitive(uint8_t primNum, std::vector<RegisterID> args)
+{
+	gen(Op::kPrimitive, primNum, args.size());
+
+	for (auto arg: args)
+		genCode(arg);
+}
+
+void
+CodeGen::genReturn()
+{
+	gen(Op::kReturn);
 }
 
 void
@@ -277,7 +252,7 @@ CodeGen::genReturnSelf()
 }
 
 void
-CodeGen::genBlockReturn(RegisterID reg)
+CodeGen::genBlockReturn()
 {
-	gen(Op::kBlockReturn, reg);
+	gen(Op::kBlockReturn);
 }
