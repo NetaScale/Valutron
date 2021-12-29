@@ -101,4 +101,6 @@ class CodeGen {
 
 };
 
+void disassemble(uint8_t * code, int length);
+
 #endif /* GENERATION_HH_ */

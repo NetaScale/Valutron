@@ -432,7 +432,7 @@ BlockExprNode::generateReturnPreludeOn(CodeGen &gen)
 RegisterID
 BlockExprNode::generateOn(CodeGen &gen)
 {
-	BlockOop block = BlockOopDesc::allocate(gen.omem());
+	BlockOop block = BlockOopDesc::new0(gen.omem());
 	CodeGen blockGen(gen.omem(), args.size(), 0, true);
 
 	blockGen.pushCurrentScope(scope);
@@ -495,7 +495,7 @@ MethodOop
 MethodNode::generate(ObjectMemory &omem)
 {
 	bool finalIsReturn;
-	MethodOop meth = MethodOopDesc::allocate();
+	MethodOop meth = MethodOopDesc::new0(omem);
 	CodeGen gen(omem, args.size(), locals.size());
 
 	gen.pushCurrentScope(scope);
@@ -505,10 +505,9 @@ MethodNode::generate(ObjectMemory &omem)
 
 	for (auto s : stmts) {
 		s->generateOn(gen);
-	}
-
-	if (!finalIsReturn) {
-		gen.genReturnSelf();
+		if (s != stmts.back() && dynamic_cast<ReturnStmtNode *>(s) ==
+		    NULL)
+			gen.genReturnSelf();
 	}
 
 	meth->setSelector(SymbolOopDesc::fromString(omem, sel));
@@ -518,6 +517,13 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setTemporarySize(locals.size());
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
+
+	disassemble(gen.bytecode().data(), gen.bytecode().size());
+	printf("Literals:\n");
+	for (auto & lit: gen.literals())
+	{
+		lit.print(2);
+	}
 
 	gen.popCurrentScope();
 

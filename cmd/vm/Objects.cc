@@ -492,3 +492,29 @@ void SymbolOopDesc::print (int in)
     std::cout << blanks (in) << "Symbol " << this << ": "
               << (const char *)vns () << "\n";
 }
+
+StringOop
+StringOopDesc::fromString(ObjectMemory &omem, std::string aString)
+{
+	StringOop newObj = omem.newByteObj<StringOop>(aString.size() + 1);
+
+	newObj.setIsa(ObjectMemory::clsString);
+	strncpy((char *)newObj->vns(), aString.c_str(), aString.size());
+	return newObj;
+}
+
+MethodOop
+MethodOopDesc::new0(ObjectMemory &omem)
+{
+	MethodOop newMeth = omem.newOopObj<MethodOop>(clsNstLength);
+	newMeth.setIsa(ObjectMemory::clsMethod);
+	return newMeth;
+}
+
+BlockOop
+BlockOopDesc::new0(ObjectMemory &omem)
+{
+	BlockOop newBlock = omem.newOopObj<BlockOop>(clsNstLength);
+	newBlock.setIsa(ObjectMemory::clsBlock);
+	return newBlock;
+}

@@ -214,7 +214,7 @@ CodeGen::genStoreGlobal(std::string name, RegisterID val)
 RegisterID
 CodeGen::genStoreLocal(uint8_t index, RegisterID val)
 {
-	gen(Op::kStore, localIndex(index), val);
+	gen(Op::kMove, localIndex(index), val);
 	return localIndex(index);
 }
 

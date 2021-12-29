@@ -413,7 +413,7 @@ class MethodOopDesc : public OopOopDesc {
 	AccessorPair(ClassOop, methodClass, setMethodClass, 8);
 	AccessorPair(SmiOop, watch, setWatch, 9);
 
-	static MethodOop allocate();
+	static MethodOop new0(ObjectMemory &omem);
 
 	void print(int in);
 };
@@ -445,7 +445,7 @@ class BlockOopDesc : public OopOopDesc {
 	/**
 	 * Allocates a new empty block.
 	 */
-	static BlockOop allocate(ObjectMemory & omem);
+	static BlockOop new0(ObjectMemory& omem);
 
 	void print(int in);
 };
