@@ -277,7 +277,7 @@ FloatExprNode::generateOn(CodeGen &gen)
 	return gen.genLoadLiteralObject(Oop());
 	/*int litNum = gen.genLiteral ((objRef)newFloat (num));
 	if (!gen.inLiteralArray ())
-	    gen.genInstruction (PushLiteral, litNum);*/
+	    gen.gen (PushLiteral, litNum);*/
 }
 
 RegisterID
@@ -292,7 +292,7 @@ ArrayExprNode::generateOn(CodeGen &gen)
 	litNum = gen.endLiteralArray ();
 
 	if (!gen.inLiteralArray ())
-	    gen.genInstruction (PushLiteral, litNum);*/
+	    gen.gen (PushLiteral, litNum);*/
 }
 
 #pragma mark expressions
@@ -406,7 +406,7 @@ MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 		gen.genIfTrueIfFalse ();
 	else
 #endif
-	return gen.genMessage(isSuper, selector, argRegs);
+	return gen.genMessage(isSuper, receiver, selector, argRegs);
 }
 
 RegisterID
@@ -456,10 +456,10 @@ BlockExprNode::generateOn(CodeGen &gen)
 		blockGen.genReturn(blockGen.genLoadNil());
 	}
 
-	block->setBytecode(
-	    ByteArrayOopDesc::fromVector(gen.omem(), blockGen.bytecode()));
-	block->setLiterals(
-	    ArrayOopDesc::fromVector(gen.omem(), blockGen.literals()));
+	block->setBytecode(ByteArrayOopDesc::fromVector(gen.omem(),
+	    blockGen.bytecode()));
+	block->setLiterals(ArrayOopDesc::fromVector(gen.omem(),
+	    blockGen.literals()));
 	block->setArgumentCount(SmiOop(args.size()));
 	block->setTemporarySize(SmiOop((intptr_t)0));
 	block->setHeapVarsSize(SmiOop(scope->myHeapVars.size()));

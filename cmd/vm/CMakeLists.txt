@@ -1,7 +1,7 @@
 FlexComp(Scanner.l)
 LemonComp(Parser.y)
 
-add_executable(vm  AST.cc Main.cc ObjectMemory.cc Objects.cc
+add_executable(vm AST.cc Main.cc Generation.cc ObjectMemory.cc Objects.cc
     Synth.cc
     ${CMAKE_CURRENT_BINARY_DIR}/Scanner.l.cc
     ${CMAKE_CURRENT_BINARY_DIR}/Parser.tab.cc)

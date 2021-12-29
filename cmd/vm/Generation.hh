@@ -4,6 +4,7 @@
 #include <stack>
 
 #include "AST.hh"
+#include "Interpreter.hh"
 
 /**
  * Some optimisations that may be made:
@@ -21,9 +22,21 @@ class CodeGen {
 	bool m_isBlock;
 	bool m_hasOwnBlockReturn;
 
-	RegisterID m_reg = 0;
+	RegisterID m_reg;
 	int m_nArgs;
 	int m_nLocals;
+
+	int argIndex(int idx) { return 1 + idx; }
+	int localIndex(int idx) { return 1 + m_nArgs + idx; }
+
+	void genCode(uint8_t code);
+	void gen (Op::Opcode code);
+	void gen (Op::Opcode code, uint8_t arg1);
+	void gen (Op::Opcode code, uint8_t arg1, uint8_t arg2);
+	void gen (Op::Opcode code, uint8_t arg1, uint8_t arg2, uint8_t arg3);
+
+	int addLit(Oop oop);
+	int addSym(std::string str);
 
     public:
 	CodeGen(ObjectMemory &omem, int nArgs, int nLocals,
@@ -32,6 +45,7 @@ class CodeGen {
 	    , m_isBlock(isBlock)
 	    , m_nArgs(nArgs)
 	    , m_nLocals(nLocals)
+	    , m_reg (nArgs + nLocals + 1)
 	{
 	}
 
@@ -77,7 +91,8 @@ class CodeGen {
 	RegisterID genStoreParentHeapVar (uint8_t index, RegisterID val);
 	RegisterID genStoreMyHeapVar (uint8_t index, RegisterID val);
 
-	RegisterID genMessage(bool isSuper, std::string selector, std::vector<RegisterID> args);
+	RegisterID genMessage(bool isSuper, RegisterID receiver,
+	    std::string selector, std::vector<RegisterID> args);
 	RegisterID genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
 
 	void genReturn(RegisterID reg);
