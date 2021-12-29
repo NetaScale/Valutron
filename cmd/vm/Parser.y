@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 David MacKay.  All rights reserved.
+ * Copyright 2020-2021 David MacKay.  All rights reserved.
  * Use is subject to license terms.
  */
 
@@ -150,24 +150,24 @@ prog ::= file.
 file ::= directMeth EOF.
 
 
-file ::= lDecl(l) EOF.
+file ::= decl_list(l) EOF.
 	{
 		program = new ProgramNode(l);
 	}
 
-directMeth ::= DIRECTMETH oIvarDefs(locals)
-		statementList(stmts)
-		oFinalDot.
+directMeth ::= DIRECTMETH var_defs_opt(locals)
+		statements(stmts)
+		dot_opt.
 	{
 		meth = new MethodNode(false, "fakeselector", {}, locals, stmts);
 	}
 
-%type lDecl { std::vector<DeclNode *> }
+%type decl_list { std::vector<DeclNode *> }
 %type decl { DeclNode * }
-%type clsDecl { DeclNode * }
+%type class_def { DeclNode * }
 
-lDecl(L) ::= decl(d). { L = {d}; }
-lDecl(L) ::= lDecl(l) decl(d).
+decl_list(L) ::= decl(d). { L = {d}; }
+decl_list(L) ::= decl_list(l) decl(d).
 	{
 		L = l;
 		L.push_back(d);
@@ -177,18 +177,18 @@ decl(D) ::= ATinclude STRING(name).
 	{
 		D = parseFile(path + "/" + removeFirstAndLastChar(name));
 	}
-decl(D) ::= NAMESPACE CURRENTCOLON identifier(name) SQB_OPEN lDecl(l) SQB_CLOSE.
+decl(D) ::= NAMESPACE CURRENTCOLON identifier(name) SQB_OPEN decl_list(l) SQB_CLOSE.
 	{
 		printf("new namespace node %s\n", name.stringValue.c_str());
 		D = new NamespaceNode(name, l);
 	}
-decl ::= clsDecl.
+decl ::= class_def.
 
 
-clsDecl(D) ::= identifier(super) SUBCLASSCOLON identifier(name)
+class_def(D) ::= identifier(super) SUBCLASSCOLON identifier(name)
 	SQB_OPEN
-		oCAndIvarDefs(iVars)
-		olMethDecl(iMeths)
+		ivar_cvar_defs_opt(iVars)
+		method_defs_opt(iMeths)
 	SQB_CLOSE.
 	{
 		ClassNode * cls = new ClassNode(name, super, {}, iVars);
@@ -196,44 +196,44 @@ clsDecl(D) ::= identifier(super) SUBCLASSCOLON identifier(name)
 		D = cls;
 	}
 
-%type oCAndIvarDefs { std::vector<std::string>}
-%type oIvarDefs { std::vector<std::string> }
-%type oLIvar { std::vector<std::string> }
-%type lIvar { std::vector<std::string> }
+%type ivar_cvar_defs_opt { std::vector<std::string>}
+%type var_defs_opt { std::vector<std::string> }
+%type var_def_list_opt { std::vector<std::string> }
+%type var_def_list { std::vector<std::string> }
 
-oCAndIvarDefs ::= .
-oCAndIvarDefs(L) ::= BAR oLIvar(l) BAR. { L = l; }
-oCAndIvarDefs(L) ::= BAR oLIvar(l) BAR BAR lIvar BAR. { L = l; }
+ivar_cvar_defs_opt ::= .
+ivar_cvar_defs_opt(L) ::= BAR var_def_list_opt(l) BAR. { L = l; }
+ivar_cvar_defs_opt(L) ::= BAR var_def_list_opt(l) BAR BAR var_def_list BAR. { L = l; }
 
-oIvarDefs ::= .
-oIvarDefs(L) ::= BAR lIvar(l) BAR. { L = l; }
+var_defs_opt ::= .
+var_defs_opt(L) ::= BAR var_def_list(l) BAR. { L = l; }
 
-oLIvar ::= .
-oLIvar(L) ::= lIvar(l). { L = l; }
+var_def_list_opt ::= .
+var_def_list_opt(L) ::= var_def_list(l). { L = l; }
 
-lIvar(L) ::= IDENTIFIER(i). { L = {i}; }
-lIvar(L) ::= lIvar(l) IDENTIFIER(i).
+var_def_list(L) ::= IDENTIFIER(i). { L = {i}; }
+var_def_list(L) ::= var_def_list(l) IDENTIFIER(i).
 	{
 		L = l;
 		L.push_back(i);	}
 
-%type olMethDecl { std::vector<MethodNode *> }
-%type lMethDecl { std::vector<MethodNode *> }
-%type methDecl { MethodNode * }
+%type method_defs_opt { std::vector<MethodNode *> }
+%type method_defs { std::vector<MethodNode *> }
+%type method_def { MethodNode * }
 
-olMethDecl(L) ::= lMethDecl(l). { L = l; }
-olMethDecl ::= .
+method_defs_opt(L) ::= method_defs(l). { L = l; }
+method_defs_opt ::= .
 
-lMethDecl(L) ::= methDecl(d). { L = {d}; }
-lMethDecl(L) ::= lMethDecl(l) methDecl(d).
+method_defs(L) ::= method_def(d). { L = {d}; }
+method_defs(L) ::= method_defs(l) method_def(d).
 	{
 		L = l;
 		L.push_back(d);	}
 
-methDecl(D) ::= oCLASSRR(isClass) sel_decl(s)
-	SQB_OPEN		oIvarDefs(locals)
-		statementList(stmts)
-		oFinalDot
+method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s)
+	SQB_OPEN		var_defs_opt(locals)
+		statements(stmts)
+		dot_opt
 	SQB_CLOSE.
 	{
 		//for (auto s: stmts)
@@ -241,198 +241,196 @@ methDecl(D) ::= oCLASSRR(isClass) sel_decl(s)
 		D = new MethodNode(isClass, s.first, s.second, locals, stmts);
 	}
 
-%type oCLASSRR { bool }
+%type opt_class_meth_spec { bool }
 
-oCLASSRR(C) ::= . { C = false; }
-oCLASSRR(C) ::= CLASSRR. { C = true; }
+opt_class_meth_spec(C) ::= . { C = false; }
+opt_class_meth_spec(C) ::= CLASSRR. { C = true; }
 
-%type statementList { std::vector<StmtNode *> }
+%type statements { std::vector<StmtNode *> }
 %type statement { StmtNode * }
 
-statementList(L) ::= statement(s). { L = {s}; }
-statementList(L) ::= statementList(l) DOT statement(s).
+statements(L) ::= statement(s). { L = {s}; }
+statements(L) ::= statements(l) DOT statement(s).
 	{
 		L = l;
 		L.push_back(s);	}
 
-statement(S) ::= UP sExpression(e). { S = new ReturnStmtNode(e);  }
-statement(S) ::= sExpression(e). { S = new ExprStmtNode(e); }
+statement(S) ::= UP assign_expr(e). { S = new ReturnStmtNode(e);  }
+statement(S) ::= assign_expr(e). { S = new ExprStmtNode(e); }
 
-%type sExpression { ExprNode * }
-%type cExpression { ExprNode * }
-%type kContinuation { CascadeExprNode * }
-%type bContinuation { CascadeExprNode * }
-%type uContinuation { CascadeExprNode * }
-%type expression { ExprNode * }
+%type assign_expr { ExprNode * }
+%type continuation_expr { ExprNode * }
+%type keyw_continuation_expr { CascadeExprNode * }
+%type bin_continuation_expr { CascadeExprNode * }
+%type unary_continuation_expr { CascadeExprNode * }
+%type msg_expr { ExprNode * }
 
-sExpression(E) ::= identifier(i) ASSIGN expression(e).
+assign_expr(E) ::= identifier(i) ASSIGN continuation_expr(e).
 	{
 		E = new AssignExprNode(new IdentExprNode (i), e);
 	}
-sExpression(E) ::= cExpression(e). { E = e;}
+assign_expr(E) ::= continuation_expr(e). { E = e;}
 
-cExpression(C) ::= expression(e). { C = e; }
-cExpression(C) ::= kContinuation(e). { C = e; }
+continuation_expr(C) ::= msg_expr(e). { C = e; }
+continuation_expr(C) ::= keyw_continuation_expr(e). { C = e; }
 
-kContinuation(C) ::= bContinuation(c).
+keyw_continuation_expr(C) ::= bin_continuation_expr(c).
 	{
 		C = c;
 	}
-kContinuation(C) ::= bContinuation(c) keywordList(l).
+keyw_continuation_expr(C) ::= bin_continuation_expr(c) keyw_msg_body(l).
 	{
 		C = c;
 		C->messages.push_back(
 			new MessageExprNode(C->receiver, l));
 	}
 
-bContinuation(C) ::= uContinuation(c). { C = c; }
-bContinuation(C) ::= bContinuation(c) binOp(s) unary(e).
+bin_continuation_expr(C) ::= unary_continuation_expr(c). { C = c; }
+bin_continuation_expr(C) ::= bin_continuation_expr(c) binOp(s) unary_expr(e).
 	{
 		C = c;
 		C->messages.push_back(new MessageExprNode(C->receiver, s, {e}));
 	}
 
 
-uContinuation(C) ::= cExpression(r) SEMICOLON.
+unary_continuation_expr(C) ::= continuation_expr(r) SEMICOLON.
 	{
 		/* FIXME: To avoid false positives, put bracketed expressions in their
 		 * own thing. */
-        CascadeExprNode * c = dynamic_cast<CascadeExprNode *> (r);
-        C = c ? c : new CascadeExprNode (r);
+		CascadeExprNode * c = dynamic_cast<CascadeExprNode *> (r);
+		C = c ? c : new CascadeExprNode (r);
 	}
-uContinuation(C) ::= uContinuation(c) identifier(i).
+unary_continuation_expr(C) ::= unary_continuation_expr(c) identifier(i).
 	{
 		C = c;
 		C->messages.push_back(new MessageExprNode(C->receiver, i));
 	}
 
-expression(E) ::= binary(b). { E = b; }
-expression(E) ::= binary(e) keywordList(k).
+msg_expr(E) ::= binary_expr(b). { E = b; }
+msg_expr(E) ::= binary_expr(e) keyw_msg_body(k).
 	{
 		E = new MessageExprNode(e, k);
 	}
 
-%type keywordList { std::vector<std::pair<std::string, ExprNode *>> }
+%type keyw_msg_body { std::vector<std::pair<std::string, ExprNode *>> }
 
-keywordList(L) ::= keyword(k) binary(e).
+keyw_msg_body(L) ::= keyword(k) binary_expr(e).
 	{
 		L = { {k, e}};
 	}
-keywordList(L) ::= keywordList(l) keyword(k) binary(e).
+keyw_msg_body(L) ::= keyw_msg_body(l) keyword(k) binary_expr(e).
 	{
 		L = l;
 		L.push_back( { k, e });
 	}
 
-%type binary { ExprNode * }
-%type unary { ExprNode * }
-%type primary { ExprNode * }
+%type binary_expr { ExprNode * }
+%type unary_expr { ExprNode * }
+%type primary_expr { ExprNode * }
 
-binary(E) ::= unary(e). { E = e; }
-binary(E) ::= binary(r) binOp(s) unary(a).
+binary_expr(E) ::= unary_expr(e). { E = e; }
+binary_expr(E) ::= binary_expr(r) binOp(s) unary_expr(a).
 	{
 		E  = new MessageExprNode(r, s, { a });	}
 
-unary(E) ::= primary(e). { E = e; }
-unary(U) ::= unary(p) identifier(i). { U  = new MessageExprNode(p, i); }
+unary_expr(E) ::= primary_expr(e). { E = e; }
+unary_expr(U) ::= unary_expr(p) identifier(i). { U  = new MessageExprNode(p, i); }
 
-primary(S) ::= identifier(i). { S = new IdentExprNode (i); }
-primary(S) ::= LBRACKET sExpression(s) RBRACKET. { S = s; }
-primary ::= block.
-primary ::= literal.
-primary(S) ::= PRIMNUM(n) oLPrimary(l) RCARET.
+primary_expr(S) ::= identifier(i). { S = new IdentExprNode (i); }
+primary_expr(S) ::= LBRACKET assign_expr(s) RBRACKET. { S = s; }
+primary_expr ::= block_expr.
+primary_expr ::= literal_expr.
+primary_expr(S) ::= PRIMNUM(n) primary_list_opt(l) RCARET.
 	{
 		S = new PrimitiveExprNode(n.intValue, l);
 	}
 
-%type oLPrimary { std::vector<ExprNode *> }
-%type lPrimary { std::vector<ExprNode *> }
+%type primary_list_opt { std::vector<ExprNode *> }
+%type primary_list { std::vector<ExprNode *> }
 
-oLPrimary ::= .
-oLPrimary(L) ::= lPrimary(l). { L = l; }
+primary_list_opt ::= .
+primary_list_opt(L) ::= primary_list(l). { L = l; }
 
-lPrimary(L) ::= primary(p). { L = {p}; }
-lPrimary(L) ::= lPrimary(l) primary(p).
+primary_list(L) ::= primary_expr(p). { L = {p}; }
+primary_list(L) ::= primary_list(l) primary_expr(p).
 	{
 		L = l;
 		L.push_back(p);
 	}
 
-%type literal { ExprNode * }
-%type aLiteral { ExprNode * }
-%type iLiteral { ExprNode * }
+%type literal_expr { ExprNode * }
+%type array_literal_member { ExprNode * }
+%type basic_literal_expr { ExprNode * }
 
-literal(L) ::= HASH LBRACKET oLALiteral(a) RBRACKET.  { L = new ArrayExprNode(a); }
-literal ::= iLiteral.
+literal_expr(L) ::= HASH LBRACKET array_literal_members_opt(a) RBRACKET.  { L = new ArrayExprNode(a); }
+literal_expr ::= basic_literal_expr.
 
-%type lALiteral { std::vector<ExprNode *> }
-%type oLALiteral { std::vector<ExprNode *> }
+%type array_literal_members { std::vector<ExprNode *> }
+%type array_literal_members_opt { std::vector<ExprNode *> }
 
-oLALiteral ::= .
-oLALiteral(A) ::= lALiteral(l). {A = l;}
+array_literal_members_opt ::= .
+array_literal_members_opt(A) ::= array_literal_members(l). {A = l;}
 
-lALiteral(L) ::= aLiteral(l). { L = {l}; }
-lALiteral(L) ::= lALiteral(l) aLiteral(lit).
+array_literal_members(L) ::= array_literal_member(l). { L = {l}; }
+array_literal_members(L) ::= array_literal_members(l) array_literal_member(lit).
 	{
 		L = l;
 		L.push_back(lit);
 	}
 
-aLiteral(A) ::= iLiteral(i). { A = i; }
-aLiteral(A) ::= identifier(i). { A = new SymbolExprNode(i); }
-aLiteral(A) ::= keyword(k). { A = new SymbolExprNode(k); }
-aLiteral(A) ::= ias oLALiteral(a) RBRACKET. { A = new ArrayExprNode(a); }
+array_literal_member(A) ::= basic_literal_expr(i). { A = i; }
+array_literal_member(A) ::= identifier(i). { A = new SymbolExprNode(i); }
+array_literal_member(A) ::= keyword(k). { A = new SymbolExprNode(k); }
+array_literal_member(A) ::= LBRACKET array_literal_members_opt(a) RBRACKET. { A = new ArrayExprNode(a); }
+array_literal_member(A) ::= HASH LBRACKET array_literal_members_opt(a) RBRACKET. { A = new ArrayExprNode(a); }
 
-ias ::= HASH LBRACKET.
-ias ::= LBRACKET.
-
-iLiteral(S) ::= STRING(s).
+basic_literal_expr(S) ::= STRING(s).
 	{
 		S = new StringExprNode(removeFirstAndLastChar(s));
 	}
-iLiteral(S) ::= SYMBOL(s).
+basic_literal_expr(S) ::= SYMBOL(s).
 	{
 		S = new SymbolExprNode(removeFirstChar(s));
 	}
-iLiteral(S) ::= INTEGER(i).
+basic_literal_expr(S) ::= INTEGER(i).
 	{
 		S = new IntExprNode(i.intValue);
 	}
-iLiteral(S) ::= FLOAT(f).
+basic_literal_expr(S) ::= FLOAT(f).
 	{
 		S = new FloatExprNode(f);
 	}
-iLiteral(S) ::= CHAR(c).
+basic_literal_expr(S) ::= CHAR(c).
 	{
 		S = new CharExprNode(removeFirstChar(c));
 	}
 
-%type block { BlockExprNode * }
+%type block_expr { BlockExprNode * }
 
-block(B) ::= SQB_OPEN oBlockVarList(v) oStatementList(s) SQB_CLOSE.
+block_expr(B) ::= SQB_OPEN block_formal_list_opt(v) statements_opt(s) SQB_CLOSE.
 	{
 		B = new BlockExprNode(v, s);
 	}
 
-oFinalDot ::= .
-oFinalDot ::= DOT.
+dot_opt ::= .
+dot_opt ::= DOT.
 
-%type oStatementList { std::vector<StmtNode *> }
+%type statements_opt { std::vector<StmtNode *> }
 
-oStatementList ::= .
-oStatementList(L) ::= statementList(l). { L = l; }
+statements_opt ::= .
+statements_opt(L) ::= statements(l). { L = l; }
 
-%type oBlockVarList { std::vector<std::string> }
-%type colonVarList { std::vector<std::string> }
+%type block_formal_list_opt { std::vector<std::string> }
+%type colon_var_list { std::vector<std::string> }
 
-oBlockVarList(L) ::= colonVarList(l) BAR. { L = l; }
-oBlockVarList ::= .
+block_formal_list_opt(L) ::= colon_var_list(l) BAR. { L = l; }
+block_formal_list_opt ::= .
 
-colonVarList(L) ::= COLONVAR(v).	{
+colon_var_list(L) ::= COLONVAR(v).	{
 		std::string s = v;
 		s.erase(s.begin());
 		L = {s};
-	}colonVarList(L) ::= colonVarList(l) COLONVAR(v).
+	}colon_var_list(L) ::= colon_var_list(l) COLONVAR(v).
 	{
 		L = l;
 		std::string s = v;
@@ -440,37 +438,37 @@ colonVarList(L) ::= COLONVAR(v).	{
 		L.push_back(s);
 	}
 
-%type sel_decl { std::pair<std::string, std::vector<std::string>> }
+%type selector_pattern { std::pair<std::string, std::vector<std::string>> }
 
-sel_decl(S) ::= identifier(i). { S = {i, {}};  }
-sel_decl(S)
-	::= binary_decl(b).
+selector_pattern(S) ::= identifier(i). { S = {i, {}};  }
+selector_pattern(S)
+	::= binary_pattern(b).
 	{		S = {b.first, {b.second}};
 	}
-sel_decl(S)
-	::= keyw_decl_list(k).
+selector_pattern(S)
+	::= keyw_pattern(k).
 	{
 		S = k;
 	}
 
-%type keyw_decl_list { std::pair<std::string, std::vector<std::string>> }
+%type keyw_pattern { std::pair<std::string, std::vector<std::string>> }
 
-keyw_decl_list(L) ::= keyw_decl(k). {
+keyw_pattern(L) ::= keyw_pattern_part(k). {
     L = {k.first, {k.second}};
 }
-keyw_decl_list(L) ::= keyw_decl_list(l) keyw_decl(k). {    L = l;
+keyw_pattern(L) ::= keyw_pattern(l) keyw_pattern_part(k). {    L = l;
 	L.first += k.first;
 	L.second.push_back(k.second);
 }
 
-%type keyw_decl { std::pair<std::string, std::string> }
-%type binary_decl { std::pair<std::string, std::string> }
+%type keyw_pattern_part { std::pair<std::string, std::string> }
+%type binary_pattern { std::pair<std::string, std::string> }
 
-keyw_decl(K) ::= keyword(k) identifier(s). {
+keyw_pattern_part(K) ::= keyword(k) identifier(s). {
     K = {k, s};
 }
 
-binary_decl(B) ::= binOp(b) identifier(s). {
+binary_pattern(B) ::= binOp(b) identifier(s). {
     B = {b, s};
 }
 
