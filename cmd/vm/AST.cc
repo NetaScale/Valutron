@@ -133,24 +133,27 @@ ProgramNode::print(int in)
 /*
  * generation
  */
-RegisterID
+void
 Var::generateOn(CodeGen &gen)
 {
 	switch (kind) {
 	case kInstance:
-		return gen.genLoadInstanceVar(getIndex());
+		gen.genLoadInstanceVar(getIndex());
+		return;
 
 	case kArgument:
 		if (!promoted)
-			return gen.genLoadArgument(getIndex());
+			gen.genLoadArgument(getIndex());
 		else
-			return gen.genLoadMyHeapVar(promotedIndex);
+			gen.genLoadMyHeapVar(promotedIndex);
+		return;
 
 	case kLocal:
 		if (!promoted)
-			return gen.genLoadLocal(getIndex());
+			gen.genLoadLocal(getIndex());
 		else
-			return gen.genLoadMyHeapVar(promotedIndex);
+			gen.genLoadMyHeapVar(promotedIndex);
+		return;
 
 	case kParentsHeapVar: {
 		std::map<int, int>::iterator it = gen.scope()->
@@ -158,33 +161,37 @@ Var::generateOn(CodeGen &gen)
 
 		if (promoted || it != gen.scope()->parentHeapVarToMyHeapVar.
 		    end())
-			return gen.genLoadMyHeapVar(it->second);
+			gen.genLoadMyHeapVar(it->second);
 		else
-			return gen.genLoadParentHeapVar(getIndex());
+			gen.genLoadParentHeapVar(getIndex());
+		return;
 	}
 
 	case kHeapVar:
-		return gen.genLoadMyHeapVar(getIndex());
+		gen.genLoadMyHeapVar(getIndex());
+		return;
 
 	default:
-		return gen.genLoadGlobal(name);
+		gen.genLoadGlobal(name);
 	}
 }
 
-RegisterID
+void
 Var::generateAssignOn(CodeGen &gen, ExprNode *expr)
 {
-	RegisterID val = expr->generateOn(gen);
+	expr->generateOn(gen);
 
 	switch (kind) {
 	case kInstance:
-		return gen.genStoreInstanceVar(getIndex(), val);
+		gen.genStoreInstanceVar(getIndex());
+		return;
 
 	case kLocal:
 		if (!promoted)
-			return gen.genStoreLocal(getIndex(), val);
+			gen.genStoreLocal(getIndex());
 		else
-			return gen.genStoreMyHeapVar(promotedIndex, val);
+			gen.genStoreMyHeapVar(promotedIndex);
+		return;
 
 	case kParentsHeapVar: {
 		std::map<int, int>::iterator it = gen.scope()->
@@ -192,16 +199,19 @@ Var::generateAssignOn(CodeGen &gen, ExprNode *expr)
 
 		if (promoted || it != gen.scope()->
 		    parentHeapVarToMyHeapVar.end())
-			return gen.genStoreMyHeapVar(it->second, val);
+			gen.genStoreMyHeapVar(it->second);
 		else
-			return gen.genStoreParentHeapVar(getIndex(), val);
+			gen.genStoreParentHeapVar(getIndex());
+		return;
 	}
 
 	case kHeapVar:
-		return gen.genStoreMyHeapVar(getIndex(), val);
+		gen.genStoreMyHeapVar(getIndex());
+		return;
 
 	default:
-		return gen.genStoreGlobal(name, val);
+		gen.genStoreGlobal(name);
+		return;
 	}
 }
 
@@ -244,46 +254,46 @@ Var::generateRestoreOn(CodeGen &gen)
 	}
 }
 
-RegisterID
+void
 IntExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadInteger(num);
+	gen.genLoadInteger(num);
 }
 
-RegisterID
+void
 CharExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadLiteralObject(CharOopDesc::newWith(gen.omem(),
+	gen.genLoadLiteralObject(CharOopDesc::newWith(gen.omem(),
 	    khar[0]));
 }
 
-RegisterID
+void
 SymbolExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadLiteralObject(SymbolOopDesc::fromString(gen.omem(),
+	gen.genLoadLiteralObject(SymbolOopDesc::fromString(gen.omem(),
 	    sym));
 }
 
-RegisterID
+void
 StringExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadLiteralObject(StringOopDesc::fromString(gen.omem(),
+	gen.genLoadLiteralObject(StringOopDesc::fromString(gen.omem(),
 	    str));
 }
 
-RegisterID
+void
 FloatExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadLiteralObject(Oop());
+	gen.genLoadLiteralObject(Oop());
 	/*int litNum = gen.genLiteral ((objRef)newFloat (num));
 	if (!gen.inLiteralArray ())
 	    gen.gen (PushLiteral, litNum);*/
 }
 
-RegisterID
+void
 ArrayExprNode::generateOn(CodeGen &gen)
 {
-	return gen.genLoadLiteralObject(Oop());
+	gen.genLoadLiteralObject(Oop());
 	/*int litNum;
 
 	gen.beginLiteralArray ();
@@ -310,7 +320,7 @@ tccErr(void *opaqueError, const char *msg)
 #include "JITPrelude.rh"
     0};*/
 
-RegisterID
+void
 PrimitiveExprNode::generateOn(CodeGen &gen)
 {
 	std::string name;
@@ -318,7 +328,10 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 	if (num != 0) {
 		std::vector<RegisterID> argRegs;
 		for (auto arg : args)
-			argRegs.push_back(arg->generateOn(gen));
+		{
+			arg->generateOn(gen);
+			argRegs.push_back(gen.genStar());
+		}
 		return gen.genPrimitive(num, argRegs);
 	} else
 		abort();
@@ -356,7 +369,7 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 #endif
 }
 
-RegisterID
+void
 IdentExprNode::generateOn(CodeGen &gen)
 {
 	if (isSuper() || id == "self")
@@ -375,51 +388,69 @@ IdentExprNode::generateOn(CodeGen &gen)
 		return var->generateOn(gen);
 }
 
-RegisterID
+void
 IdentExprNode::generateAssignOn(CodeGen &gen, ExprNode *rValue)
 {
 	return var->generateAssignOn(gen, rValue);
 }
 
-RegisterID
+void
 AssignExprNode::generateOn(CodeGen &gen)
 {
 	return left->generateAssignOn(gen, right);
 }
 
-RegisterID
+void
 MessageExprNode::generateOn(CodeGen &gen)
 {
-	return generateOn(gen, receiver->generateOn(gen), receiver->isSuper());
+	receiver->generateOn(gen);
+	return generateOn(gen, -1, receiver->isSuper());
 }
 
-RegisterID
+void
 MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 {
 	std::vector<RegisterID> argRegs;
 
-	for (auto a : args)
-		argRegs.push_back(a->generateOn(gen));
+	if (args.size()) {
+		if (receiver == -1)
+			RegisterID receiver = gen.genStar();
+		for (auto a : args) {
+			a->generateOn(gen);
+			argRegs.push_back(gen.genStar());
+		}
+	}
+
+	if (receiver != -1)
+		gen.genLdar(receiver);
 
 #if 0
 	if (selector == std::string ("ifTrue:ifFalse:"))
 		gen.genIfTrueIfFalse ();
 	else
 #endif
-	return gen.genMessage(isSuper, receiver, selector, argRegs);
+	return gen.genMessage(isSuper, selector, argRegs);
 }
 
-RegisterID
+void
 CascadeExprNode::generateOn(CodeGen &gen)
 {
-	RegisterID recv = receiver->generateOn(gen);
-	RegisterID first = messages.front()->generateOn(gen, recv,
-	    receiver->isSuper());
+	if (messages.size() == 1) {
+		receiver->generateOn(gen);
+		return messages.front()->generateOn(gen, -1,
+		    receiver->isSuper());
+	} else {
+		RegisterID rcvr;
 
-	for (auto it = ++std::begin(messages); it != std::end(messages); it++)
-		(*it)->generateOn(gen);
+		receiver->generateOn(gen);
+		rcvr = gen.genStar();
 
-	return first;
+		messages.front()->generateOn(gen, rcvr, receiver->isSuper());
+
+		for (auto it = ++std::begin(messages); it != std::end(messages);
+		     it++)
+			(*it)->generateOn(gen, rcvr, receiver->isSuper());
+	}
 }
 
 void
@@ -429,7 +460,7 @@ BlockExprNode::generateReturnPreludeOn(CodeGen &gen)
         v.second->generateRestoreOn (gen);
 }
 
-RegisterID
+void
 BlockExprNode::generateOn(CodeGen &gen)
 {
 	BlockOop block = BlockOopDesc::new0(gen.omem());
@@ -441,19 +472,18 @@ BlockExprNode::generateOn(CodeGen &gen)
 		v.second->generatePromoteOn(blockGen);
 
 	for (auto &s : stmts) {
-		if (s != stmts.back())
-			s->generateOn(blockGen);
-		else if (!dynamic_cast<ReturnStmtNode *>(s)) {
-			RegisterID reg = dynamic_cast<ExprStmtNode*>(s)->expr->
-			    generateOn(blockGen);
+		s->generateOn(blockGen);
+
+		if (s == stmts.back() && !dynamic_cast<ReturnStmtNode *>(s)) {
 			generateReturnPreludeOn(blockGen);
-			blockGen.genReturn(reg);
+			blockGen.genReturn();
 		}
 	}
 
 	if (stmts.empty()) {
 		generateReturnPreludeOn(blockGen);
-		blockGen.genReturn(blockGen.genLoadNil());
+		blockGen.genLoadNil();
+		blockGen.genReturn();
 	}
 
 	block->setBytecode(ByteArrayOopDesc::fromVector(gen.omem(),
@@ -469,7 +499,7 @@ BlockExprNode::generateOn(CodeGen &gen)
 	// if (!blockGen._blockHasBlockReturn)
 	//    gen.genPushLiteralObject (block);
 	// else
-	return gen.genLoadBlockCopy(block);
+	gen.genLoadBlockCopy(block);
 }
 
 #pragma mark statements
@@ -483,10 +513,11 @@ ExprStmtNode::generateOn(CodeGen &gen)
 void
 ReturnStmtNode::generateOn(CodeGen &gen)
 {
+	expr->generateOn(gen);
 	if (gen.isBlock())
-		gen.genBlockReturn(expr->generateOn(gen));
+		gen.genBlockReturn();
 	else
-		gen.genReturn(expr->generateOn(gen));
+		gen.genReturn();
 }
 
 #pragma mark decls
@@ -520,9 +551,10 @@ MethodNode::generate(ObjectMemory &omem)
 
 	disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");
-	for (auto & lit: gen.literals())
+	for (int i = 0; i < gen.literals().size(); i++)
 	{
-		lit.print(2);
+		std::cout << " " << i << "\t";
+		gen.literals()[i].print(2);
 	}
 
 	gen.popCurrentScope();

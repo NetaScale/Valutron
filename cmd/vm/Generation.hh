@@ -68,36 +68,38 @@ class CodeGen {
 	void genMoveMyHeapVarToParentHeapVars(uint8_t myIndex,
 	    uint8_t parentIndex);
 
-	RegisterID genLoadArgument(uint8_t index);
-	RegisterID genLoadGlobal(std::string name);
-	RegisterID genLoadInstanceVar(uint8_t index);
-	RegisterID genLoadLocal(uint8_t index);
-	RegisterID genLoadParentHeapVar(uint8_t index);
-	RegisterID genLoadMyHeapVar(uint8_t index);
-	RegisterID genLoadSelf();
-	RegisterID genLoadNil();
-	RegisterID genLoadTrue();
-	RegisterID genLoadFalse();
-	RegisterID genLoadSmalltalk();
-	RegisterID genLoadThisContext();
-	RegisterID genLoadLiteral(uint8_t num);
-	RegisterID genLoadLiteralObject(Oop anObj);
-	RegisterID genLoadInteger(int val);
-	RegisterID genLoadBlockCopy(BlockOop block);
+	void genLdar(RegisterID reg);
+	void genLoadArgument(uint8_t index);
+	void genLoadGlobal(std::string name);
+	void genLoadInstanceVar(uint8_t index);
+	void genLoadLocal(uint8_t index);
+	void genLoadParentHeapVar(uint8_t index);
+	void genLoadMyHeapVar(uint8_t index);
+	void genLoadSelf();
+	void genLoadNil();
+	void genLoadTrue();
+	void genLoadFalse();
+	void genLoadSmalltalk();
+	void genLoadThisContext();
+	void genLoadLiteral(uint8_t num);
+	void genLoadLiteralObject(Oop anObj);
+	void genLoadInteger(int val);
+	void genLoadBlockCopy(BlockOop block);
 
-	RegisterID genStoreInstanceVar (uint8_t index, RegisterID val);
-	RegisterID genStoreGlobal (std::string name, RegisterID val);
-	RegisterID genStoreLocal (uint8_t index, RegisterID val);
-	RegisterID genStoreParentHeapVar (uint8_t index, RegisterID val);
-	RegisterID genStoreMyHeapVar (uint8_t index, RegisterID val);
+	RegisterID genStar();
+	void genStoreInstanceVar (uint8_t index);
+	void genStoreGlobal (std::string name);
+	void genStoreLocal (uint8_t index);
+	void genStoreParentHeapVar (uint8_t index);
+	void genStoreMyHeapVar (uint8_t index);
 
-	RegisterID genMessage(bool isSuper, RegisterID receiver,
-	    std::string selector, std::vector<RegisterID> args);
-	RegisterID genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
+	void genMessage(bool isSuper,std::string selector,
+	    std::vector<RegisterID> args);
+	void genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
 
-	void genReturn(RegisterID reg);
+	void genReturn();
 	void genReturnSelf();
-	void genBlockReturn(RegisterID reg);
+	void genBlockReturn();
 
 };
 

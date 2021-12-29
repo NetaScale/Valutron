@@ -57,8 +57,8 @@ struct Var {
 	{
 	}
 
-	RegisterID generateOn(CodeGen &gen);
-	RegisterID generateAssignOn(CodeGen &gen, ExprNode *expr);
+	void generateOn(CodeGen &gen);
+	void generateAssignOn(CodeGen &gen, ExprNode *expr);
 
 	/*
 	 * Generates code to move up this variable into myHeapVars.
@@ -233,7 +233,7 @@ struct StmtNode : Node {
 
 struct ExprNode : Node {
 	virtual void synthInScope(Scope *scope) = 0;
-	virtual RegisterID generateOn(CodeGen &gen) = 0;
+	virtual void generateOn(CodeGen &gen) = 0;
 
 	virtual bool isSuper() { return false; }
 };
@@ -251,7 +251,7 @@ struct CharExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 /* Symbol literal */
@@ -263,7 +263,7 @@ struct SymbolExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 /* Integer literal */
@@ -275,7 +275,7 @@ struct IntExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 /* String literal */
@@ -287,7 +287,7 @@ struct StringExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 /* Integer literal */
@@ -299,7 +299,7 @@ struct FloatExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 struct ArrayExprNode : LiteralExprNode {
@@ -310,7 +310,7 @@ struct ArrayExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 struct PrimitiveExprNode : ExprNode {
@@ -326,7 +326,7 @@ struct PrimitiveExprNode : ExprNode {
 	virtual void print(int in);
 
 	virtual void synthInScope(Scope *scope);
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 };
 
 struct IdentExprNode : ExprNode {
@@ -342,8 +342,8 @@ struct IdentExprNode : ExprNode {
 	}
 
 	virtual void synthInScope(Scope *scope);
-	virtual RegisterID generateOn(CodeGen &gen);
-	virtual RegisterID generateAssignOn(CodeGen &gen, ExprNode *rValue);
+	virtual void generateOn(CodeGen &gen);
+	virtual void generateAssignOn(CodeGen &gen, ExprNode *rValue);
 
 	void print(int in);
 };
@@ -359,7 +359,7 @@ struct AssignExprNode : ExprNode {
 	}
 
 	virtual void synthInScope(Scope *scope);
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 
 	void print(int in)
 	{
@@ -396,8 +396,9 @@ struct MessageExprNode : ExprNode {
 	}
 
 	virtual void synthInScope(Scope *scope);
-	virtual RegisterID generateOn(CodeGen &gen);
-	RegisterID generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
+	virtual void generateOn(CodeGen &gen);
+	/* if receiver = -1, then assumed to be in accumulator */
+	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 
 	void print(int in)
 	{
@@ -435,7 +436,7 @@ struct CascadeExprNode : ExprNode {
 	}
 
 	virtual void synthInScope(Scope *scope);
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 
 	void print(int in)
 	{
@@ -469,7 +470,7 @@ struct BlockExprNode : ExprNode {
 	}
 
 	virtual void synthInScope(Scope *parentScope);
-	virtual RegisterID generateOn(CodeGen &gen);
+	virtual void generateOn(CodeGen &gen);
 
 	void print(int in);
 };
