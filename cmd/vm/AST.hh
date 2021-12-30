@@ -9,6 +9,7 @@
 #include "Misc.hh"
 #include "Oops.hh"
 #include "ObjectMemory.hh"
+#include "Typecheck.hh"
 
 class CodeGen;
 class CompilationContext;
@@ -24,11 +25,13 @@ typedef int RegisterID;
 
 class SynthContext {
 	ObjectMemory & m_omem;
+	TyChecker m_tyChecker;
 
 	public:
 	SynthContext(ObjectMemory & omem) : m_omem(omem) {};
 
 	ObjectMemory&omem() { return m_omem; }
+	TyChecker & tyChecker() { return m_tyChecker; }
 };
 
 struct Var {
@@ -549,6 +552,8 @@ struct ClassNode : public DeclNode {
 	std::vector<std::string> iVars;
 	std::vector<MethodNode *> cMethods;
 	std::vector<MethodNode *> iMethods;
+
+	TyClass * tyClass;
 
 	/* Resolved later */
 	// GlobalVar * superClass;

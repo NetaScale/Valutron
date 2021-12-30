@@ -104,6 +104,7 @@ ${RegularChar}					{ ps(CHAR); }
 "<"				{ p(LCARET); }
 ">"				{ p(RCARET); }
 "#"				{ p(HASH); }
+","				{ p(COMMA); }
 
 {LineTerminator}	{}
 [ \t\h\v]		{}

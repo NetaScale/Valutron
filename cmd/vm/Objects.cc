@@ -279,17 +279,17 @@ DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 
 template <typename ExtraType>
 std::pair<Oop, Oop>
-DictionaryOopDesc::findPairByFun(intptr_t hash, ExtraType extraVal,
+DictionaryOopDesc::findPairByFun(uint32_t hash, ExtraType extraVal,
     int (*fun)(Oop, ExtraType))
 {
 	ArrayOop table = basicAt(0).as<ArrayOop>();
 	Oop key, value;
 	LinkOop link;
 	Oop *hp;
-	int tablesize;
+	int tablesize=table->size();
 
 	/* now see if table is valid */
-	if ((tablesize = table->size()) < 3) {
+	if (tablesize < 3) {
 		printf("Table Size: %d\n", tablesize);
 		perror("system error lookup on null table");
 	} else {
@@ -300,6 +300,7 @@ DictionaryOopDesc::findPairByFun(intptr_t hash, ExtraType extraVal,
 		value = *hp++; /* table at: hash + 1 */
 		if ((!key.isNil()) && (*fun)(key, extraVal))
 			return { key, value };
+		/* check for linked */
 		for (link = *(LinkOop *)hp; !link.isNil();
 		     link = *(LinkOop *)hp) {
 			hp = (Oop *)link->vns();
@@ -357,14 +358,15 @@ DictionaryOopDesc::symbolLookupNamespaced(ObjectMemory &omem, std::string name)
 	std::string first = ind != std::string::npos ? name.substr(0, ind) :
 							     name;
 	SymbolOop sym = SymbolOopDesc::fromString(omem, name);
-	Oop res = symbolLookup(omem, first);
+	Oop res;
 
 	printf("Lookup %s/%s\n", first.c_str(),
 	    ind != std::string::npos ? name.substr(ind + 1).c_str() : "");
 
+	res = symbolLookup(omem, first);
+
 	if (res.isNil()) {
-		DictionaryOop super =
-		    symbolLookup(omem, "Super").as<DictionaryOop>();
+		DictionaryOop super = symbolLookup(omem, "Super").as<DictionaryOop>();
 		if (!super.isNil())
 			res = super->symbolLookupNamespaced(omem, name);
 	}
@@ -402,20 +404,17 @@ DictionaryOopDesc::print(int in)
 	}
 	for (int i = 1; i <= table->size(); i += 3) {
 		hp = (Oop *)table->vns() + (i - 1);
-		// printf (" --> bucket: %d\n",
-		//        i - 1); //(3 * (i % (tablesize / 3))) - 1);
 		key = *hp++;   /* table at: hash */
 		value = *hp++; /* table at: hash + 1 */
 
 		std::cout << blanks(in + 1) + "{ Key:\n";
-		key.print (in + 2);
-		std::cout << blanks (in + 1) + " Value:\n";
-		if (!(key.isNil() || key.isa () == ObjectMemory::clsSymbol &&
-		      key.as<SymbolOop> ()->strEquals ("Super")))
-		    value.print (in + 2);
+		key.print(in + 2);
+		std::cout << blanks(in + 1) + " Value:\n";
+		if ((!key.isNil() && key.isa() == ObjectMemory::clsSymbol &&
+			key.as<SymbolOop>()->strEquals("Super")))
+			std::cout << blanks(in + 2) << "<Super-entry>\n";
 		else
-		    std::cout << blanks (in + 2) << "<Super-entry>\n";
-
+			value.print(in + 2);
 
 		std::cout << blanks(in + 1) + "}\n";
 
@@ -425,9 +424,9 @@ DictionaryOopDesc::print(int in)
 			key = *hp++;   /* link at: 1 */
 			value = *hp++; /* link at: 2 */
 			std::cout << blanks(in + 1) + "{ Key:\n";
-			key.print (in + 2);
+			key.print(in + 2);
 			std::cout << blanks(in + 1) + " Value:\n";
-			value.print (in + 2);
+			value.print(in + 2);
 			std::cout << blanks(in + 1) + "}\n";
 		}
 	}

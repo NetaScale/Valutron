@@ -255,7 +255,7 @@ class DictionaryOopDesc : public OopOopDesc {
 	 * parameter. When /a fun returns true, that key-value pair is returned.
 	 */
 	template <typename ExtraType>
-	std::pair<Oop, Oop> findPairByFun(intptr_t hash, ExtraType extraVal,
+	std::pair<Oop, Oop> findPairByFun(uint32_t hash, ExtraType extraVal,
 	    int (*fun)(Oop, ExtraType));
 
 #pragma mark symbol table functions

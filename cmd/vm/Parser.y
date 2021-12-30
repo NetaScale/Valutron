@@ -186,6 +186,7 @@ decl ::= class_def.
 
 
 class_def(D) ::= identifier(super) SUBCLASSCOLON identifier(name)
+	type_params_opt(typarams)
 	SQB_OPEN
 		ivar_cvar_defs_opt(iVars)
 		method_defs_opt(iMeths)
@@ -211,8 +212,8 @@ var_defs_opt(L) ::= BAR var_def_list(l) BAR. { L = l; }
 var_def_list_opt ::= .
 var_def_list_opt(L) ::= var_def_list(l). { L = l; }
 
-var_def_list(L) ::= IDENTIFIER(i). { L = {i}; }
-var_def_list(L) ::= var_def_list(l) IDENTIFIER(i).
+var_def_list(L) ::= type_spec_opt IDENTIFIER(i). { L = {i}; }
+var_def_list(L) ::= var_def_list(l) type_spec_opt IDENTIFIER(i).
 	{
 		L = l;
 		L.push_back(i);	}
@@ -286,17 +287,16 @@ keyw_continuation_expr(C) ::= bin_continuation_expr(c) keyw_msg_body(l).
 	}
 
 bin_continuation_expr(C) ::= unary_continuation_expr(c). { C = c; }
-bin_continuation_expr(C) ::= bin_continuation_expr(c) binOp(s) unary_expr(e).
+bin_continuation_expr(C) ::= bin_continuation_expr(c) binary_op(s) unary_expr(e).
 	{
 		C = c;
 		C->messages.push_back(new MessageExprNode(C->receiver, s, {e}));
 	}
 
 
-unary_continuation_expr(C) ::= continuation_expr(r) SEMICOLON.
-	{
-		/* FIXME: To avoid false positives, put bracketed expressions in their
-		 * own thing. */
+unary_continuation_expr(C) ::= continuation_expr(r) SEMICOLON. {
+		/* FIXME: To avoid false positives, put bracketed expressions in
+		 * their own thing. */
 		CascadeExprNode * c = dynamic_cast<CascadeExprNode *> (r);
 		C = c ? c : new CascadeExprNode (r);
 	}
@@ -329,7 +329,7 @@ keyw_msg_body(L) ::= keyw_msg_body(l) keyword(k) binary_expr(e).
 %type primary_expr { ExprNode * }
 
 binary_expr(E) ::= unary_expr(e). { E = e; }
-binary_expr(E) ::= binary_expr(r) binOp(s) unary_expr(a).
+binary_expr(E) ::= binary_expr(r) binary_op(s) unary_expr(a).
 	{
 		E  = new MessageExprNode(r, s, { a });	}
 
@@ -440,13 +440,13 @@ colon_var_list(L) ::= COLONVAR(v).	{
 
 %type selector_pattern { std::pair<std::string, std::vector<std::string>> }
 
-selector_pattern(S) ::= identifier(i). { S = {i, {}};  }
+selector_pattern(S) ::= type_spec_opt identifier(i). { S = {i, {}};  }
 selector_pattern(S)
-	::= binary_pattern(b).
+	::= type_spec_opt binary_pattern(b).
 	{		S = {b.first, {b.second}};
 	}
 selector_pattern(S)
-	::= keyw_pattern(k).
+	::= type_spec_opt keyw_pattern(k).
 	{
 		S = k;
 	}
@@ -464,11 +464,11 @@ keyw_pattern(L) ::= keyw_pattern(l) keyw_pattern_part(k). {    L = l;
 %type keyw_pattern_part { std::pair<std::string, std::string> }
 %type binary_pattern { std::pair<std::string, std::string> }
 
-keyw_pattern_part(K) ::= keyword(k) identifier(s). {
+keyw_pattern_part(K) ::= keyword(k) type_spec_opt identifier(s). {
     K = {k, s};
 }
 
-binary_pattern(B) ::= binOp(b) identifier(s). {
+binary_pattern(B) ::= binary_op(b) type_spec_opt identifier(s). {
     B = {b, s};
 }
 
@@ -482,12 +482,27 @@ keyword(K) ::= KEYWORD(k). { K = k.stringValue; }
 keyword(K) ::= SUBCLASSCOLON. { K = "subclass:"; }
 keyword(K) ::= CURRENTCOLON. { K = "current:"; }
 
-%type binOp { std::string }
-%type binChar { std::string }
+%type binary_op { std::string }
+%type binary_op_part { std::string }
 
-binOp(B) ::= binChar(c). { B = c; }
-binOp(B) ::= binOp(b) binChar(c). { B = b; B += c; }
+binary_op(B) ::= binary_op_part(c). { B = c; }
+binary_op(B) ::= binary_op(b) binary_op_part(c). { B = b; B += c; }
 
-binChar(B) ::= BINARY(b). { B = b.stringValue; }
-binChar(B) ::= LCARET. { B = std::string("<"); }
-binChar(B) ::= RCARET. { B = std::string(">"); }
+binary_op_part(B) ::= BINARY(b). { B = b.stringValue; }
+binary_op_part(B) ::= LCARET. { B = std::string("<"); }
+binary_op_part(B) ::= RCARET. { B = std::string(">"); }
+binary_op_part(B) ::= COMMA. { B = std::string(","); }
+
+type_spec_opt ::= type_spec.
+type_spec_opt ::= .
+
+type_spec ::= LBRACKET type RBRACKET.
+
+type ::= identifier type_args_opt.
+
+type_args_opt ::= type_params_opt.
+type_params_opt ::= LCARET type_param_parts RCARET.
+type_params_opt ::= .
+
+type_param_parts ::= identifier.
+type_param_parts ::= type_param_parts COMMA identifier.
