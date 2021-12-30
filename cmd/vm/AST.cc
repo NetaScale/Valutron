@@ -2,13 +2,15 @@
 #include "AST.hh"
 #include "Generation.hh"
 
-ClassNode::ClassNode(std::string name, std::string superName,
-    std::vector<std::string> cVars, std::vector<std::string> iVars)
+ClassNode::ClassNode(std::string name, std::vector<std::string> m_tyParams,
+    std::string superName, std::vector<Type*> superTyArgs,
+    std::vector<VarDecl> cVars, std::vector<VarDecl> iVars)
     : name(name)
     , superName(superName)
     , cVars(cVars)
     , iVars(iVars)
 {
+	superType = new Type(superName, superTyArgs);
 }
 
 void
@@ -82,10 +84,10 @@ MethodNode::print(int in)
 	std::cout << blanks(in) << "<method: " << sel << ">\n";
 
 	for (auto a : args)
-		std::cout << blanks(in + 1) << "<param: " << a << "/>\n";
+		std::cout << blanks(in + 1) << "<param: " << a.first << "/>\n";
 
 	for (auto a : locals)
-		std::cout << blanks(in + 1) << "<local: " << a << "/>\n";
+		std::cout << blanks(in + 1) << "<local: " << a.first << "/>\n";
 
 	std::cout << blanks(in + 1) << "<statements>\n";
 	for (auto s : stmts)
@@ -102,9 +104,9 @@ ClassNode::print(int in)
 		  << ">\n";
 
 	for (auto a : cVars)
-		std::cout << blanks(in + 1) << "<cVar: " << a << "/>\n";
+		std::cout << blanks(in + 1) << "<cVar: " << a.first << "/>\n";
 	for (auto a : iVars)
-		std::cout << blanks(in + 1) << "<iVar: " << a << "/>\n";
+		std::cout << blanks(in + 1) << "<iVar: " << a.first << "/>\n";
 
 	std::cout << blanks(in + 1) << "<cMethods>\n";
 	for (auto a : cMethods) {

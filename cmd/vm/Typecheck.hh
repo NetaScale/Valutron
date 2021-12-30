@@ -21,10 +21,12 @@ struct Type {
 		kInstance,
 	} m_kind;
 
+	std::string m_ident;
 	TyClass * m_cls;
+	std::vector<Type*> m_typeArgs;
 
-	std::vector<Type> m_typeArgs;
-
+	Type(std::string ident, std::vector<Type*> typeArgs);
+	Type(TyClass *cls); /**< create kClass type */
 };
 
 struct TypeEnv {
@@ -44,6 +46,7 @@ struct TyClass {
 		TyClass *m_nst;  /**< if non-null, instance class of this class */
 	};
 #endif
+	std::string m_name;
 	TyClass * super;
 
 	std::map<std::string, Type *> m_cVars;

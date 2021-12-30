@@ -195,9 +195,9 @@ MethodNode::synthInClassScope(ClassScope *clsScope)
 	scope = new MethodScope(clsScope);
 
 	for (auto arg : args)
-		scope->addArg(arg);
+		scope->addArg(arg.first);
 	for (auto local : locals)
-		scope->addLocal(local);
+		scope->addLocal(local.first);
 	for (auto stmt : stmts)
 		stmt->synthInScope(scope);
 
@@ -220,9 +220,14 @@ classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 void
 ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 {
+	std::vector<std::string> ivarNames;
+
+	for (auto & var: iVars)
+		ivarNames.push_back(var.first);
+
 	cls = ns->findOrCreateClass(sctx.omem(), ClassOop(), name);
-	cls->setNstVars(
-	    ArrayOopDesc::symbolArrayFromStringVector(sctx.omem(), iVars));
+	cls->setNstVars(ArrayOopDesc::symbolArrayFromStringVector(sctx.omem(),
+	    ivarNames));
 	cls->setDictionary(ns);
 	ns->symbolInsert(sctx.omem(), cls->name(), cls);
 	tyClass = sctx.tyChecker().findOrCreateClass(name);

@@ -2,6 +2,18 @@
 
 #include "Typecheck.hh"
 
+Type::Type(std::string ident, std::vector<Type *> typeArgs)
+    : m_ident(ident)
+    , m_typeArgs(typeArgs)
+{
+}
+
+Type::Type(TyClass *cls)
+{
+	m_ident = cls->m_name;
+	m_kind = kClass;
+}
+
 Type *
 TyEnv::lookup(std::string &txt)
 {
@@ -21,7 +33,7 @@ TyChecker::findOrCreateClass(std::string name)
 		return type->m_cls;
 	else {
 		TyClass *tyc = new TyClass;
-		m_globals->m_vars[name] = new Type({ Type::kClass, tyc });
+		m_globals->m_vars[name] = new Type(tyc);
 		return tyc;
 	}
 }

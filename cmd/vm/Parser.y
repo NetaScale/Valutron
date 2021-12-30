@@ -155,12 +155,9 @@ file ::= decl_list(l) EOF.
 		program = new ProgramNode(l);
 	}
 
-directMeth ::= DIRECTMETH var_defs_opt(locals)
-		statements(stmts)
-		dot_opt.
-	{
-		meth = new MethodNode(false, "fakeselector", {}, locals, stmts);
-	}
+directMeth ::= DIRECTMETH var_defs_opt(locals) statements(stmts) dot_opt. {
+	meth = new MethodNode(false, NULL, "fakeselector", {}, locals, stmts);
+}
 
 %type decl_list { std::vector<DeclNode *> }
 %type decl { DeclNode * }
@@ -185,26 +182,25 @@ decl(D) ::= NAMESPACE CURRENTCOLON identifier(name) SQB_OPEN decl_list(l) SQB_CL
 decl ::= class_def.
 
 
-class_def(D) ::= identifier(super) SUBCLASSCOLON identifier(name)
-	type_params_opt(typarams)
-	SQB_OPEN
-		ivar_cvar_defs_opt(iVars)
-		method_defs_opt(iMeths)
-	SQB_CLOSE.
-	{
-		ClassNode * cls = new ClassNode(name, super, {}, iVars);
-		cls->addMethods(iMeths);
-		D = cls;
-	}
+class_def(D) ::= identifier(super) type_args_opt(superTyArgs) SUBCLASSCOLON
+    identifier(name) type_params_opt(tyParams) SQB_OPEN
+    ivar_cvar_defs_opt(iVars) method_defs_opt(iMeths) SQB_CLOSE. {
+	ClassNode * cls = new ClassNode(name, tyParams, super, superTyArgs, {},
+	    iVars);
+	cls->addMethods(iMeths);
+	D = cls;
+}
 
-%type ivar_cvar_defs_opt { std::vector<std::string>}
-%type var_defs_opt { std::vector<std::string> }
-%type var_def_list_opt { std::vector<std::string> }
-%type var_def_list { std::vector<std::string> }
+%type ivar_cvar_defs_opt { std::vector<VarDecl> }
+%type var_defs_opt { std::vector<VarDecl> }
+%type var_def_list_opt { std::vector<VarDecl> }
+%type var_def_list { std::vector<VarDecl> }
 
 ivar_cvar_defs_opt ::= .
 ivar_cvar_defs_opt(L) ::= BAR var_def_list_opt(l) BAR. { L = l; }
-ivar_cvar_defs_opt(L) ::= BAR var_def_list_opt(l) BAR BAR var_def_list BAR. { L = l; }
+ivar_cvar_defs_opt(L) ::= BAR var_def_list_opt(l) BAR BAR var_def_list BAR. {
+	L = l;
+}
 
 var_defs_opt ::= .
 var_defs_opt(L) ::= BAR var_def_list(l) BAR. { L = l; }
@@ -212,11 +208,11 @@ var_defs_opt(L) ::= BAR var_def_list(l) BAR. { L = l; }
 var_def_list_opt ::= .
 var_def_list_opt(L) ::= var_def_list(l). { L = l; }
 
-var_def_list(L) ::= type_spec_opt IDENTIFIER(i). { L = {i}; }
-var_def_list(L) ::= var_def_list(l) type_spec_opt IDENTIFIER(i).
-	{
-		L = l;
-		L.push_back(i);	}
+var_def_list(L) ::= type_spec_opt(t) IDENTIFIER(i). { L = {{i, t}}; }
+var_def_list(L) ::= var_def_list(l) type_spec_opt(t) IDENTIFIER(i). {
+	L = l;
+	L.push_back({i, t});
+}
 
 %type method_defs_opt { std::vector<MethodNode *> }
 %type method_defs { std::vector<MethodNode *> }
@@ -226,21 +222,16 @@ method_defs_opt(L) ::= method_defs(l). { L = l; }
 method_defs_opt ::= .
 
 method_defs(L) ::= method_def(d). { L = {d}; }
-method_defs(L) ::= method_defs(l) method_def(d).
-	{
-		L = l;
-		L.push_back(d);	}
+method_defs(L) ::= method_defs(l) method_def(d). {
+	L = l;
+	L.push_back(d);
+}
 
-method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s)
-	SQB_OPEN		var_defs_opt(locals)
-		statements(stmts)
-		dot_opt
-	SQB_CLOSE.
-	{
-		//for (auto s: stmts)
-		//s->print(2);
-		D = new MethodNode(isClass, s.first, s.second, locals, stmts);
-	}
+method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s) SQB_OPEN
+    var_defs_opt(locals) statements(stmts) dot_opt SQB_CLOSE. {
+	D = new MethodNode(isClass, s.m_retType, s.m_sel, s.m_params,
+	    locals, stmts);
+}
 
 %type opt_class_meth_spec { bool }
 
@@ -438,38 +429,37 @@ colon_var_list(L) ::= COLONVAR(v).	{
 		L.push_back(s);
 	}
 
-%type selector_pattern { std::pair<std::string, std::vector<std::string>> }
+%type selector_pattern { SelectorNode }
 
-selector_pattern(S) ::= type_spec_opt identifier(i). { S = {i, {}};  }
-selector_pattern(S)
-	::= type_spec_opt binary_pattern(b).
-	{		S = {b.first, {b.second}};
-	}
-selector_pattern(S)
-	::= type_spec_opt keyw_pattern(k).
-	{
-		S = k;
-	}
+selector_pattern(S) ::= type_spec_opt(t) identifier(i). {
+	S = SelectorNode{t, i, {}};
+}
+selector_pattern(S) ::= type_spec_opt(t) binary_pattern(b). {
+		S = SelectorNode{t, b.first, {b.second}};
+}
+selector_pattern(S) ::= type_spec_opt(t) keyw_pattern(k). {
+	S = SelectorNode{t, k.first, k.second};
+}
 
-%type keyw_pattern { std::pair<std::string, std::vector<std::string>> }
+%type keyw_pattern { std::pair<std::string, std::vector<VarDecl>> }
 
 keyw_pattern(L) ::= keyw_pattern_part(k). {
-    L = {k.first, {k.second}};
+	L = {k.first, {k.second}};
 }
 keyw_pattern(L) ::= keyw_pattern(l) keyw_pattern_part(k). {    L = l;
 	L.first += k.first;
 	L.second.push_back(k.second);
 }
 
-%type keyw_pattern_part { std::pair<std::string, std::string> }
-%type binary_pattern { std::pair<std::string, std::string> }
+%type keyw_pattern_part { std::pair<std::string, VarDecl> }
+%type binary_pattern { std::pair<std::string, VarDecl> }
 
-keyw_pattern_part(K) ::= keyword(k) type_spec_opt identifier(s). {
-    K = {k, s};
+keyw_pattern_part(K) ::= keyword(k) type_spec_opt(t) identifier(s). {
+    K = {k, {s, t}};
 }
 
-binary_pattern(B) ::= binary_op(b) type_spec_opt identifier(s). {
-    B = {b, s};
+binary_pattern(B) ::= binary_op(b) type_spec_opt(t) identifier(s). {
+    B = {b, {s, t}};
 }
 
 identifier(I) ::= IDENTIFIER(i). { I = i; }
@@ -493,16 +483,43 @@ binary_op_part(B) ::= LCARET. { B = std::string("<"); }
 binary_op_part(B) ::= RCARET. { B = std::string(">"); }
 binary_op_part(B) ::= COMMA. { B = std::string(","); }
 
+%type type_spec_opt { Type* }
+%type type_spec { Type* }
+%type type { Type* }
+%type type_args_opt { std::vector<Type*> }
+%type type_arg_parts { std::vector<Type*> }
+%type type_params_opt { std::vector<std::string> }
+%type type_param_parts { std::vector<std::string> }
+
 type_spec_opt ::= type_spec.
 type_spec_opt ::= .
 
-type_spec ::= LBRACKET type RBRACKET.
+type_spec(T) ::= LBRACKET type(t) RBRACKET. { T = t; }
 
-type ::= identifier type_args_opt.
+type(T) ::= identifier(ident) type_args_opt(args). {
+	T = new Type(ident, args);
+}
 
-type_args_opt ::= type_params_opt.
-type_params_opt ::= LCARET type_param_parts RCARET.
+type_args_opt(A) ::= LCARET type_arg_parts(a) RCARET. { A = a; }
+type_args_opt ::= .
+
+type_arg_parts(A) ::= type(t). {
+	A.push_back(t);
+}
+type_arg_parts(A) ::= type_arg_parts(a) COMMA type(t). {
+	A = std::move(a);
+	a.push_back(t);
+}
+
+type_params_opt(P) ::= LCARET type_param_parts(p) RCARET. {
+	P = p;
+}
 type_params_opt ::= .
 
-type_param_parts ::= identifier.
-type_param_parts ::= type_param_parts COMMA identifier.
+type_param_parts(L) ::= identifier(id). {
+	L.push_back(id);
+}
+type_param_parts(L) ::= type_param_parts(l) COMMA identifier(id). {
+	L = std::move(l);
+	L.push_back(id);
+}

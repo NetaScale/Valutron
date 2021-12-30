@@ -21,6 +21,8 @@ struct MethodScope;
 struct ClassScope;
 struct ClassNode;
 
+typedef std::pair<std::string, Type *> VarDecl;
+
 typedef int RegisterID;
 
 class SynthContext {
@@ -222,6 +224,12 @@ struct Node {
 		std::cout << blanks(in) << "<node: " << typeid(*this).name()
 			  << "/>\n";
 	}
+};
+
+struct SelectorNode {
+	Type * m_retType;
+	std::string m_sel;
+	std::vector<VarDecl> m_params;
 };
 
 struct StmtNode : Node {
@@ -520,15 +528,17 @@ struct MethodNode : public Node {
 	MethodScope *scope;
 
 	bool isClassMethod;
+	Type * m_retType;
 	std::string sel;
-	std::vector<std::string> args;
-	std::vector<std::string> locals;
+	std::vector<VarDecl> args;
+	std::vector<VarDecl> locals;
 	std::vector<StmtNode *> stmts;
 
-	MethodNode(bool isClassMethod, std::string sel,
-	    std::vector<std::string> args, std::vector<std::string> locals,
+	MethodNode(bool isClassMethod, Type * retType, std::string sel,
+	    std::vector<VarDecl> args, std::vector<VarDecl> locals,
 	    std::vector<StmtNode *> stmts)
 	    : isClassMethod(isClassMethod)
+	    , m_retType(retType)
 	    , sel(sel)
 	    , args(args)
 	    , locals(locals)
@@ -548,8 +558,10 @@ struct ClassNode : public DeclNode {
 
 	std::string name;
 	std::string superName;
-	std::vector<std::string> cVars;
-	std::vector<std::string> iVars;
+	Type * superType;
+	std::vector<std::string> m_tyParams;
+	std::vector<VarDecl> cVars;
+	std::vector<VarDecl> iVars;
 	std::vector<MethodNode *> cMethods;
 	std::vector<MethodNode *> iMethods;
 
@@ -558,8 +570,9 @@ struct ClassNode : public DeclNode {
 	/* Resolved later */
 	// GlobalVar * superClass;
 
-	ClassNode(std::string name, std::string superName,
-	    std::vector<std::string> cVars, std::vector<std::string> iVars);
+	ClassNode(std::string name, std::vector<std::string> m_tyParams,
+	    std::string superName, std::vector<Type*> superTyArgs,
+	    std::vector<VarDecl> cVars, std::vector<VarDecl> iVars);
 
 	void addMethods(std::vector<MethodNode *> meths);
 
