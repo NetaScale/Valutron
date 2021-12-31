@@ -140,6 +140,7 @@ ObjectMemory::newOopObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
 
+#if 0
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
@@ -148,6 +149,14 @@ ObjectMemory::newOopObj(size_t len)
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
+#endif
+
+#if 1
+	obj = (typename T::PtrType*)calloc(1, size);
+		obj->m_kind = MemOopDesc::kOops;
+		obj->m_hash = getHashCode();
+		obj->m_size = len;
+#endif
 
 	return obj;
 }
@@ -159,6 +168,7 @@ ObjectMemory::newByteObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(uint8_t) * len);
 
+#if 0
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
@@ -167,6 +177,14 @@ ObjectMemory::newByteObj(size_t len)
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
+#endif
+#if 1
+	obj = (typename T::PtrType*)calloc(1, size);
+		obj->m_kind = MemOopDesc::kBytes;
+		obj->m_hash = getHashCode();
+		obj->m_size = len;
+#endif
+
 
 	return obj;
 }

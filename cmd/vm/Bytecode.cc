@@ -198,13 +198,11 @@ disassemble(uint8_t *code, int length)
 
 		/* u8 source-register */
 		case Op::kReturn: {
-			unsigned src = FETCH;
 			std::cout << "ReturnA\n";
 			break;
 		}
 
 		case Op::kBlockReturn: {
-			unsigned src = FETCH;
 			std::cout << "BlockReturnA\n";
 			break;
 		}

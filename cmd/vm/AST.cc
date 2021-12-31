@@ -2,11 +2,12 @@
 #include "AST.hh"
 #include "Generation.hh"
 
-ClassNode::ClassNode(std::string name, std::vector<std::string> m_tyParams,
+ClassNode::ClassNode(std::string name, std::vector<VarDecl> tyParams,
     std::string superName, std::vector<Type*> superTyArgs,
     std::vector<VarDecl> cVars, std::vector<VarDecl> iVars)
     : name(name)
     , superName(superName)
+    , m_tyParams(tyParams)
     , cVars(cVars)
     , iVars(iVars)
 {

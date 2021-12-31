@@ -212,7 +212,7 @@ classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 	if (!superClass.isNil())
 		classOopAddIvarsToScopeStartingFrom(superClass, scope);
 
-	for (int i = 1; i <= aClass->nstVars()->size(); i++)
+	for (int i = 0; i < aClass->nstVars()->size(); i++)
 		scope->addIvar(
 		    aClass->nstVars()->basicAt(i).as<SymbolOop>()->asString());
 }
@@ -230,7 +230,8 @@ ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 	    ivarNames));
 	cls->setDictionary(ns);
 	ns->symbolInsert(sctx.omem(), cls->name(), cls);
-	tyClass = sctx.tyChecker().findOrCreateClass(name);
+	printf("Invoking FIND OR CREATE A CLASS\n");
+	tyClass = sctx.tyChecker().findOrCreateClass(name, m_tyParams);
 
 }
 

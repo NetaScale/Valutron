@@ -488,8 +488,8 @@ binary_op_part(B) ::= COMMA. { B = std::string(","); }
 %type type { Type* }
 %type type_args_opt { std::vector<Type*> }
 %type type_arg_parts { std::vector<Type*> }
-%type type_params_opt { std::vector<std::string> }
-%type type_param_parts { std::vector<std::string> }
+%type type_params_opt { std::vector<VarDecl> }
+%type type_param_parts { std::vector<VarDecl> }
 
 type_spec_opt ::= type_spec.
 type_spec_opt ::= .
@@ -516,10 +516,11 @@ type_params_opt(P) ::= LCARET type_param_parts(p) RCARET. {
 }
 type_params_opt ::= .
 
-type_param_parts(L) ::= identifier(id). {
-	L.push_back(id);
+type_param_parts(L) ::= type_spec_opt(t) identifier(id). {
+	L.push_back({id, t});
 }
-type_param_parts(L) ::= type_param_parts(l) COMMA identifier(id). {
+type_param_parts(L) ::= type_param_parts(l) COMMA type_spec_opt(t)
+    identifier(id). {
 	L = std::move(l);
-	L.push_back(id);
+	L.push_back({id, t});
 }

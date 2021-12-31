@@ -21,8 +21,6 @@ struct MethodScope;
 struct ClassScope;
 struct ClassNode;
 
-typedef std::pair<std::string, Type *> VarDecl;
-
 typedef int RegisterID;
 
 class SynthContext {
@@ -521,10 +519,11 @@ struct ReturnStmtNode : StmtNode {
 struct DeclNode : Node {
 	virtual void registerNamesIn(SynthContext & sctx, DictionaryOop ns) = 0;
 	virtual void synthInNamespace(SynthContext & sctx, DictionaryOop ns) = 0;
+	virtual void typeCheck(TyChecker & tyc) = 0;
 	virtual void generate(ObjectMemory & omem) = 0;
 };
 
-struct MethodNode : public Node {
+struct MethodNode : public Node, public TyEnv {
 	MethodScope *scope;
 
 	bool isClassMethod;
@@ -547,19 +546,20 @@ struct MethodNode : public Node {
 	}
 
 	MethodNode *synthInClassScope(ClassScope *clsScope);
+	void typeCheck(TyChecker & tyc);
 	MethodOop generate(ObjectMemory & omem);
 
 	void print(int in);
 };
 
-struct ClassNode : public DeclNode {
+struct ClassNode : public DeclNode, public TyEnv{
 	ClassScope *scope;
 	ClassOop cls;
 
 	std::string name;
 	std::string superName;
 	Type * superType;
-	std::vector<std::string> m_tyParams;
+	std::vector<VarDecl> m_tyParams;
 	std::vector<VarDecl> cVars;
 	std::vector<VarDecl> iVars;
 	std::vector<MethodNode *> cMethods;
@@ -570,7 +570,7 @@ struct ClassNode : public DeclNode {
 	/* Resolved later */
 	// GlobalVar * superClass;
 
-	ClassNode(std::string name, std::vector<std::string> m_tyParams,
+	ClassNode(std::string name, std::vector<VarDecl> m_tyParams,
 	    std::string superName, std::vector<Type*> superTyArgs,
 	    std::vector<VarDecl> cVars, std::vector<VarDecl> iVars);
 
@@ -578,6 +578,7 @@ struct ClassNode : public DeclNode {
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void typeCheck(TyChecker & tyc);
 	void generate(ObjectMemory & omem);
 
 	void print(int in);
@@ -595,6 +596,7 @@ struct NamespaceNode : public DeclNode {
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void typeCheck(TyChecker & tyc);
 	void generate(ObjectMemory & omem);
 };
 
@@ -617,6 +619,7 @@ struct ProgramNode : public DeclNode {
 	{
 		synthInNamespace (sctx, ObjectMemory::objGlobals);
 	}
+	void typeCheck(TyChecker & tyc);
 	void generate(ObjectMemory & omem);
 
 	void print(int in);
