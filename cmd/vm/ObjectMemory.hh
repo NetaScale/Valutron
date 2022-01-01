@@ -2,7 +2,6 @@
 #define OBJECTMEMORY_HH_
 
 #include <stdexcept>
-#include <err.h>
 
 extern "C" {
 #include "mps.h"
@@ -11,7 +10,7 @@ extern "C" {
 
 #include "Oops.hh"
 
-#define FATAL(...) errx(EXIT_FAILURE, __VA_ARGS__)
+#define FATAL(...) { fprintf(stderr, __VA_ARGS__); abort(); }
 #define ALIGNMENT 8
 #define ALIGN(size) (((size) + ALIGNMENT - 1) & ~(ALIGNMENT - 1))
 

@@ -32,7 +32,6 @@ function(BisonComp path)
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endfunction(BisonComp)
 
-
 function (LemonComp path)
     GET_FILENAME_COMPONENT (file ${path} NAME_WE)
     add_custom_command(
@@ -42,6 +41,12 @@ function (LemonComp path)
             -d. -p -T${CMAKE_SOURCE_DIR}/tools/lemon/lemxx.tpl
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${path})
 endfunction (LemonComp)
+
+if (NOT FLEX_FOUND)
+	set(FLEX_FOUND true)
+	set(FLEX_EXECUTABLE ${PROJECT_SOURCE_DIR}/tools/win_flex/win_flex.exe)
+	message(STATUS "Flex for Windows used: " ${FLEX_EXECUTABLE})
+endif ()
 
 #
 # feature checks

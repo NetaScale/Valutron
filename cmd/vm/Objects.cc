@@ -22,7 +22,7 @@ void OopRef<T>::print(size_t in)
     else if (isa () == ObjectMemory::cls##ClassName)                    \
         as<ClassName##Oop> ()->print (in)
     else if (isa () == ObjectMemory::clsInteger)
-        std::cout << blanks(in) << m_smi << "\n";
+        std::cout << blanks(in) << smi() << "\n";
     else if (isa () == ObjectMemory::clsString)
         as<SymbolOop> ()->print (in);
     Case (Symbol);

@@ -1,3 +1,4 @@
 *.ll linguist-language=Lex
 lib/mps/* linguist-vendored
 tools/lemon/* linguist-vendored
+tools/win_flex/* linguist-vendored

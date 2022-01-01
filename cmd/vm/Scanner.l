@@ -34,6 +34,8 @@
 %option extra-type = "MVST_Parser *"
 %option prefix = "mvst"
 %option caseless
+%option never-interactive
+%option nounistd
 
 %{
 

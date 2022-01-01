@@ -1,4 +1,4 @@
-#include <err.h>
+#include <cassert>
 
 extern "C" {
 #include "mps.h"
@@ -245,6 +245,9 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 void
 ObjectMemory::setupInitialObjects()
 {
+	static_assert(sizeof(void*) == 8);
+	static_assert(sizeof(Oop) == sizeof(void*));
+
 #define CreateObj(Name, Size) obj##Name = newOopObj<MemOop>(Size)
 	CreateObj(Nil, 0);
 	CreateObj(True, 0);

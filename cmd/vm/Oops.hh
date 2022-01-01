@@ -11,6 +11,14 @@ extern "C" {
 #include "mps.h"
 }
 
+#define VT_tagBits 3
+#define VT_tagMask 7
+#define VT_tag(x) (((intptr_t)x) & VT_tagMask)
+#define VT_isPtr(x) (!VT_tag (x))
+#define VT_isSmi(x) (VT_tag (x) == 1)
+#define VT_intValue(x) (((intptr_t)x) >> VT_tagBits)
+#define VT_fromInt(iVal) ((void *) (((iVal) << VT_tagBits) | 1))
+
 class ObjectMemory;
 
 class OopDesc;
@@ -68,13 +76,7 @@ template <class T> class OopRef {
 		kSmi = 1,
 	};
 
-	union {
-		struct {
-			int64_t m_smi : 61;
-			Tag m_tag : 3;
-		};
-		T *m_ptr;
-	};
+	T *m_ptr;
 
     public:
 	typedef T PtrType;
@@ -82,15 +84,14 @@ template <class T> class OopRef {
 	inline OopRef()
 	    : m_ptr(NULL) {};
 	inline OopRef(int64_t smi)
-	    : m_smi(smi)
-	    , m_tag(kSmi) {};
+	    : m_ptr((T *)VT_fromInt(smi)) {};
 	inline OopRef(void *ptr)
 	    : m_ptr((T *)ptr) {};
 
-	inline bool isPtr() const { return m_tag == kPtr; }
-	inline bool isSmi() const { return m_tag == kSmi; }
+	inline bool isPtr() const { return VT_isPtr(m_ptr); }
+	inline bool isSmi() const { return VT_isSmi(m_ptr); }
 	inline bool isNil() const { return m_ptr == 0; }
-	inline int64_t smi() const { return m_smi; }
+	inline int64_t smi() const { return VT_intValue(m_ptr); }
 	template <typename OT> inline OT as() { return OT(m_ptr); }
 
 	inline ClassOop &isa(); //{ return isSmi() ? 0 : as<MemOop>()->isa(); }
@@ -100,7 +101,7 @@ template <class T> class OopRef {
 
 	uint32_t hashCode()
 	{
-		return isSmi() ? m_smi : as<MemOop>()->hashCode();
+		return isSmi() ? smi() : as<MemOop>()->hashCode();
 	}
 
 	template <typename OT> inline bool operator==(const OT &other)
@@ -114,7 +115,7 @@ template <class T> class OopRef {
 	inline T *operator->() const { return m_ptr; }
 	inline T &operator*() const { return *m_ptr; }
 	inline operator Oop() const { return m_ptr; }
-};
+} __attribute__((packed));
 
 class OopDesc {
 

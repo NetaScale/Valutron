@@ -10,6 +10,8 @@
 #include <list>
 #include <filesystem>
 
+#define YY_NO_UNISTD_H
+
 #include "AST.hh"
 #include "Compiler.hh"
 #include "Parser.tab.h"
@@ -65,7 +67,7 @@ ProgramNode * MVST_Parser::parseFile (std::string fName)
 	if (0)
 		parser->trace(stdout, "<parser>: ");
 
-	parser->path =  fPath.parent_path();
+	parser->path =  fPath.parent_path().string();
 
 	mvstlex_init_extra(parser, &scanner);
 	/* Now we need to scan our string into the buffer. */
