@@ -324,7 +324,7 @@ struct yyStackEntry {
 void yy_destructor(YYCODETYPE yymajor, YYMINORTYPE *yypminor);
 void yy_move(YYCODETYPE yymajor, YYMINORTYPE *yyDest, YYMINORTYPE *yySource);
 
-class yypParser : public LEMON_SUPER {
+class yypParser final : public LEMON_SUPER {
   public:
     //using LEMON_SUPER::LEMON_SUPER;
 

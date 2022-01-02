@@ -15,6 +15,7 @@ main(int argc, char * argv[])
 	SynthContext sctx(omem);
 	node->registerNames(sctx);
 	node->synth(sctx);
+	node->typeReg(sctx.tyChecker());
 	node->typeCheck(sctx.tyChecker());
 	node->generate(omem);
 	//omem.objGlobals->print(5);

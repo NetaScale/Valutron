@@ -229,8 +229,9 @@ method_defs(L) ::= method_defs(l) method_def(d). {
 	L.push_back(d);
 }
 
-method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s) SQB_OPEN
-    var_defs_opt(locals) statements(stmts) dot_opt SQB_CLOSE. {
+method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s)
+    type_args_opt(tyArgs) SQB_OPEN var_defs_opt(locals) statements(stmts)
+	dot_opt SQB_CLOSE. {
 	D = new MethodNode(isClass, s.m_retType, s.m_sel, s.m_params,
 	    locals, stmts);
 }
@@ -400,6 +401,12 @@ basic_literal_expr(S) ::= CHAR(c).
 
 %type block_expr { BlockExprNode * }
 
+%type block_formal_list_opt { std::vector<std::string> }
+block_formal_list_opt(L) ::= colon_var_list(l) BAR. { L = l; }
+block_formal_list_opt(L) ::= colon_var_list(l) LBRACKET UP type RBRACKET
+    BAR. { L = l; }
+block_formal_list_opt    ::= .
+
 block_expr(B) ::= SQB_OPEN block_formal_list_opt(v) statements_opt(s) SQB_CLOSE.
 	{
 		B = new BlockExprNode(v, s);
@@ -413,11 +420,7 @@ dot_opt ::= DOT.
 statements_opt ::= .
 statements_opt(L) ::= statements(l). { L = l; }
 
-%type block_formal_list_opt { std::vector<std::string> }
 %type colon_var_list { std::vector<std::string> }
-
-block_formal_list_opt(L) ::= colon_var_list(l) BAR. { L = l; }
-block_formal_list_opt ::= .
 
 colon_var_list(L) ::= COLONVAR(v).	{
 		std::string s = v;

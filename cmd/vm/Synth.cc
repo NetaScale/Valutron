@@ -231,7 +231,7 @@ ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 	cls->setDictionary(ns);
 	ns->symbolInsert(sctx.omem(), cls->name(), cls);
 	printf("Invoking FIND OR CREATE A CLASS\n");
-	tyClass = sctx.tyChecker().findOrCreateClass(name, m_tyParams);
+	tyClass = sctx.tyChecker().findOrCreateClass(this);
 
 }
 

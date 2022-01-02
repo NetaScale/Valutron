@@ -232,6 +232,11 @@ struct SelectorNode {
 
 struct StmtNode : Node {
 	virtual void synthInScope(Scope *scope) = 0;
+	virtual void typeCheck(TyChecker &tyc)
+	{
+		std::cout << "Unimplemented typecheck for "
+			  << typeid(*this).name() << "\n";
+	}
 	virtual void generateOn(CodeGen &gen) { throw std::runtime_error("No generation support"); };
 };
 
@@ -242,7 +247,18 @@ struct StmtNode : Node {
 
 struct ExprNode : Node {
 	virtual void synthInScope(Scope *scope) = 0;
+	virtual void typeCheck(TyChecker &tyc)
+	{
+		std::cout << "Unimplemented typecheck for "
+			  << typeid(*this).name() << "\n";
+	}
 	virtual void generateOn(CodeGen &gen) = 0;
+
+	virtual Type *type(TyChecker &tyc)
+	{
+		throw std::runtime_error(
+		    std::string("No type() for ") + typeid(*this).name());
+	}
 
 	virtual bool isSuper() { return false; }
 };
@@ -342,7 +358,7 @@ struct IdentExprNode : ExprNode {
 	std::string id;
 	Var *var;
 
-	virtual bool isSuper() { return id == "super"; }
+	virtual bool isSuper() override { return id == "super"; }
 
 	IdentExprNode(std::string id)
 	    : id(id)
@@ -350,11 +366,12 @@ struct IdentExprNode : ExprNode {
 	{
 	}
 
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-	virtual void generateAssignOn(CodeGen &gen, ExprNode *rValue);
+	void synthInScope(Scope *scope) override;
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
+	void generateAssignOn(CodeGen &gen, ExprNode *rValue);
 
-	void print(int in);
+	void print(int in) override;
 };
 
 struct AssignExprNode : ExprNode {
@@ -406,6 +423,8 @@ struct MessageExprNode : ExprNode {
 
 	virtual void synthInScope(Scope *scope);
 	virtual void generateOn(CodeGen &gen);
+	void typeCheck(TyChecker &tyc);
+	// Type * type(TyChecker &tyc);
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 
@@ -510,15 +529,17 @@ struct ReturnStmtNode : StmtNode {
 	{
 	}
 
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
+	void synthInScope(Scope *scope) override;
+	void typeCheck(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 
-	virtual void print(int in);
+	void print(int in) override;
 };
 
 struct DeclNode : Node {
 	virtual void registerNamesIn(SynthContext & sctx, DictionaryOop ns) = 0;
 	virtual void synthInNamespace(SynthContext & sctx, DictionaryOop ns) = 0;
+	virtual void typeReg(TyChecker &tyc) = 0;
 	virtual void typeCheck(TyChecker & tyc) = 0;
 	virtual void generate(ObjectMemory & omem) = 0;
 };
@@ -546,6 +567,7 @@ struct MethodNode : public Node, public TyEnv {
 	}
 
 	MethodNode *synthInClassScope(ClassScope *clsScope);
+	void typeReg(TyChecker &tyc);
 	void typeCheck(TyChecker & tyc);
 	MethodOop generate(ObjectMemory & omem);
 
@@ -578,7 +600,9 @@ struct ClassNode : public DeclNode, public TyEnv{
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void typeReg(TyChecker &tyc);
 	void typeCheck(TyChecker & tyc);
+
 	void generate(ObjectMemory & omem);
 
 	void print(int in);
@@ -596,6 +620,7 @@ struct NamespaceNode : public DeclNode {
 
 	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
 	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void typeReg(TyChecker &tyc);
 	void typeCheck(TyChecker & tyc);
 	void generate(ObjectMemory & omem);
 };
@@ -619,6 +644,7 @@ struct ProgramNode : public DeclNode {
 	{
 		synthInNamespace (sctx, ObjectMemory::objGlobals);
 	}
+	void typeReg(TyChecker &tyc);
 	void typeCheck(TyChecker & tyc);
 	void generate(ObjectMemory & omem);
 

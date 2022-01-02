@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 
+struct ClassNode;
 struct TyClass;
 struct TyEnv;
 struct Type;
@@ -21,19 +22,24 @@ struct Type {
 		kInstanceType,
 		kId,
 
-		kTyVar,
-
 		/* these are resolved Idents */
+		kTyVar,
 		kClass,
 		kInstance,
+		kMax
 	} m_kind;
 
-	bool m_isConstructor  = false;
+	static const char *kindStr[kMax];
 
-	Type * m_wrapped = NULL;
+	bool m_isConstructor = false;
+
+	Type *m_wrapped = NULL; /* if kTyVar */
+	TyClass *m_cls = NULL;	/* if kClass or kInstance */
+
 	std::string m_ident;
-	TyClass * m_cls = NULL;
 	std::vector<Type*> m_typeArgs;
+
+	static Type *makeInstanceMaster(TyClass *cls);
 
 	Type() : m_kind(kAsYetUnspecified) {};
 	Type(std::string ident, std::vector<Type*> typeArgs);
@@ -41,9 +47,17 @@ struct Type {
 	Type(TyClass * cls, std::string ident, std::vector<VarDecl> m_typeArgs); /**< create master kInstance type */
 	Type(std::string tyVarIdent, Type * bound);
 
+	/**
+	 * Try to get the return type of a message send to this type.
+	 */
+	Type *typeSend(std::string selector, std::vector<Type *> &argTypes);
+
 	void resolveInTyEnv(TyEnv * env);
-	void construct(Type * into);
+	void constructInto(Type *into);
 	void print(size_t in);
+
+	friend std::ostream &operator<<(std::ostream &, Type const &);
+	std::ostream &niceName(std::ostream &os) const;
 };
 
 struct TypeEnv {
@@ -65,15 +79,12 @@ struct TyClass {
 #endif
 	std::string m_name;
 	TyClass * super;
-
-	std::map<std::string, Type *> m_cVars;
-	std::map<std::string, Type *> m_iVars;
-	std::vector<Method *> m_iMethods;
-	std::vector<VarDecl> m_typeParams;
+	ClassNode *m_clsNode;
 };
 
 struct TyEnv {
 	TyEnv * m_parent = NULL;
+	TyClass *m_tyClass = NULL;
 	std::map<std::string, Type *> m_vars; /**< variable names */
 	std::map<std::string, Type *> m_types; /**< type names */
 
@@ -88,7 +99,7 @@ struct TyChecker {
 
 	TyChecker();
 
-	TyClass * findOrCreateClass(std::string name, std::vector<VarDecl> typeParams);
+	TyClass *findOrCreateClass(ClassNode *cls);
 };
 
 #endif /* TYPECHECK_HH_ */
