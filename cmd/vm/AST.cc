@@ -48,8 +48,8 @@ BlockExprNode::print(int in)
 	std::cout << "<block>\n";
 
 	std::cout << blanks(in + 1) << "<params>\n";
-	for (auto e : args)
-		std::cout << blanks(in + 2) << "<param:" << e << " />\n";
+	for (auto & e : args)
+		std::cout << blanks(in + 2) << "<param:" << e.first << " />\n";
 	std::cout << blanks(in + 1) << "</params>\n";
 
 	std::cout << blanks(in + 1) << "<statements>\n";
@@ -84,10 +84,10 @@ MethodNode::print(int in)
 {
 	std::cout << blanks(in) << "<method: " << sel << ">\n";
 
-	for (auto a : args)
+	for (auto & a : args)
 		std::cout << blanks(in + 1) << "<param: " << a.first << "/>\n";
 
-	for (auto a : locals)
+	for (auto & a : locals)
 		std::cout << blanks(in + 1) << "<local: " << a.first << "/>\n";
 
 	std::cout << blanks(in + 1) << "<statements>\n";

@@ -112,6 +112,18 @@ void Type::resolveInTyEnv(TyEnv * env)
 		for (auto & arg: m_typeArgs)
 			arg->resolveInTyEnv(env); // ???
 	}
+	else if (m_kind == kBlock) {
+		m_block->TyEnv::m_parent = env;
+		/* Register block's generic type parameters */
+		for (auto & tyParam: m_block->m_tyParams) {
+			m_block->TyEnv::m_types[tyParam.first] =
+			     Type::makeTyVarReference(&tyParam);
+		}
+		for (auto & type: m_block->m_argTypes)
+			type->resolveInTyEnv(m_block);
+		m_block->m_retType->resolveInTyEnv(m_block);
+
+	}
 }
 
 bool
@@ -125,7 +137,25 @@ Type::isSubtypeOf(Type *type)
 		this->m_wasInferred = true;
 		return true;
 	}
-	case kBlock:
+
+	case kBlock: {
+		if (type->m_kind == kAsYetUnspecified) {
+			std::cerr << "Inferring uninferred RHS to be " <<
+			    *this << "\n";
+			*type = *this;
+			type->m_wasInferred = true;
+			return true;
+		}
+		else if (type->m_kind == kBlock) {
+			std::cout << "FIXME allowing RHS " <<
+				    *this << " to be assigned to LHS " <<
+				    *type << "\n";
+			return true;
+		}
+		else
+			return false;
+	}
+
 	case kSelf:
 	case kInstanceType:
 		abort();
@@ -207,7 +237,8 @@ Type::isSubtypeOf(Type *type)
 					return true; /** could do inference here */
 				else if (m_typeArgs.size() == type->m_typeArgs.size()) {
 					for (int i = 0; i < m_typeArgs.size(); i++) {
-						if (!m_typeArgs[i]->isSubtypeOf(type->m_typeArgs[i]))
+						if (!m_typeArgs[i]->isSubtypeOf(
+						    type->m_typeArgs[i]))
 							return false;
 					}
 
@@ -369,7 +400,14 @@ Type::niceName(std::ostream &os) const
 		break;
 
 	case kBlock:
-		os << "[block]";
+		os << "[^" << *m_block->m_retType;
+
+		for (int i = 0; i < m_block->m_argTypes.size(); i++) {
+			os << ", " << *m_block->m_argTypes[i];
+		}
+
+		os << "]";
+
 		break;
 
 	case kSelf:
@@ -742,6 +780,33 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 		    " sent to receiver of unknown type\n";
 		return Type::id();
 	}
+}
+
+Type *
+BlockExprNode::type(TyChecker &tyc)
+{
+	TyBlock * blk = new TyBlock;
+	Type * type = new Type;
+
+	blk->m_argTypes.resize(args.size(), NULL);
+
+	blk->m_node = this;
+	for (int i = 0; i < args.size(); i++) {
+		if (!args[i].second)
+			blk->m_tyParams.push_back({"%BlockParam1", NULL});
+		args[i].second = blk->m_argTypes[i] = Type::makeTyVarReference(
+			&blk->m_tyParams.back());
+	}
+	if (!m_retType) {
+		blk->m_tyParams.push_back({"%BlockRetType", NULL});
+		blk->m_retType = m_retType = Type::makeTyVarReference(
+			&blk->m_tyParams.back());
+	}
+
+	type->m_kind = Type::kBlock;
+	type->m_block = blk;
+
+	return type;
 }
 
 void

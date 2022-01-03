@@ -164,8 +164,8 @@ BlockExprNode::synthInScope(Scope *parentScope)
 {
 	scope = new BlockScope(dynamic_cast<AbstractCodeScope *>(parentScope));
 
-	for (auto arg : args)
-		scope->addArg(arg);
+	for (auto & arg : args)
+		scope->addArg(arg.first);
 
 	for (auto stmt : stmts)
 		stmt->synthInScope(scope);
@@ -194,9 +194,9 @@ MethodNode::synthInClassScope(ClassScope *clsScope)
 	 * not, no problem. */
 	scope = new MethodScope(clsScope);
 
-	for (auto arg : args)
+	for (auto & arg : args)
 		scope->addArg(arg.first);
-	for (auto local : locals)
+	for (auto & local : locals)
 		scope->addLocal(local.first);
 	for (auto stmt : stmts)
 		stmt->synthInScope(scope);

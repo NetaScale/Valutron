@@ -490,19 +490,21 @@ struct BlockExprNode : ExprNode {
 
     public:
 	BlockScope *scope;
-	std::vector<std::string> args;
+	Type * m_retType;
+	std::vector<VarDecl> args;
 	std::vector<StmtNode *> stmts;
 
-	BlockExprNode(std::vector<std::string> a, std::vector<StmtNode *> s)
-	    : args(a)
-	    , stmts(s)
+	BlockExprNode(std::vector<VarDecl> args, std::vector<StmtNode *> stmts)
+	    : args(args)
+	    , stmts(stmts)
 	{
 	}
 
-	virtual void synthInScope(Scope *parentScope);
-	virtual void generateOn(CodeGen &gen);
+	virtual void synthInScope(Scope *parentScope) override;
+	Type * type(TyChecker & tyc) override;
+	virtual void generateOn(CodeGen &gen) override;
 
-	void print(int in);
+	void print(int in) override;
 };
 
 /**

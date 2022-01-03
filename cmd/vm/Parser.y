@@ -402,7 +402,7 @@ basic_literal_expr(S) ::= CHAR(c).
 
 %type block_expr { BlockExprNode * }
 
-%type block_formal_list_opt { std::vector<std::string> }
+%type block_formal_list_opt { std::vector<VarDecl> }
 block_formal_list_opt(L) ::= colon_var_list(l) BAR. { L = l; }
 block_formal_list_opt(L) ::= colon_var_list(l) LBRACKET UP type RBRACKET
     BAR. { L = l; }
@@ -421,19 +421,20 @@ dot_opt ::= DOT.
 statements_opt ::= .
 statements_opt(L) ::= statements(l). { L = l; }
 
-%type colon_var_list { std::vector<std::string> }
+%type colon_var_list { std::vector<VarDecl> }
 
-colon_var_list(L) ::= COLONVAR(v).	{
-		std::string s = v;
-		s.erase(s.begin());
-		L = {s};
-	}colon_var_list(L) ::= colon_var_list(l) COLONVAR(v).
-	{
-		L = l;
-		std::string s = v;
-		s.erase(s.begin());
-		L.push_back(s);
-	}
+colon_var_list(L) ::= COLONVAR(v). {
+	std::string s = v;
+	s.erase(s.begin());
+	L.push_back({s, NULL});
+}
+
+colon_var_list(L) ::= colon_var_list(l) COLONVAR(v). {
+	L = l;
+	std::string s = v;
+	s.erase(s.begin());
+	L.push_back({s, NULL});
+}
 
 %type selector_pattern { SelectorNode }
 
@@ -504,6 +505,29 @@ type_spec(T) ::= LBRACKET type(t) RBRACKET. { T = t; }
 
 type(T) ::= identifier(ident) type_args_opt(args). {
 	T = new Type(ident, args);
+}
+type(T) ::= type_params_opt(p) SQB_OPEN UP type(r) block_arg_types_opt(a)
+    SQB_CLOSE. {
+	T = new Type;
+	TyBlock * blk = new TyBlock;
+
+	T->m_kind = Type::kBlock;
+	T->m_block = blk;
+	blk->m_tyParams = p;
+	blk->m_retType = r;
+	blk->m_argTypes = a;
+}
+
+%type block_arg_types_opt { std::vector<Type *> }
+%type block_arg_types { std::vector<Type *> }
+
+block_arg_types_opt(L) ::= block_arg_types(a). { L = a; }
+block_arg_types_opt ::= .
+
+block_arg_types(L) ::= COMMA type(t). { L = {t}; }
+block_arg_types(L) ::= block_arg_types(l) COMMA type(t). {
+	L = l;
+	L.push_back(t);
 }
 
 type_args_opt(A) ::= LCARET type_arg_parts(a) RCARET. { A = a; }

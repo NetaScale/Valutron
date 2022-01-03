@@ -9,6 +9,7 @@ struct ClassNode;
 struct MethodNode;
 struct BlockExprNode;
 struct TyClass;
+struct TyBlock;
 struct TyEnv;
 struct Type;
 typedef std::pair<std::string, Type *> VarDecl;
@@ -41,6 +42,12 @@ struct Type {
 	Type *m_wrapped = NULL;
 	TyClass *m_cls = NULL;	/* if kClass or kInstance */
 
+	/**
+	 * for kBlocks
+	 */
+	TyBlock *m_block = NULL; /* if kBlock */
+	// std::vector<VarDecl> m_blockTypeParams;
+
 	std::string m_ident;
 	std::vector<Type*> m_typeArgs;
 
@@ -72,9 +79,21 @@ struct Type {
 	std::ostream &niceName(std::ostream &os) const;
 };
 
-struct TypeEnv {
-	/* maps type names to types */
-	std::map<std::string, Type *> m_types;
+struct TyEnv {
+	TyEnv *m_parent = NULL;
+	TyClass *m_tyClass = NULL;
+	std::map<std::string, Type *> m_vars;  /**< variable names */
+	std::map<std::string, Type *> m_types; /**< type names */
+
+	Type *lookupVar(std::string &txt);
+	Type *lookupType(std::string &txt);
+};
+
+struct TyBlock : public TyEnv {
+	BlockExprNode *m_node;
+	std::vector<VarDecl> m_tyParams;
+	Type *m_retType;
+	std::vector<Type *> m_argTypes;
 };
 
 struct TyClass {
@@ -90,17 +109,6 @@ struct TyClass {
 
 	Type * m_classType;
 	Type * m_instanceMasterType;
-};
-
-struct TyEnv {
-	TyEnv * m_parent = NULL;
-	TyClass *m_tyClass = NULL;
-	std::map<std::string, Type *> m_vars; /**< variable names */
-	std::map<std::string, Type *> m_types; /**< type names */
-
-	Type * lookupVar(std::string & txt);
-	Type * lookupType(std::string & txt);
-
 };
 
 struct TyChecker {
