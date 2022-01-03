@@ -469,7 +469,7 @@ binary_pattern(B) ::= binary_op(b) type_spec_opt(t) identifier(s). {
 
 identifier(I) ::= IDENTIFIER(i). { I = i; }
 identifier(I) ::= NAMESPACENAME(i). { I = i; }
-identifier(I) ::= NAMESPACE. { I = Token("Namespace"); }
+identifier(I) ::= NAMESPACE. { I = Token(I.m_pos, "Namespace"); }
 
 %type keyword { std::string }
 

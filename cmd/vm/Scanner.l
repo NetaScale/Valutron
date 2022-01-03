@@ -50,9 +50,9 @@
 	}
 
 #define p(x) yyextra->parse(TOK_##x)
-#define ps(x) yyextra->parse(TOK_##x, yytext)
-#define pi(x) yyextra->parse(TOK_##x, atoi(yytext))
-#define pf(x) yyextra->parse(TOK_##x, atof(yytext))
+#define ps(x) yyextra->parse(TOK_##x, Token(yyextra->pos(), yytext))
+#define pi(x) yyextra->parse(TOK_##x, Token(yyextra->pos(), atoi(yytext)))
+#define pf(x) yyextra->parse(TOK_##x, Token(yyextra->pos(), atof(yytext)))
 
 %}
 

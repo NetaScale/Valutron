@@ -18,6 +18,7 @@ class Position {
 	size_t m_line, m_col, m_pos;
 
     public:
+	Position() {};
 	Position(size_t oldLine, size_t oldCol, size_t oldPos, size_t line,
 	    size_t col, size_t pos)
 	    : m_oldLine(oldLine)
@@ -37,45 +38,27 @@ class Position {
 	size_t pos() const;
 };
 
-inline size_t
-Position::line() const
-{
-	return m_line;
-}
-
-inline size_t
-Position::col() const
-{
-	return m_col;
-}
-
-inline size_t
-Position::pos() const
-{
-	return m_pos;
-}
-
 struct Token {
+	Position m_pos;
+
 	Token() = default;
 	Token(const Token &) = default;
 	Token(Token &&) = default;
 
-	Token(double f)
-	    : floatValue(f)
-	{
-	}
-	Token(int i)
-	    : intValue(i)
-	{
-	}
-	Token(const std::string &s)
-	    : stringValue(s)
-	{
-	}
-	Token(std::string &&s)
-	    : stringValue(std::move(s))
-	{
-	}
+	Token(Position pos)
+	    : m_pos(pos) {};
+	Token(Position pos, double f)
+	    : m_pos(pos)
+	    , floatValue(f) {};
+	Token(Position pos, int i)
+	    : m_pos(pos)
+	    , intValue(i) {};
+	Token(Position pos, const std::string &s)
+	    : m_pos(pos)
+	    , stringValue(s) {};
+	Token(Position pos, std::string &&s)
+	    : m_pos(pos)
+	    , stringValue(std::move(s)) {};
 
 	Token &operator=(const Token &) = default;
 	Token &operator=(Token &&) = default;
@@ -119,16 +102,14 @@ class MVST_Parser : public lemon_base<Token> {
 	MVST_Parser(std::string f, std::string &ft)
 	    : fName(f)
 	    , fText(ft)
-	    , program(nullptr)
-	{
-	}
+	    , program(nullptr) {};
 
 	/* parsing */
-	void parse(int major) { parse(major, Token {}); }
+	void parse(int major) { parse(major, Token { pos() }); }
 
 	template <class T> void parse(int major, T &&t)
 	{
-		parse(major, Token(std::forward<T>(t)));
+		parse(major, Token(pos(), std::forward<T>(t)));
 	}
 
 	virtual void trace(FILE *, const char *) { }
@@ -151,5 +132,23 @@ class MVST_Parser : public lemon_base<Token> {
 	}
 	void incCol() { m_col++; }
 };
+
+inline size_t
+Position::line() const
+{
+	return m_line;
+}
+
+inline size_t
+Position::col() const
+{
+	return m_col;
+}
+
+inline size_t
+Position::pos() const
+{
+	return m_pos;
+}
 
 #endif /* COMPILER_HH_ */
