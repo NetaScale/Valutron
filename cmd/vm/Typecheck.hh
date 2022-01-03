@@ -44,6 +44,7 @@ struct Type {
 	std::string m_ident;
 	std::vector<Type*> m_typeArgs;
 
+	static Type *id();
 	static Type *makeTyVarReference(VarDecl * tyVarDecl);
 	static Type *makeInstanceMaster(TyClass *cls,
 	    std::vector<VarDecl> &tyParams);
@@ -57,7 +58,8 @@ struct Type {
 	/**
 	 * Try to get the return type of a message send to this type.
 	 */
-	Type *typeSend(std::string selector, std::vector<Type *> &argTypes);
+	Type *typeSend(std::string selector, std::vector<Type *> &argTypes,
+	    Type * trueReceiver = NULL, Invocation * prev_invoc = NULL);
 
 	bool isSubtypeOf(Type *type);
 
@@ -102,12 +104,15 @@ struct TyEnv {
 };
 
 struct TyChecker {
+	Type * m_smiType;
 	TyEnv *m_globals;
 	std::vector<TyEnv*> m_envs;
 	MethodNode * m_method = NULL;
 	std::vector<BlockExprNode *> m_blocks;
 
 	TyChecker();
+
+	Type * smiType() { return m_smiType; }
 
 	TyClass *findOrCreateClass(ClassNode *cls);
 	MethodNode * method() { return m_method; }

@@ -230,9 +230,7 @@ ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 	    ivarNames));
 	cls->setDictionary(ns);
 	ns->symbolInsert(sctx.omem(), cls->name(), cls);
-	printf("Invoking FIND OR CREATE A CLASS\n");
 	tyClass = sctx.tyChecker().findOrCreateClass(this);
-
 }
 
 void
@@ -243,12 +241,10 @@ ClassNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 	ClassOop superCls;
 
 	if (superName != "nil") {
-		printf("LOOKING UP SUPERCLASS %s\n\n", superName.c_str());
 		superCls = ns->symbolLookupNamespaced(sctx.omem(), superName)
 			       .as<ClassOop>();
 		if (superCls.isNil()) {
-			ns->print(5);
-			// memMgr.objGlobals->print(5);
+
 		}
 		assert(!superCls.isNil());
 	}

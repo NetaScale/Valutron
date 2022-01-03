@@ -321,7 +321,7 @@ DictionaryOopDesc::findOrCreateClass(ObjectMemory &omem, ClassOop superClass,
 	ClassOop result = symbolLookup(omem, name).as<ClassOop>();
 
 	if (result.isNil()) {
-		printf("Nil - allocating new class %s\n", name.c_str());
+		//printf("Nil - allocating new class %s\n", name.c_str());
 		result = ClassOopDesc::allocate(omem, superClass, name);
 	} else
 		result->setupClass(omem, superClass, name);
@@ -360,8 +360,8 @@ DictionaryOopDesc::symbolLookupNamespaced(ObjectMemory &omem, std::string name)
 	SymbolOop sym = SymbolOopDesc::fromString(omem, name);
 	Oop res;
 
-	printf("Lookup %s/%s\n", first.c_str(),
-	    ind != std::string::npos ? name.substr(ind + 1).c_str() : "");
+	//printf("Lookup %s/%s\n", first.c_str(),
+	//    ind != std::string::npos ? name.substr(ind + 1).c_str() : "");
 
 	res = symbolLookup(omem, first);
 

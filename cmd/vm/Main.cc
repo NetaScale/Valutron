@@ -17,7 +17,7 @@ main(int argc, char * argv[])
 	node->synth(sctx);
 	node->typeReg(sctx.tyChecker());
 	node->typeCheck(sctx.tyChecker());
-	node->generate(omem);
+	//node->generate(omem);
 	//omem.objGlobals->print(5);
 
 	return 0;

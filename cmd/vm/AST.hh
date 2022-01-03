@@ -300,7 +300,8 @@ struct IntExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual void generateOn(CodeGen &gen);
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 };
 
 /* String literal */
@@ -384,10 +385,11 @@ struct AssignExprNode : ExprNode {
 	{
 	}
 
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
+	void synthInScope(Scope *scope) override;
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 
-	void print(int in)
+	void print(int in) override
 	{
 		std::cout << blanks(in) << "<assign>\n";
 		std::cout << blanks(in + 1) << "<left: " << left->id << ">\n";
@@ -516,6 +518,7 @@ struct ExprStmtNode : StmtNode {
 	}
 
 	virtual void synthInScope(Scope *scope);
+	void typeCheck(TyChecker &tyc);
 	virtual void generateOn(CodeGen &gen);
 
 	virtual void print(int in);
