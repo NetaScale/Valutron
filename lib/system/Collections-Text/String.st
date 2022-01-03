@@ -132,12 +132,10 @@ ByteArray subclass: String [
 	words: aBlock [	| text index list |
 		list <- List new.
 		text <- self.
-		[ text <- text copyFrom: 
-			(text indexOf: aBlock ifAbsent: [ text size + 1])
+		[ text <- text copyFrom:			(text indexOf: aBlock ifAbsent: [ text size + 1])
 				to: text size.
 		  text size > 0 ] whileTrue:
-			[ index <- text 
-				indexOf: [:x | (aBlock value: x) not ]
+			[ index <- text				indexOf: [:x | (aBlock value: x) not ]
 				ifAbsent: [ text size + 1].
 			  list addLast: (text copyFrom: 1 to: index - 1).
 			  text <- text copyFrom: index to: text size ].

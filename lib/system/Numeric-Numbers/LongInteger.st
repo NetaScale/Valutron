@@ -16,8 +16,7 @@ Integer subclass: LongInteger [
 		n isShortInteger ifTrue: [ ^ self timesShort: n ].
 		n isLongInteger  ifFalse: [ ^ super * n ].
 		result <- 0 asLongInteger.
-		digits reverseDo: 
-			[:x | result <- (result timesShort: 100) +
+		digits reverseDo:			[:x | result <- (result timesShort: 100) +
 				(n timesShort: x)].
 		negative ifTrue: [ result <- result negated ].
 		^ result
@@ -63,8 +62,7 @@ Integer subclass: LongInteger [
 		(negative == n negative) ifFalse: [ ^ negative ].
 		" now either both positive or both negative "
 		result <- false.
-		self with: n bitDo: 
-			[:x :y | (x ~= y) ifTrue: [ result <- x < y]].
+		self with: n bitDo:			[:x :y | (x ~= y) ifTrue: [ result <- x < y]].
 		negative ifTrue: [ result <- result not ].
 		^ result
 	]
@@ -77,8 +75,7 @@ Integer subclass: LongInteger [
 	]
 
 	abs [
-		negative ifTrue: [ ^ self negated] 
-	]
+		negative ifTrue: [ ^ self negated]	]
 
 	asFloat [		| r |
 		r <- 0.0 .
@@ -129,8 +126,7 @@ Integer subclass: LongInteger [
 
 	printString [	| str |
 		str <- negative ifTrue: [ '-' ] ifFalse: [ '' ].
-		digits reverseDo: [:x | str <- str , 
-			(x quo: 10) printString , (x rem: 10) printString ].
+		digits reverseDo: [:x | str <- str ,			(x quo: 10) printString , (x rem: 10) printString ].
 		^ str
 	]
 
@@ -166,8 +162,7 @@ Integer subclass: LongInteger [
 		d <- n digits.
 		dj <- d size.
 		(1 to: (di max: dj)) do: [:i |
-			aBlock value: 
-			   ((i <= di) ifTrue: [ digits at: i] ifFalse: [0])
+			aBlock value:			   ((i <= di) ifTrue: [ digits at: i] ifFalse: [0])
 				value:
 			   ((i <= dj) ifTrue: [ d at: i] ifFalse: [0]) ]
 	]

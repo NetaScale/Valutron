@@ -93,8 +93,7 @@ Magnitude subclass: Number
 
 	maxgen: value [
 		(self isNumber and: [ value isNumber ])
-			ifFalse: [ ^ VM error: 
-				'arithmetic on non-numbers' ].
+			ifFalse: [ ^ VM error:				'arithmetic on non-numbers' ].
 		^ (self generality > value generality)
 			ifTrue: [ self ]
 			ifFalse: [ value coerce: self ]
@@ -117,10 +116,8 @@ Magnitude subclass: Number
 	]
 
 	raisedTo: x [	| y |
-		x negative 
-			ifTrue: [ ^ 1 / (self raisedTo: x negated) ].
-		x isShortInteger 
-			ifTrue: [ (x = 0) ifTrue: [ ^ 1 ].
+		x negative			ifTrue: [ ^ 1 / (self raisedTo: x negated) ].
+		x isShortInteger			ifTrue: [ (x = 0) ifTrue: [ ^ 1 ].
 				  y <- (self raisedTo: (x quo: 2)) squared.
 				  x odd ifTrue: [ y <- y * self ].
 				  ^ y ]

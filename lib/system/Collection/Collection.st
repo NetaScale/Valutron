@@ -4,15 +4,13 @@ Magnitude subclass: Collection [
 		(coll respondsTo: #includes:)
 			ifFalse: [ ^ VM error:
 				  'collection compared to non collection'].
-		self do: [:x | ((self occurrencesOf: x) < 
-			(coll occurrencesOf: x))ifFalse: [ ^ false ]].
+		self do: [:x | ((self occurrencesOf: x) <			(coll occurrencesOf: x))ifFalse: [ ^ false ]].
 		coll do: [:x | (self includes: x) ifFalse: [ ^ true ]].
 		^ false
 	]
 
 	= coll [
-		self do: [:x | (self occurrencesOf: x) = 
-				(coll occurrencesOf: x) ifFalse: [ ^ false ] ].
+		self do: [:x | (self occurrencesOf: x) =				(coll occurrencesOf: x) ifFalse: [ ^ false ] ].
 		^ true
 	]
 
@@ -59,8 +57,7 @@ Magnitude subclass: Collection [
 
 	occurrencesOf: anObject [
 		^ self inject: 0
-		       into: [:x :y | (y = anObject) 
-					 ifTrue: [x + 1]
+		       into: [:x :y | (y = anObject)					 ifTrue: [x + 1]
 					 ifFalse: [x] ]
 	]
 

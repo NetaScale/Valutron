@@ -56,10 +56,8 @@ Object subclass: Scheduler [
 	run [
 		" run as long as process list is non empty "
 		[ notdone ] whileTrue:
-			[ processList size = 0 ifTrue: 
-				[ self initialize ].
-			  processList do: 
-				[ :x | currentProcess <- x.
+			[ processList size = 0 ifTrue:				[ self initialize ].
+			  processList do:				[ :x | currentProcess <- x.
 					x execute  ] ]
 	]
 

@@ -1,13 +1,11 @@
 nil subclass: Object [
+    class>>(instancetype) new [
+        ^ 55
+    ]
 ]
-
-Object subclass: True [
-
-]
-
-Object subclass: False [
-
-]
+Object subclass: True []
+Object subclass: False []
+Object subclass: Integer []
 
 Object subclass: Cltn<ElType> [
     | (ElType) el (True) other |
@@ -20,9 +18,16 @@ Object subclass: Cltn<ElType> [
     ]
 ]
 
+Cltn<SubElType> subclass: SubCltn<SubElType> [
+
+]
+
 Object subclass: Tester [
-    | (Cltn) cltn (Object) obj |
     (Object) testMeth <T, T2> [
+        | cltn
+          obj |
+        cltn <- SubCltn new.
+        obj <- 55.
         ^ cltn setEl: obj.
         ^ cltn getEl
     ]

@@ -11,9 +11,7 @@ IndexedCollection subclass: Array [
 
 	< coll [
 		(coll isKindOf: Array)
-			ifTrue: [ self with: coll 
-				   do: [:x :y | (x = y) ifFalse: 
-						  [ ^ x < y ]].
+			ifTrue: [ self with: coll				   do: [:x :y | (x = y) ifFalse:						  [ ^ x < y ]].
 				  ^ self size < coll size ]
 			ifFalse: [ ^ super < coll ]
 	]
@@ -23,17 +21,14 @@ IndexedCollection subclass: Array [
 			ifTrue: [ (self size = coll size)
 					ifFalse: [ ^ false ].
 				  self with: coll
-					do: [:x :y | (x = y) 
-						ifFalse: [ ^ false ] ]. 
-				 ^ true ]
+					do: [:x :y | (x = y)						ifFalse: [ ^ false ] ].				 ^ true ]
 			ifFalse: [ ^ super = coll ]
 	]
 
 	at: index put: value [
 		(self includesKey: index)
 			ifTrue: [ self basicAt: index put: value ]
-			ifFalse: [ VM error: 
-				'illegal index to at:put: for array' ]
+			ifFalse: [ VM error:				'illegal index to at:put: for array' ]
 	]
 
 	binaryDo: aBlock [
@@ -44,8 +39,7 @@ IndexedCollection subclass: Array [
 	collect: aBlock [		| s newArray |
 		s <- self size.
 		newArray <- Array new: s.
-		(1 to: s) do: [:i | newArray at: i put: 
-			(aBlock value: (self at: i))].
+		(1 to: s) do: [:i | newArray at: i put:			(aBlock value: (self at: i))].
 		^ newArray
 	]
 
@@ -125,8 +119,7 @@ IndexedCollection subclass: Array [
 
 	with: coll do: aBlock [
 		(1 to: (self size min: coll size))
-			do: [:i | aBlock value: (self at: i) 
-					value: (coll at: i) ]
+			do: [:i | aBlock value: (self at: i)					value: (coll at: i) ]
 	]
 
 	with: coll ifAbsent: z do: aBlock [	| xsize ysize |

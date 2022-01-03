@@ -9,9 +9,7 @@ Behavior subclass: Metaclass [
 			variables: vArray
 	]
 
-		    instName: nSym 
-		instanceSize: iInt 
-		     methods: mDict
+		    instName: nSym		instanceSize: iInt		     methods: mDict
 		  superClass: sClass
 		   variables: vArray [
 		^ self basicNew

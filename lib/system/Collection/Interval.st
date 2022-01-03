@@ -7,8 +7,7 @@ Collection subclass: Interval [
 
 	do: aBlock [		| current |
 		current <- lower.
-		(step > 0) 
-			ifTrue: [ [ current <= upper ] whileTrue:
+		(step > 0)			ifTrue: [ [ current <= upper ] whileTrue:
 					[ aBlock value: current.
 			  		current <- current + step ] ]
 			ifFalse: [ [ current >= upper ] whileTrue:

@@ -8,8 +8,7 @@ Collection subclass: List [
 	add: aValue ordered: aBlock [
 		(links isNil)
 			ifTrue: [ self addFirst: aValue]
-			ifFalse: [ links <- links add: aValue 
-					whenFalse: aBlock ]
+			ifFalse: [ links <- links add: aValue					whenFalse: aBlock ]
 	]
 
 	addAll: aValue [
@@ -66,8 +65,7 @@ Collection subclass: List [
 
 	select: aBlock [
 		^ self inject: self class new
-		       into: [:x :y | (aBlock value: y) 
-					ifTrue: [x add: y]. x]
+		       into: [:x :y | (aBlock value: y)					ifTrue: [x add: y]. x]
 	]
 
 	size [

@@ -31,8 +31,7 @@ Object subclass: Block [
 	newProcessWith: args [
 		(self checkArgumentCount: args size)
 			ifTrue: [ (1 to: args size) do: [:i |
-				   context at: (argLoc + i - 1) 
-					put: (args at: i)]].
+				   context at: (argLoc + i - 1)					put: (args at: i)]].
 		^ self newProcess
 	]
 
@@ -76,8 +75,7 @@ Object subclass: Block [
 
 	whileTrue: aBlock [
 		( self value ) ifTrue:
-			[ aBlock value. 
-				self whileTrue: aBlock ]
+			[ aBlock value.				self whileTrue: aBlock ]
 	]
 
 	nonLocalReturn: returnValue [
@@ -93,8 +91,7 @@ Object subclass: Block [
 		[
 		  prevContext <- prevContext prevContext.
 		  i <- i + 1.
-		  (prevContext == homeContext) or: [ prevContext isNil] 
-		] whileTrue.
+		  (prevContext == homeContext) or: [ prevContext isNil]		] whileTrue.
 
 		[ prevContext isBlockContext ]
 			whileTrue: [
@@ -102,12 +99,9 @@ Object subclass: Block [
 
 				[
 				  i <- i + 1.
-				  (prevContext <- prevContext prevContext) == homeContext 
-					or: [ homeContext isNil ]
-				] whileFalse 
-			].
-		
-		"Now escape the method context. "
+				  (prevContext <- prevContext prevContext) == homeContext					or: [ homeContext isNil ]
+				] whileFalse			].
+			"Now escape the method context. "
 		prevContext <- prevContext prevContext.
 		prevContext isNil ifTrue: [ <163 'PrevContext is nil'> ].
 		<162 'Stack unwind completed. Activating return continuation:'>.
@@ -115,18 +109,14 @@ Object subclass: Block [
 	]
 
 	testBlock [
-		 [ thisContext methodOrBlock nonLocalReturn: 55 
-						  ] ensure: [ <162 'Hello!'> ] 
-	]
+		 [ thisContext methodOrBlock nonLocalReturn: 55						  ] ensure: [ <162 'Hello!'> ]	]
 
 	"category: Kernel-Exceptions"
 
 	ensure: terminationBlock [
 		| handler returnValue |
-		"Description: 
-			Evaluate the receiver and return its result. Immediately after successful evaluation of the receiver
-			but before returning its result, evaluate terminationBlock. If abnormal termination of the 
-			receiver occurs, terminationBlock is evaluated. In either case, the value returned from the
+		"Description:			Evaluate the receiver and return its result. Immediately after successful evaluation of the receiver
+			but before returning its result, evaluate terminationBlock. If abnormal termination of the			receiver occurs, terminationBlock is evaluated. In either case, the value returned from the
 			evaluation of terminationBlock is discarded.
 
 			Activation of an exception handler from within the receiver is not in and of itself an abnormal

@@ -27,8 +27,7 @@ Array subclass: ByteArray [
 	basicAt: index put: value [
 		^ ((value isMemberOf: Integer) and: [value between: 0 and: 255])
 			ifTrue: [ <32 self index value > ]
-			ifFalse: [ value print. VM error: 
-				'assign illegal value to ByteArray']
+			ifFalse: [ value print. VM error:				'assign illegal value to ByteArray']
 	]
 
 	logChunk [

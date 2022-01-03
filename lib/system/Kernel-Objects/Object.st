@@ -168,8 +168,7 @@ nil subclass: Object [
 
 	class>>respondsTo [	| theSet |
 		theSet <- Dictionary new.
-		self upSuperclassChain: 
-			[:x | theSet addAll: x methods ].
+		self upSuperclassChain:			[:x | theSet addAll: x methods ].
 		^ theSet
 	]
 
@@ -205,9 +204,7 @@ nil subclass: Object [
 
 	class>>watch: name [	| m |
 		m <- self methodNamed: name.
-		(m notNil) 
-			ifTrue: [ ^ m watch: 
-				[:a | ('executing ', name) print. a print] ]
+		(m notNil)			ifTrue: [ ^ m watch:				[:a | ('executing ', name) print. a print] ]
 			ifFalse: [ ^ 'no such method' ]
 	]
 
@@ -249,8 +246,7 @@ nil subclass: Object [
 
 	deepCopy [	| newObj |
 		newObj <- self class new.
-		(1 to: self basicSize) do: 
-			[:i | newObj basicAt: i put: (self basicAt: i) copy].
+		(1 to: self basicSize) do:			[:i | newObj basicAt: i put: (self basicAt: i) copy].
 		^ newObj
 	]
 
@@ -310,24 +306,21 @@ nil subclass: Object [
 	]
 
 	print [
-		self printString print 
-	]
+		self printString print	]
 
 	printString [
 		^ self class printString
 	]
 
 	respondsTo: message [
-		self class upSuperclassChain: 
-			[:c | (c methodNamed: message) notNil
+		self class upSuperclassChain:			[:c | (c methodNamed: message) notNil
 					ifTrue: [ ^ true ]].
 		^ false
 	]
 
 	shallowCopy [	| newObj |
 		newObj <- self class new.
-		(1 to: self basicSize) do: 
-			[:i | newObj basicAt: i put: (self basicAt: i) ].
+		(1 to: self basicSize) do:			[:i | newObj basicAt: i put: (self basicAt: i) ].
 		^ newObj
 	]
 

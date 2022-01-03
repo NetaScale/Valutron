@@ -53,13 +53,11 @@ IndexedCollection subclass: Dictionary [
 				ifTrue: [ aBlock value: (hashTable at: i)
 						value: (hashTable at: i+1) ].
 			      (hashTable at: i+2) notNil
-				ifTrue: [ (hashTable at: i+2) 
-						binaryDo: aBlock ] ]
+				ifTrue: [ (hashTable at: i+2)						binaryDo: aBlock ] ]
 	]
 
 	display [
-		self binaryDo: [:x :y | (x printString , ' -> ', 
-					y printString ) print ]
+		self binaryDo: [:x :y | (x printString , ' -> ',					y printString ) print ]
 	]
 
 	hash: aKey [
