@@ -159,7 +159,9 @@ Type::isSubtypeOf(Type *type)
 	case kClass:
 		abort();
 
+
 	case kInstance: {
+		test:
 		switch (type->m_kind) {
 		case kIdent:
 			abort();
@@ -176,12 +178,26 @@ Type::isSubtypeOf(Type *type)
 
 		case kSelf:
 		case kInstanceType:
-			abort();
+			std::cout << "Falsely allowing RHS " <<
+				    *this << " to be assigned to LHS " <<
+				    *type << "\n";
+				return true;
 
 		case kId:
 			return true;
 
 		case kTyVar:
+			if (m_tyVarDecl->second) {
+				type = m_tyVarDecl->second;
+				goto test;
+			}
+			else {
+				std::cout << "Falsely allowing RHS " <<
+				    *this << " to be assigned to LHS " <<
+				    *type << "\n";
+				return true;
+			}
+
 		case kClass:
 			return false;
 
@@ -479,6 +495,12 @@ MethodNode::typeReg(TyChecker &tyc)
 
 	assert(tyClass);
 
+	/* Register method's generic type parameters */
+	for (auto & tyParam: m_tyParams) {
+		TyEnv::m_types[tyParam.first] = Type::makeTyVarReference(
+		    &tyParam);
+	}
+
 	resolveOrId(m_retType, this);
 
 	for (auto &var : args) {
@@ -515,6 +537,7 @@ ClassNode::typeReg(TyChecker &tyc)
 	else {
 		delete superType;
 		superType = NULL;
+		tyClass->super = NULL;
 	}
 
 	for (auto &var : iVars) {
@@ -656,6 +679,11 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 				  << " does not appear to understand message "
 				  << selector << "\n";
 			return NULL;
+		}
+
+		/* Register any type parameters of the generic argument. */
+		for (auto & tyParam: meth->m_tyParams) {
+			invoc.tyParamMap[&tyParam] = new Type;
 		}
 
 		for (int i = 0; i < argTypes.size(); i++) {

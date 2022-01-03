@@ -553,16 +553,18 @@ struct MethodNode : public Node, public TyEnv {
 	bool isClassMethod;
 	Type * m_retType;
 	std::string sel;
+	std::vector<VarDecl> m_tyParams;
 	std::vector<VarDecl> args;
 	std::vector<VarDecl> locals;
 	std::vector<StmtNode *> stmts;
 
 	MethodNode(bool isClassMethod, Type * retType, std::string sel,
-	    std::vector<VarDecl> args, std::vector<VarDecl> locals,
-	    std::vector<StmtNode *> stmts)
+	    std::vector<VarDecl> tyParams, std::vector<VarDecl> args,
+	    std::vector<VarDecl> locals, std::vector<StmtNode *> stmts)
 	    : isClassMethod(isClassMethod)
 	    , m_retType(retType)
 	    , sel(sel)
+	    , m_tyParams(tyParams)
 	    , args(args)
 	    , locals(locals)
 	    , stmts(stmts)

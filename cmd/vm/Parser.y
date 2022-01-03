@@ -158,7 +158,8 @@ file ::= decl_list(l) EOF.
 	}
 
 directMeth ::= DIRECTMETH var_defs_opt(locals) statements(stmts) dot_opt. {
-	meth = new MethodNode(false, NULL, "fakeselector", {}, locals, stmts);
+	meth = new MethodNode(false, NULL, "fakeselector", {}, {}, locals,
+	    stmts);
 }
 
 %type decl_list { std::vector<DeclNode *> }
@@ -230,9 +231,9 @@ method_defs(L) ::= method_defs(l) method_def(d). {
 }
 
 method_def(D) ::= opt_class_meth_spec(isClass) selector_pattern(s)
-    type_args_opt(tyArgs) SQB_OPEN var_defs_opt(locals) statements(stmts)
+    type_params_opt(tyParams) SQB_OPEN var_defs_opt(locals) statements(stmts)
 	dot_opt SQB_CLOSE. {
-	D = new MethodNode(isClass, s.m_retType, s.m_sel, s.m_params,
+	D = new MethodNode(isClass, s.m_retType, s.m_sel, tyParams, s.m_params,
 	    locals, stmts);
 }
 
