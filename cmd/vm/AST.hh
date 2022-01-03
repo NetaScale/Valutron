@@ -423,8 +423,8 @@ struct MessageExprNode : ExprNode {
 
 	virtual void synthInScope(Scope *scope);
 	virtual void generateOn(CodeGen &gen);
-	void typeCheck(TyChecker &tyc);
-	// Type * type(TyChecker &tyc);
+	//void typeCheck(TyChecker &tyc);
+	Type * type(TyChecker &tyc);
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 

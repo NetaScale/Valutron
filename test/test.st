@@ -1,14 +1,18 @@
 nil subclass: Object [
 ]
 
-Object subclass: Object2 [
+Object subclass: True [
+
+]
+
+Object subclass: False [
 
 ]
 
 Object subclass: Cltn<ElType> [
-    | (ElType) el |
+    | (ElType) el (True) other |
     (ElType) getEl [
-        ^ el
+        ^ other
     ]
 
     (ElType) setEl: (ElType) anEl [
@@ -19,7 +23,7 @@ Object subclass: Cltn<ElType> [
 Object subclass: Tester [
     | (Cltn) cltn (Object) obj |
     (Object) testMeth <T, T2> [
-        ^ cltn setEl: obj
+        ^ cltn setEl: obj.
         ^ cltn getEl
     ]
 ]

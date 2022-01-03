@@ -6,6 +6,8 @@
 #include <vector>
 
 struct ClassNode;
+struct MethodNode;
+struct BlockExprNode;
 struct TyClass;
 struct TyEnv;
 struct Type;
@@ -33,6 +35,7 @@ struct Type {
 	static const char *kindStr[kMax];
 
 	bool m_isConstructor = false;
+	bool m_wasInferred = false; /**< was this type inferred? */
 
 	VarDecl * m_tyVarDecl = NULL; /**< if a kTyVar, the VarDecl defining it */
 	Type *m_wrapped = NULL;
@@ -42,13 +45,12 @@ struct Type {
 	std::vector<Type*> m_typeArgs;
 
 	static Type *makeTyVarReference(VarDecl * tyVarDecl);
-	static Type *makeInstanceMaster(TyClass *cls);
+	static Type *makeInstanceMaster(TyClass *cls,
+	    std::vector<VarDecl> &tyParams);
 
 	Type() : m_kind(kAsYetUnspecified) {};
 	Type(std::string ident, std::vector<Type*> typeArgs);
 	Type(TyClass *cls); /**< create kClass type */
-	/** create master kInstance type */
-	Type(TyClass *cls, std::string ident, std::vector<VarDecl> &m_typeArgs);
 
 	Type *copy() const;
 
@@ -83,6 +85,9 @@ struct TyClass {
 	std::string m_name;
 	TyClass * super;
 	ClassNode *m_clsNode;
+
+	Type * m_classType;
+	Type * m_instanceMasterType;
 };
 
 struct TyEnv {
@@ -99,10 +104,13 @@ struct TyEnv {
 struct TyChecker {
 	TyEnv *m_globals;
 	std::vector<TyEnv*> m_envs;
+	MethodNode * m_method = NULL;
+	std::vector<BlockExprNode *> m_blocks;
 
 	TyChecker();
 
 	TyClass *findOrCreateClass(ClassNode *cls);
+	MethodNode * method() { return m_method; }
 };
 
 #endif /* TYPECHECK_HH_ */

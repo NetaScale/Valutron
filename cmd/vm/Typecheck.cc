@@ -44,19 +44,22 @@ Type::Type(TyClass *cls)
 {
 	m_ident = cls->m_name;
 	m_kind = kClass;
+	m_cls = cls;
 }
 
-Type::Type(TyClass *cls, std::string ident, std::vector<VarDecl> &tyParams)
+Type * Type::makeInstanceMaster(TyClass *cls, std::vector<VarDecl> &tyParams)
 {
-	m_kind = kInstance;
-	m_ident = ident;
-	m_cls = cls;
+	Type * type = new Type;
+	type->m_kind = kInstance;
+	type->m_ident = cls->m_name;
+	type->m_cls = cls;
 	if (tyParams.size()) {
-		m_isConstructor = true;
-		for (auto &tyParam : tyParams) {
-			m_typeArgs.push_back(Type::makeTyVarReference(&tyParam));
-		}
+		type->m_isConstructor = true;
+		for (auto &tyParam : tyParams)
+			type->m_typeArgs.push_back(Type::makeTyVarReference(
+			    &tyParam));
 	}
+	return type;
 }
 
 Type *Type::makeTyVarReference(VarDecl * varDecl)
@@ -70,20 +73,12 @@ Type *Type::makeTyVarReference(VarDecl * varDecl)
 
 void Type::resolveInTyEnv(TyEnv * env)
 {
-	if (m_kind == kIdent)
-	{
-		Type * type =  env->lookupType(m_ident);
+	if (m_kind == kIdent) {
+		Type * type = env->lookupType(m_ident);
 		type->resolveInTyEnv(env); // ???
 		type->constructInto(this);
 		for (auto & arg: m_typeArgs)
-		{
 			arg->resolveInTyEnv(env); // ???
-		}
-	}
-	else {
-	printf("\n\nType already resolved??\n");
-	print(5);
-	printf("\n");
 	}
 }
 
@@ -105,8 +100,28 @@ Type::isSubtypeOf(Type *type)
 	case kId:
 		return true;
 
-	case kTyVar:
-		abort();
+	case kTyVar: {
+		switch (type->m_kind) {
+		case kBlock:
+			return false;
+
+		case kId:
+			return true;
+
+		case kTyVar:
+			return m_tyVarDecl == type->m_tyVarDecl;
+
+		case kSelf:
+		case kInstanceType:
+		case kClass:
+		case kInstance:
+		case kMax:
+		case kIdent:
+		case kAsYetUnspecified:
+			abort();
+			abort();
+		}
+	}
 
 	case kClass:
 		abort();
@@ -122,6 +137,8 @@ Type::isSubtypeOf(Type *type)
 			return true;
 
 		case kBlock:
+			return false;
+
 		case kSelf:
 		case kInstanceType:
 			abort();
@@ -130,13 +147,23 @@ Type::isSubtypeOf(Type *type)
 			return true;
 
 		case kTyVar:
-			abort();
-
 		case kClass:
-			abort();
+			return false;
 
-		case kInstance:
-			printf("Hello\n");
+		case kInstance: {
+			if (m_cls == type->m_cls) {
+				if (m_typeArgs.size() == 0)
+					return true; /** could do inference here */
+				else if (m_typeArgs.size() == type->m_typeArgs.size()) {
+					for (int i = 0; i < m_typeArgs.size(); i++) {
+						if (!m_typeArgs[i]->isSubtypeOf(type->m_typeArgs[i]))
+							return false;
+					}
+
+					return true;
+				}
+			}
+		}
 
 		case kMax:
 			abort();
@@ -146,6 +173,8 @@ Type::isSubtypeOf(Type *type)
 	case kMax:
 		abort();
 	}
+
+	abort();
 }
 
 Type *
@@ -266,30 +295,30 @@ Type::niceName(std::ostream &os) const
 		return os << "{not-yet-inferred}";
 
 	case kBlock:
-		return os << "[{block}]";
+		return os << "{[block]}";
 
 	case kSelf:
-		return os << "self";
+		return os << "{self}";
 
 	case kInstanceType:
-		return os << "instancetype";
+		return os << "{instancetype}";
 
 	case kId:
-		return os << "id";
+		return os << "{id}";
 
 	case kTyVar:
-		os << "typeParameter " << m_ident; 
+		os << "{typeParameter " << m_ident;
 		
 		if (m_wrapped)
-			return os << "(" << (*m_wrapped) << ")";
+			return os << "(" << (*m_wrapped) << ")}";
 		else
-			return os;
+			return os << "}";
 
 	case kClass:
-		return os << m_ident << " class";
+		return os << "{" << m_ident << " class}";
 
 	case kInstance: {
-		os << m_ident;
+		os << "{" << m_ident;
 		if (m_typeArgs.size()) {
 			bool isFirst = true;
 			os << "<";
@@ -302,12 +331,13 @@ Type::niceName(std::ostream &os) const
 			}
 			os << ">";
 		}
-		return os;
+		return os << "}";
 	}
 
 	case kMax:
 		abort();
 	}
+	abort();
 }
 
 Type *
@@ -340,11 +370,16 @@ TyChecker::findOrCreateClass(ClassNode *cls)
 		return type->m_cls;
 	else {
 		TyClass *tyc = new TyClass;
+
 		tyc->m_name = cls->name;
 		tyc->m_clsNode = cls;
-		m_globals->m_vars[cls->name] = new Type(tyc);
-		m_globals->m_types[cls->name] = new Type(tyc, cls->name,
+		tyc->m_classType = new Type(tyc);
+		tyc->m_instanceMasterType = Type::makeInstanceMaster(tyc,
 		    cls->m_tyParams);
+
+		m_globals->m_vars[cls->name] = tyc->m_classType;
+		m_globals->m_types[cls->name] = tyc->m_instanceMasterType;
+
 		return tyc;
 	}
 }
@@ -353,6 +388,14 @@ TyChecker::TyChecker()
 {
 	m_globals = new TyEnv;
 	m_envs.push_back(m_globals);
+}
+
+static void resolveOrId(Type *& type, TyEnv * env)
+{
+	if (!type)
+		type = new Type("id", {});
+	else
+		type->resolveInTyEnv(env);
 }
 
 void
@@ -364,21 +407,15 @@ MethodNode::typeReg(TyChecker &tyc)
 
 	assert(tyClass);
 
-	m_retType->resolveInTyEnv(this);
+	resolveOrId(m_retType, this);
 
 	for (auto &var : args) {
-		var.second->resolveInTyEnv(this);
+		resolveOrId(var.second, this);
 		m_vars[var.first] = var.second;
 	}
 
-	for (auto & var: locals)
-	{
-		printf("METHOD LOCAL %s: \n", var.first.c_str());
-		var.second->print(2);
-		var.second->resolveInTyEnv(this);
-		printf("NEU TYPE: \n");
-		var.second->print(2);
-		printf("END METHOD TYPE\n");
+	for (auto &var : locals) {
+		resolveOrId(var.second, this);
 		m_vars[var.first] = var.second;
 	}
 
@@ -393,30 +430,21 @@ ClassNode::typeReg(TyChecker &tyc)
 	tyc.m_envs.push_back(this);
 
 	for (auto & tyParam : m_tyParams) {
-		TyEnv::m_types[tyParam.first] = Type::makeTyVarReference(&tyParam);
+		TyEnv::m_types[tyParam.first] = Type::makeTyVarReference(
+		    &tyParam);
 	}
 
 	if (superName != "nil") {
-		printf("ORIGINAL TYPE: \n");
-		superType->print(2);
 		superType->resolveInTyEnv(this);
-		printf("NEU TYPE: \n");
-		superType->print(2);
-	} else {
+		tyClass->super = superType->m_cls;
+	}
+	else {
 		delete superType;
 		superType = NULL;
 	}
 
 	for (auto &var : iVars) {
-		if (var.second) {
-			printf("  IVAR %s: \n", var.first.c_str());
-			var.second->print(4);
-			var.second->resolveInTyEnv(this);
-			printf("  NEU TYPE: \n");
-			var.second->print(4);
-			printf("  END IVAR TYPE\n");
-		} else
-			var.second = new Type();
+		resolveOrId(var.second, this);
 		m_vars[var.first] = var.second;
 	}
 
@@ -441,6 +469,11 @@ ProgramNode::typeReg(TyChecker &tyc)
 {
 	for (auto cls : decls)
 		cls->typeReg(tyc);
+#define GLOBAL(NAME, CLASS)                                \
+	tyc.m_globals->m_vars[NAME] = new Type(CLASS, {}); \
+	tyc.m_globals->m_vars[NAME]->resolveInTyEnv(tyc.m_globals)
+	GLOBAL("true", "True");
+	GLOBAL("false", "False");
 }
 
 /**
@@ -453,8 +486,8 @@ IdentExprNode::type(TyChecker &tyc)
 	return tyc.m_envs.back()->lookupVar(id);
 }
 
-void
-MessageExprNode::typeCheck(TyChecker &tyc)
+Type *
+MessageExprNode::type(TyChecker &tyc)
 {
 	Type *recvType = receiver->type(tyc);
 	std::vector<Type *> argTypes;
@@ -472,6 +505,8 @@ MessageExprNode::typeCheck(TyChecker &tyc)
 	res = recvType->typeSend(selector, argTypes);
 
 	std::cout << " -> RESULT OF SEND: " << *res << "\n";
+
+	return res;
 }
 
 Type *
@@ -481,6 +516,8 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes)
 	case kInstance: {
 		MethodNode *meth = NULL;
 		Invocation invoc;
+
+		invoc.receiver = this;
 
 		for (auto &aMeth : m_cls->m_clsNode->iMethods)
 			if (aMeth->sel == selector)
@@ -509,6 +546,41 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes)
 		return meth->m_retType->typeInInvocation(invoc);
 	}
 
+	case kClass: {
+		MethodNode *meth = NULL;
+		Invocation invoc;
+
+		invoc.receiver = this;
+		invoc.isClass = true;
+
+		for (auto &aMeth : m_cls->m_clsNode->cMethods)
+			if (aMeth->sel == selector)
+				meth = aMeth;
+
+		if (!meth) {
+			if (m_cls->super) {
+				return m_cls->super->m_classType->typeSend(selector,
+					argTypes);
+			}
+
+			std::cerr << "Object of type " << *this
+				  << " does not appear to understand message "
+				  << selector << "\n";
+			return NULL;
+		}
+
+		for (int i = 0; i < argTypes.size(); i++) {
+			Type *formal = meth->args[i].second->typeInInvocation(
+			    invoc);
+			if (!argTypes[i]->isSubtypeOf(formal))
+				std::cerr << "Argument of type " << *this
+					  << "is not a subtype of " << *formal
+					  << "\n";
+		}
+
+		return meth->m_retType->typeInInvocation(invoc);
+	}
+
 	default:
 		std::cout << "Unexpected kind " << kindStr[m_kind] << "\n";
 		return NULL;
@@ -519,17 +591,24 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes)
 void
 ReturnStmtNode::typeCheck(TyChecker &tyc)
 {
-	expr->typeCheck(tyc);
+	Type * type = expr->type(tyc);
+	Type * retType = tyc.method()->m_retType;
+	if (!type->isSubtypeOf(retType)) {
+		std::cerr << "Type " << *type << "is not a subtype of expected "
+		    "return type " << *retType << "\n";
+	}
 }
 
 void
 MethodNode::typeCheck(TyChecker &tyc)
 {
 	tyc.m_envs.push_back(this);
+	tyc.m_method = this;
 
 	for (auto &stmt : stmts)
 		stmt->typeCheck(tyc);
 
+	tyc.m_method = NULL;
 	tyc.m_envs.pop_back();
 }
 
