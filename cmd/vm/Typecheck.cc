@@ -5,6 +5,12 @@
 #include "AST.hh"
 #include "Typecheck.hh"
 
+struct Invocation {
+	Type *receiver;
+	bool isClass = false; /**< is it the class or the instance? */
+	std::map<std::string, Type *> tyParamMap;
+};
+
 const char *Type::kindStr[kMax] = {
 	"UnresolvedIdentifier",
 
@@ -40,7 +46,7 @@ Type::Type(TyClass *cls)
 	m_kind = kClass;
 }
 
-Type::Type(TyClass *cls, std::string ident, std::vector<VarDecl> tyParams)
+Type::Type(TyClass *cls, std::string ident, std::vector<VarDecl> &tyParams)
 {
 	m_kind = kInstance;
 	m_ident = ident;
@@ -48,17 +54,18 @@ Type::Type(TyClass *cls, std::string ident, std::vector<VarDecl> tyParams)
 	if (tyParams.size()) {
 		m_isConstructor = true;
 		for (auto &tyParam : tyParams) {
-			m_typeArgs.push_back(
-			    new Type(tyParam.first, tyParam.second));
+			m_typeArgs.push_back(Type::makeTyVarReference(&tyParam));
 		}
 	}
 }
 
-Type::Type(std::string tyVarIdent, Type *bound)
-    : m_ident(tyVarIdent)
-    , m_kind(kTyVar)
-    , m_wrapped(bound)
+Type *Type::makeTyVarReference(VarDecl * varDecl)
 {
+	Type * type = new Type;
+	type->m_ident = varDecl->first;
+	type->m_kind = kTyVar;
+	type->m_tyVarDecl = varDecl;
+	return type;
 }
 
 void Type::resolveInTyEnv(TyEnv * env)
@@ -77,6 +84,98 @@ void Type::resolveInTyEnv(TyEnv * env)
 	printf("\n\nType already resolved??\n");
 	print(5);
 	printf("\n");
+	}
+}
+
+bool
+Type::isSubtypeOf(Type *type)
+{
+	switch (m_kind) {
+	case kIdent:
+	case kAsYetUnspecified: {
+		std::cerr << "Inferring uninferred LHS to be " << *type;
+		*this = *type;
+		return true;
+	}
+	case kBlock:
+	case kSelf:
+	case kInstanceType:
+		abort();
+
+	case kId:
+		return true;
+
+	case kTyVar:
+		abort();
+
+	case kClass:
+		abort();
+
+	case kInstance: {
+		switch (type->m_kind) {
+		case kIdent:
+			abort();
+
+		case kAsYetUnspecified:
+			std::cerr << "Inferring uninferred RHS to be " << *this;
+			*type = *this;
+			return true;
+
+		case kBlock:
+		case kSelf:
+		case kInstanceType:
+			abort();
+
+		case kId:
+			return true;
+
+		case kTyVar:
+			abort();
+
+		case kClass:
+			abort();
+
+		case kInstance:
+			printf("Hello\n");
+
+		case kMax:
+			abort();
+		}
+	}
+
+	case kMax:
+		abort();
+	}
+}
+
+Type *
+Type::typeInInvocation(Invocation &invocation)
+{
+	switch (m_kind) {
+	case kIdent:
+	case kAsYetUnspecified:
+	case kBlock:
+		abort();
+
+	case kSelf:
+		return invocation.receiver;
+
+	case kInstanceType:
+		abort();
+
+	case kId:
+		return this;
+
+	case kTyVar:
+		return invocation.tyParamMap[m_ident];
+
+	case kClass:
+	case kInstance: {
+		abort();
+	}
+
+	default:
+		abort();
 	}
 }
 
@@ -102,13 +201,13 @@ Type::constructInto(Type *into)
 
 	case kTyVar: {
 		into->m_kind = kTyVar;
-		into->m_wrapped = m_wrapped;
+		into->m_tyVarDecl = m_tyVarDecl;
 		break;
 	}
 
 	default:
-		throw std::runtime_error(
-		    "Unexpected kind " + std::to_string(m_kind));
+		throw std::runtime_error("Unexpected kind " +
+		    std::to_string(m_kind));
 	}
 }
 
@@ -125,18 +224,22 @@ Type::print(size_t in)
 
 	std::cout << blanks(in) << "Ident: " << m_ident << "\n";
 
-	if(m_wrapped!= NULL)
+	if(m_tyVarDecl && m_tyVarDecl->second != NULL)
 	{
-		std::cout << blanks(in) << "Wrapping:\n" << m_ident << "\n";
+		std::cout << blanks(in) << "Bound: \n" << "\n";
+		m_tyVarDecl->second->print(in + 2);
+	}
+
+	if (m_wrapped != NULL) {
+		std::cout << blanks(in) << "Wrapping: \n";
 		m_wrapped->print(in + 2);
 	}
 
-	if (!m_typeArgs.empty())
-	{
-	std::cout << blanks(in) << "Args: [\n";
-	for (auto &arg : m_typeArgs)
-		arg->print(in + 2);
-	std::cout << blanks(in) << "]\n";
+	if (!m_typeArgs.empty()) {
+		std::cout << blanks(in) << "Args: [\n";
+		for (auto &arg : m_typeArgs)
+			arg->print(in + 2);
+		std::cout << blanks(in) << "]\n";
 	}
 
 	if (m_cls)
@@ -175,8 +278,12 @@ Type::niceName(std::ostream &os) const
 		return os << "id";
 
 	case kTyVar:
-		return os << "typeParameter " << m_ident << "(" << (*m_wrapped)
-			  << ")";
+		os << "typeParameter " << m_ident; 
+		
+		if (m_wrapped)
+			return os << "(" << (*m_wrapped) << ")";
+		else
+			return os;
 
 	case kClass:
 		return os << m_ident << " class";
@@ -198,7 +305,7 @@ Type::niceName(std::ostream &os) const
 		return os;
 	}
 
-	default:
+	case kMax:
 		abort();
 	}
 }
@@ -235,8 +342,6 @@ TyChecker::findOrCreateClass(ClassNode *cls)
 		TyClass *tyc = new TyClass;
 		tyc->m_name = cls->name;
 		tyc->m_clsNode = cls;
-		// tyc->m_typeParams = typeParams;
-		printf("Creatink a neu klass %s\n", cls->name.c_str());
 		m_globals->m_vars[cls->name] = new Type(tyc);
 		m_globals->m_types[cls->name] = new Type(tyc, cls->name,
 		    cls->m_tyParams);
@@ -287,9 +392,8 @@ ClassNode::typeReg(TyChecker &tyc)
 	TyEnv::m_tyClass = tyClass;
 	tyc.m_envs.push_back(this);
 
-	for (auto & tyParam : m_tyParams)
-	{
-		TyEnv::m_types[tyParam.first] = new Type(tyParam.first, tyParam.second);
+	for (auto & tyParam : m_tyParams) {
+		TyEnv::m_types[tyParam.first] = Type::makeTyVarReference(&tyParam);
 	}
 
 	if (superName != "nil") {
@@ -303,18 +407,16 @@ ClassNode::typeReg(TyChecker &tyc)
 		superType = NULL;
 	}
 
-	for (auto & var: iVars)
-	{
-		if (var.second)
-		{
-		printf("  IVAR %s: \n", var.first.c_str());
-		var.second->print(4);
-		var.second->resolveInTyEnv(this);
-		printf("  NEU TYPE: \n");
-		var.second->print(4);
-		printf("  END IVAR TYPE\n");
-		}
-		else var.second = new Type();
+	for (auto &var : iVars) {
+		if (var.second) {
+			printf("  IVAR %s: \n", var.first.c_str());
+			var.second->print(4);
+			var.second->resolveInTyEnv(this);
+			printf("  NEU TYPE: \n");
+			var.second->print(4);
+			printf("  END IVAR TYPE\n");
+		} else
+			var.second = new Type();
 		m_vars[var.first] = var.second;
 	}
 
@@ -368,6 +470,8 @@ MessageExprNode::typeCheck(TyChecker &tyc)
 		argType->print(8);
 
 	res = recvType->typeSend(selector, argTypes);
+
+	std::cout << " -> RESULT OF SEND: " << *res << "\n";
 }
 
 Type *
@@ -376,17 +480,33 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes)
 	switch (m_kind) {
 	case kInstance: {
 		MethodNode *meth = NULL;
+		Invocation invoc;
 
 		for (auto &aMeth : m_cls->m_clsNode->iMethods)
 			if (aMeth->sel == selector)
 				meth = aMeth;
 
-		if (!meth)
+		if (!meth) {
 			std::cerr << "Object of type " << *this
 				  << " does not appear to understand message "
 				  << selector << "\n";
+			return NULL;
+		}
 
-		return NULL;
+		for (int i = 0; i < m_typeArgs.size(); i++)
+			invoc.tyParamMap[m_cls->m_clsNode->m_tyParams[i].
+			    first] = m_typeArgs[i];
+
+		for (int i = 0; i < argTypes.size(); i++) {
+			Type *formal = meth->args[i].second->typeInInvocation(
+			    invoc);
+			if (!argTypes[i]->isSubtypeOf(formal))
+				std::cerr << "Argument of type " << *this
+					  << "is not a subtype of " << *formal
+					  << "\n";
+		}
+
+		return meth->m_retType->typeInInvocation(invoc);
 	}
 
 	default:

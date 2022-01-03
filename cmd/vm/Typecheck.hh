@@ -10,6 +10,7 @@ struct TyClass;
 struct TyEnv;
 struct Type;
 typedef std::pair<std::string, Type *> VarDecl;
+struct Invocation;
 
 struct Type {
 	enum Kind {
@@ -33,25 +34,32 @@ struct Type {
 
 	bool m_isConstructor = false;
 
-	Type *m_wrapped = NULL; /* if kTyVar */
+	VarDecl * m_tyVarDecl = NULL; /**< if a kTyVar, the VarDecl defining it */
+	Type *m_wrapped = NULL;
 	TyClass *m_cls = NULL;	/* if kClass or kInstance */
 
 	std::string m_ident;
 	std::vector<Type*> m_typeArgs;
 
+	static Type *makeTyVarReference(VarDecl * tyVarDecl);
 	static Type *makeInstanceMaster(TyClass *cls);
 
 	Type() : m_kind(kAsYetUnspecified) {};
 	Type(std::string ident, std::vector<Type*> typeArgs);
 	Type(TyClass *cls); /**< create kClass type */
-	Type(TyClass * cls, std::string ident, std::vector<VarDecl> m_typeArgs); /**< create master kInstance type */
-	Type(std::string tyVarIdent, Type * bound);
+	/** create master kInstance type */
+	Type(TyClass *cls, std::string ident, std::vector<VarDecl> &m_typeArgs);
+
+	Type *copy() const;
 
 	/**
 	 * Try to get the return type of a message send to this type.
 	 */
 	Type *typeSend(std::string selector, std::vector<Type *> &argTypes);
 
+	bool isSubtypeOf(Type *type);
+
+	Type *typeInInvocation(Invocation &invocation);
 	void resolveInTyEnv(TyEnv * env);
 	void constructInto(Type *into);
 	void print(size_t in);
@@ -63,11 +71,6 @@ struct Type {
 struct TypeEnv {
 	/* maps type names to types */
 	std::map<std::string, Type *> m_types;
-};
-
-struct Method {
-	Type *m_rType;
-	std::vector<Type *> m_argTypes;
 };
 
 struct TyClass {

@@ -42,18 +42,19 @@ function (LemonComp path)
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${path})
 endfunction (LemonComp)
 
-if (NOT FLEX_FOUND)
-	set(FLEX_FOUND true)
-	set(FLEX_EXECUTABLE ${PROJECT_SOURCE_DIR}/tools/win_flex/win_flex.exe)
-	message(STATUS "Flex for Windows used: " ${FLEX_EXECUTABLE})
-endif ()
-
 #
 # feature checks
 #
 
 find_package(FLEX)
 #find_package(BISON)
+
+
+if (NOT FLEX_FOUND)
+        set(FLEX_FOUND true)
+        set(FLEX_EXECUTABLE ${PROJECT_SOURCE_DIR}/tools/win_flex/win_flex.exe)
+        message(STATUS "Flex for Windows used: " ${FLEX_EXECUTABLE})
+endif ()
 
 add_subdirectory(tools/lemon)
 add_subdirectory(lib/mps)
