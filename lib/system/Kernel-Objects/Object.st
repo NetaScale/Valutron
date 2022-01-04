@@ -8,15 +8,15 @@ nil subclass: Object [
 			self install: m ]
 	]
 
-	class>>basicNew [
+	class>> (instancetype) basicNew [
 		^ self primOrefs: (self basicAt: 4)
 	]
 
-	class>>basicNew: size [
+	class>> (instancetype) basicNew: size [
 		^ self primOrefs: size
 	]
 
-	class>>display [
+	class>> (self) display [
 		('Class name: ', (self basicAt: 1) asString)  print.
 		((self basicAt: 2) notNil)
 			ifTrue: [ ('Superclass: ', (self basicAt: 2) ) print ].
@@ -86,7 +86,7 @@ nil subclass: Object [
 		self logMethod: aMethod
 	]
 
-	class>>instanceSize [
+	class>> (Integer) instanceSize [
 		^ (self basicAt: 4)
 	]
 
@@ -109,7 +109,7 @@ nil subclass: Object [
 		^ (self basicAt: 3)
 	]
 
-	class>>name [
+	class>> (String) name [
 		^ (self basicAt: 1)
 	]
 
@@ -138,17 +138,17 @@ nil subclass: Object [
 			self install: m ]
 	]
 
-	class>>primBytes: size [
+	class>> (id) primBytes: size [
 		"create a new block, set its class"
 		^ <22 <59 size> self>
 	]
 
-	class>>primOrefs: size [
+	class>> (id) primOrefs: size [
 		"create a new block, set its class"
 		^ <22 <58 size> self>
 	]
 
-	class>>printString [
+	class>> (String) printString [
 		^ (self basicAt: 1) asString
 	]
 
@@ -168,7 +168,8 @@ nil subclass: Object [
 
 	class>>respondsTo [	| theSet |
 		theSet <- Dictionary new.
-		self upSuperclassChain:			[:x | theSet addAll: x methods ].
+		self upSuperclassChain:
+			[:x | theSet addAll: x methods ].
 		^ theSet
 	]
 
@@ -204,135 +205,141 @@ nil subclass: Object [
 
 	class>>watch: name [	| m |
 		m <- self methodNamed: name.
-		(m notNil)			ifTrue: [ ^ m watch:				[:a | ('executing ', name) print. a print] ]
+		(m notNil)
+			ifTrue: [ ^ m watch:
+				[:a | ('executing ', name) print. a print] ]
 			ifFalse: [ ^ 'no such method' ]
 	]
 
-	= aValue [
+	(Boolean) = aValue [
 		^ self == aValue
 	]
 
-	== aValue [
+	(Boolean) == aValue [
 		^ <21 self aValue>
 	]
 
-	asString [
+	(String) asString [
 		^ self printString
 	]
 
-	assign: name value: val [
+	(T) assign: (Symbol)name value: (T)val <T> [
 		^ name assign: val
 	]
 
-	basicAt: index [
+	(id) basicAt: index [
 		^ <25 self index>
 	]
 
-	basicAt: index put: value [
+	(id) basicAt: index put: value [
 		^ <31 self index value>
 	]
 
-	basicSize [
+	(Integer) basicSize [
 		^ <12 self>
 	]
 
-	class [
+	(self class) class [
 		^ <11 self>
 	]
 
-	copy [
+	(self) copy [
 		^ self shallowCopy
 	]
 
-	deepCopy [	| newObj |
+	(self) deepCopy [	| newObj |
 		newObj <- self class new.
-		(1 to: self basicSize) do:			[:i | newObj basicAt: i put: (self basicAt: i) copy].
+		(1 to: self basicSize) do:
+			[:i | newObj basicAt: i put: (self basicAt: i) copy].
 		^ newObj
 	]
 
-	display [
+	(self) display [
 		('(Class ', self class, ') ' , self printString ) print
 	]
 
-	hash [
+	(Integer) hash [
 		^ <13 self>
 	]
 
-	isFloat [
+	(Boolean) isFloat [
 		^ false
 	]
 
-	isFraction [
+	(Boolean) isFraction [
 		^ false
 	]
 
-	isInteger [
+	(Boolean) isInteger [
 		^ false
 	]
 
-	isKindOf: aClass [
+	(Boolean) isKindOf: aClass [
 		self class upSuperclassChain:
 			[:x | (x == aClass) ifTrue: [ ^ true ] ].
 		^ false
 	]
 
-	isLongInteger [
+	(Boolean) isLongInteger [
 		^ false
 	]
 
-	isMemberOf: aClass [
+	(Boolean) isMemberOf: aClass [
 		^ self class == aClass
 	]
 
-	isNil [
+	(Boolean) isNil [
 		^ false
 	]
 
-	isNumber [
+	(Boolean) isNumber [
 		^ false
 	]
 
-	isShortInteger [
+	(Boolean) isShortInteger [
 		^ false
 	]
 
-	message: m notRecognizedWithArguments: a [
+	(self) message: m notRecognizedWithArguments: a [
 		^ VM error: (self class printString), ' did not understand selector ',
 			(m printString)
 	]
 
-	notNil [
+	(Boolean) notNil [
 		^ true
 	]
 
-	print [
-		self printString print	]
+	(self) print [
+		self printString print
+	]
 
-	printString [
+	(self) printString [
 		^ self class printString
 	]
 
-	respondsTo: message [
-		self class upSuperclassChain:			[:c | (c methodNamed: message) notNil
+	(Boolean) respondsTo: message [
+		self class upSuperclassChain:
+			[:c | (c methodNamed: message) notNil
 					ifTrue: [ ^ true ]].
 		^ false
 	]
 
-	shallowCopy [	| newObj |
+	(self) shallowCopy [	| newObj |
 		newObj <- self class new.
-		(1 to: self basicSize) do:			[:i | newObj basicAt: i put: (self basicAt: i) ].
+		(1 to: self basicSize) do:
+			[:i | newObj basicAt: i put: (self basicAt: i) ].
 		^ newObj
 	]
 
-	yourself [
+	(self) yourself [
 		^ self
 	]
 
-	~= aValue [
+	(Boolean) ~= aValue [
 		^ self ~~ aValue
 	]
 
-	~~ aValue [
+	(Boolean) ~~ aValue [
 		^ (self == aValue) not
 	]
 

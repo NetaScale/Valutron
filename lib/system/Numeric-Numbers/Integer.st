@@ -89,7 +89,8 @@ Number subclass: Integer
 		" return as character digit "
 		<161 self>.
 		(self >= 0)
-			ifTrue: [ (self <= 9) ifTrue:					[ ^ (self + $0 asInteger) asCharacter ].
+			ifTrue: [ (self <= 9) ifTrue:
+					[ ^ (self + $0 asInteger) asCharacter ].
 				  (self < 36) ifTrue:
 					[ ^ (self + $A asInteger - 10) asCharacter ] ].
 		^ VM error: 'illegal conversion, integer to digit'
@@ -121,7 +122,8 @@ Number subclass: Integer
 	bitAnd: value [
 		^ (self isShortInteger and: [value isShortInteger])
 			ifTrue: [ <71 self value > ]
-			ifFalse: [ VM error:				'arguments to bit operation must be short integer']
+			ifFalse: [ VM error:
+				'arguments to bit operation must be short integer']
 	]
 
 	bitAt: value [
@@ -140,13 +142,15 @@ Number subclass: Integer
 	bitShift: value [
 		^ (self isShortInteger and: [value isShortInteger])
 			ifTrue: [ <79 self value > ]
-			ifFalse: [ VM error:				'argument to bit operation must be integer']
+			ifFalse: [ VM error:
+				'argument to bit operation must be integer']
 	]
 
 	bitXor: value [
 		^ (self isShortInteger and: [value isShortInteger])
 			ifTrue: [ <72 self value > ]
-			ifFalse: [ VM error:				'argument to bit operation must be integer']
+			ifFalse: [ VM error:
+				'argument to bit operation must be integer']
 	]
 
 	even [

@@ -36,7 +36,8 @@ Object subclass: VM [
 			| receiver method |
 		receiver <- args at: 1 ifAbsent: [ ^ aBlock value ].
 		method <- receiver class methodNamed: message.
-		^ method notNil			ifTrue: [ method executeWith: args ]
+		^ method notNil
+			ifTrue: [ method executeWith: args ]
 			ifFalse: aBlock
 	]
 

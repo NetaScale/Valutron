@@ -55,7 +55,8 @@ Object subclass: Context [
 
 	blockReturn [
 		<18 self>
-			ifFalse: [ ^ VM error:				'incorrect context for block return']
+			ifFalse: [ ^ VM error:
+				'incorrect context for block return']
 	]
 
 	copy [

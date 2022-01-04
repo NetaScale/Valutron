@@ -13,7 +13,8 @@ Collection subclass: IndexedCollection [
 	]
 
 	at: aKey [
-		^ self at: aKey			ifAbsent: [ <2000>. VM error: 'index to at: illegal' ]
+		^ self at: aKey
+			ifAbsent: [ <2000>. VM error: 'index to at: illegal' ]
 	]
 
 	at: index ifAbsent: exceptionBlock [
@@ -24,7 +25,8 @@ Collection subclass: IndexedCollection [
 
 	binaryInject: thisValue into: aBlock [     | last |
 		last <- thisValue.
-		self binaryDo: [:i :x | last <- aBlock value: last						value: i value: x].
+		self binaryDo: [:i :x | last <- aBlock value: last
+						value: i value: x].
 		^ last
 	]
 
@@ -49,7 +51,8 @@ Collection subclass: IndexedCollection [
 	]
 
 	keys [
-		^ self binaryInject: Set new			into: [:s :i :x | s add: i ]
+		^ self binaryInject: Set new
+			into: [:s :i :x | s add: i ]
 	]
 
 	select: aBlock [
