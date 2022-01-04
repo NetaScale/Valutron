@@ -112,7 +112,7 @@ struct TyClass {
 };
 
 struct TyChecker {
-	Type * m_smiType;
+	Type *m_smiType, *m_symType;
 	TyEnv *m_globals;
 	std::vector<TyEnv*> m_envs;
 	MethodNode * m_method = NULL;
@@ -123,6 +123,7 @@ struct TyChecker {
 	    MethodNode * method, std::vector<BlockExprNode *>m_blocks);
 
 	Type * smiType() { return m_smiType; }
+	Type *symType() { return m_symType; }
 
 	TyClass *findOrCreateClass(ClassNode *cls);
 	MethodNode * method() { return m_method; }

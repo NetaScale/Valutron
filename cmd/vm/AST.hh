@@ -276,7 +276,7 @@ struct CharExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual void generateOn(CodeGen &gen);
+	void generateOn(CodeGen &gen) override;
 };
 
 /* Symbol literal */
@@ -288,7 +288,8 @@ struct SymbolExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual void generateOn(CodeGen &gen);
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 };
 
 /* Integer literal */

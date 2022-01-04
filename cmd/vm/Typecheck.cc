@@ -651,15 +651,24 @@ ProgramNode::typeReg(TyChecker &tyc)
 #define GLOBAL(NAME, CLASS)                                \
 	tyc.m_globals->m_vars[NAME] = new Type(CLASS, {}); \
 	tyc.m_globals->m_vars[NAME]->resolveInTyEnv(tyc.m_globals)
+#define TYPE(VAR, NAME)               \
+	tyc.VAR = new Type(NAME, {}); \
+	tyc.VAR->resolveInTyEnv(tyc.m_globals)
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");
-	tyc.m_smiType = new Type("Integer", {});
-	tyc.m_smiType->resolveInTyEnv(tyc.m_globals);
+	TYPE(m_smiType, "Integer");
+	TYPE(m_symType, "Symbol");
 }
 
 /**
  * Type inferencing and type checking
  */
+
+Type *
+SymbolExprNode::type(TyChecker &tyc)
+{
+	return tyc.symType();
+}
 
 Type *
 IntExprNode::type(TyChecker &tyc)
