@@ -46,7 +46,13 @@ struct Type {
 	 * for kBlocks
 	 */
 	TyBlock *m_block = NULL; /* if kBlock */
-	// std::vector<VarDecl> m_blockTypeParams;
+
+	/**
+	 * Type checks a block invocation with a particular set of argument
+	 * types, returning whatever type is inferred to be the block's return
+	 * type.
+	 */
+	Type * typeCheckBlock(std::vector<Type *> & argTypes);
 
 	std::string m_ident;
 	std::vector<Type*> m_typeArgs;
@@ -97,12 +103,6 @@ struct TyBlock : public TyEnv {
 };
 
 struct TyClass {
-#if 0
-	union {
-		TyClass *m_meta; /**< if non-null, metaclass of this class */
-		TyClass *m_nst;  /**< if non-null, instance class of this class */
-	};
-#endif
 	std::string m_name;
 	TyClass * super;
 	ClassNode *m_clsNode;
@@ -119,6 +119,8 @@ struct TyChecker {
 	std::vector<BlockExprNode *> m_blocks;
 
 	TyChecker();
+	TyChecker(Type* smiType, TyEnv * globals, std::vector<TyEnv*> envs,
+	    MethodNode * method, std::vector<BlockExprNode *>m_blocks);
 
 	Type * smiType() { return m_smiType; }
 

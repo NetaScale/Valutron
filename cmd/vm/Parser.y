@@ -506,14 +506,12 @@ type_spec(T) ::= LBRACKET type(t) RBRACKET. { T = t; }
 type(T) ::= identifier(ident) type_args_opt(args). {
 	T = new Type(ident, args);
 }
-type(T) ::= type_params_opt(p) SQB_OPEN UP type(r) block_arg_types_opt(a)
-    SQB_CLOSE. {
+type(T) ::= SQB_OPEN UP type(r) block_arg_types_opt(a) SQB_CLOSE. {
 	T = new Type;
 	TyBlock * blk = new TyBlock;
 
 	T->m_kind = Type::kBlock;
 	T->m_block = blk;
-	blk->m_tyParams = p;
 	blk->m_retType = r;
 	blk->m_argTypes = a;
 }

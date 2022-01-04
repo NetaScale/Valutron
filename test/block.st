@@ -1,16 +1,20 @@
 nil subclass: Object [
-    class>> (instancetype) new [ ^ 55 ]
+    class>> (instancetype) new [ ^ 42 ]
 ]
-Object subclass: True []
+Object subclass: True [
+    (False) asFalse [ ^false ]
+]
 Object subclass: False []
 Object subclass: Integer []
 
-"type of block should be <Arg1, RType> [^RType, Arg1]"
+Object subclass: Cltn<T> [
+    (Cltn<N>) map: ([^N, T]) mapFun <N> [ ^ Cltn new ]
+]
 
 Object subclass: Tester [
     (True) testMeth [
-        | ([^Object, Integer]) block |
-        block := [ :a | a ].
-        ^ block
+        | (Cltn<True>) trueCltn
+          mapFun |
+        ^ trueCltn map: [ :each | each asFalse ].
     ]
 ]

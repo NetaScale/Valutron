@@ -484,8 +484,13 @@ struct CascadeExprNode : ExprNode {
 	}
 };
 
-struct BlockExprNode : ExprNode {
+struct BlockExprNode : public ExprNode {
     private:
+	friend class Type;
+
+	/**< data needed to set up a TypeChecker for checking */
+	TyChecker m_tyc;
+
 	void generateReturnPreludeOn(CodeGen &gen);
 
     public:

@@ -122,7 +122,6 @@ void Type::resolveInTyEnv(TyEnv * env)
 		for (auto & type: m_block->m_argTypes)
 			type->resolveInTyEnv(m_block);
 		m_block->m_retType->resolveInTyEnv(m_block);
-
 	}
 }
 
@@ -139,6 +138,8 @@ Type::isSubtypeOf(Type *type)
 	}
 
 	case kBlock: {
+		/* TODO: expand own tyvars? */
+
 		if (type->m_kind == kAsYetUnspecified) {
 			std::cerr << "Inferring uninferred RHS to be " <<
 			    *this << "\n";
@@ -147,9 +148,51 @@ Type::isSubtypeOf(Type *type)
 			return true;
 		}
 		else if (type->m_kind == kBlock) {
-			std::cout << "FIXME allowing RHS " <<
-				    *this << " to be assigned to LHS " <<
-				    *type << "\n";
+			Type * newBlk = new Type;
+
+			*newBlk = *this;
+
+			auto & rhsRType = newBlk->m_block->m_retType;
+			auto & lhsRType = type->m_block->m_retType;
+			bool unknownRType = rhsRType->m_ident == "%BlockRetType";
+
+			for (int i = 0; i < newBlk->m_block->m_argTypes.size(); i++) {
+				auto & rhsArg = newBlk->m_block->m_argTypes[i];
+				auto & lhsArg = type->m_block->m_argTypes[i];
+				if (rhsArg->isSubtypeOf(lhsArg)) {
+#if 0
+					std::cout <<"RHS arg " <<
+					*rhsArg <<
+					" is a subtype of LHS arg " <<
+					*lhsArg<< "\n";
+#endif
+				} else {
+					std::cout <<"RHS arg " <<
+					*rhsArg <<
+					" is NOT! a subtype of LHS arg " <<
+					*lhsArg<< "\n";
+					return false;
+				}
+			}
+
+			if (unknownRType) {
+				newBlk->m_block->m_retType = newBlk->
+				    typeCheckBlock(type->m_block->m_argTypes);
+			}
+
+			if (lhsRType->isSubtypeOf(rhsRType)) {
+#if 0
+				std::cout <<"LHS RType " << *lhsRType <<
+				    " is a subtype of RHS RType " <<
+				    *rhsRType << "\n";
+#endif
+			} else {
+				std::cout <<"LHS RType " << *lhsRType <<
+				    " is NOT! a subtype of RHS RType " <<
+				    *rhsRType << "\n";
+				return false;
+			}
+
 			return true;
 		}
 		else
@@ -164,25 +207,13 @@ Type::isSubtypeOf(Type *type)
 		return true;
 
 	case kTyVar: {
-		switch (type->m_kind) {
-		case kBlock:
-			return false;
-
-		case kId:
-			return true;
-
-		case kTyVar:
-			return m_tyVarDecl == type->m_tyVarDecl;
-
-		case kSelf:
-		case kInstanceType:
-		case kClass:
-		case kInstance:
-		case kMax:
-		case kIdent:
-		case kAsYetUnspecified:
-			abort();
-			abort();
+		if (m_tyVarDecl->second)
+			return isSubtypeOf(m_tyVarDecl->second);
+		else {
+			std::cout << "Potentially falsely allowing RHS " <<
+				    *this << " to be assigned to LHS " <<
+				    *type << "\n";
+				return true;
 		}
 	}
 
@@ -217,8 +248,8 @@ Type::isSubtypeOf(Type *type)
 			return true;
 
 		case kTyVar:
-			if (m_tyVarDecl->second) {
-				type = m_tyVarDecl->second;
+			if (type->m_tyVarDecl->second) {
+				type = type->m_tyVarDecl->second;
 				goto test;
 			}
 			else {
@@ -267,8 +298,21 @@ Type::typeInInvocation(Invocation &invocation)
 	switch (m_kind) {
 	case kIdent:
 	case kAsYetUnspecified:
-	case kBlock:
-		abort();
+
+	case kBlock: {
+		Type * type = new Type;
+		TyBlock * tyBlock = new TyBlock;
+		*type = *this;
+		*tyBlock = *type->m_block;
+		type->m_block = tyBlock;
+
+		for (auto & arg: tyBlock->m_argTypes)
+			arg = arg->typeInInvocation(invocation);
+		tyBlock->m_retType = tyBlock->m_retType->typeInInvocation(
+		    invocation);
+
+		return type;
+	}
 
 	case kSelf:
 		return invocation.receiver;
@@ -713,7 +757,7 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 				    trueReceiver, &invoc);
 			}
 
-			std::cerr << "Object of type " << *this
+			std::cerr << "Object of type " << *trueReceiver
 				  << " does not appear to understand message "
 				  << selector << "\n";
 			return NULL;
@@ -782,15 +826,54 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 	}
 }
 
+Type * Type::typeCheckBlock(std::vector<Type *> & argTypes)
+{
+	auto tyc = m_block->m_node->m_tyc;
+	TyEnv * env = new TyEnv;
+	std::vector<VarDecl> argDecls;
+	Type * rType;
+
+	env->m_parent = tyc.m_envs.back();
+	tyc.m_envs.push_back(env);
+
+	for (int i = 0; i < m_block->m_argTypes.size(); i++) {
+#if 0
+		std::cout <<"Declaring " << m_block->m_node->args[i].first <<
+		    " to be " << *argTypes[i] << "\n";
+#endif
+		env->m_vars[m_block->m_node->args[i].first] = argTypes[i];
+	}
+
+	for (auto &stmt : m_block->m_node->stmts) {
+		ExprStmtNode * last = NULL;
+
+		if (stmt == m_block->m_node->stmts.back())
+			last = dynamic_cast<ExprStmtNode*>(stmt);
+
+		if (!last)
+			stmt->typeCheck(tyc);
+		else
+			rType = last->expr->type(tyc);
+	}
+
+	tyc.m_envs.pop_back();
+
+	std::cout << "Inferred block return type to be " << *rType << "\n";
+
+	return rType;
+}
+
 Type *
 BlockExprNode::type(TyChecker &tyc)
 {
 	TyBlock * blk = new TyBlock;
 	Type * type = new Type;
 
-	blk->m_argTypes.resize(args.size(), NULL);
+	m_tyc = tyc;
 
+	blk->m_argTypes.resize(args.size(), NULL);
 	blk->m_node = this;
+
 	for (int i = 0; i < args.size(); i++) {
 		if (!args[i].second)
 			blk->m_tyParams.push_back({"%BlockParam1", NULL});
