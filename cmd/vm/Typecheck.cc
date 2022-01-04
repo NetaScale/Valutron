@@ -29,6 +29,27 @@ const char *Type::kindStr[kMax] = {
 	"Instance",
 };
 
+TyBlock *
+TyBlock::deepCopy()
+{
+	TyBlock *tyBlock = new TyBlock;
+	Type *type;
+
+	*tyBlock = *this;
+
+	for (auto &argTy : tyBlock->m_argTypes) {
+		Type *type = new Type;
+		*type = *argTy;
+		argTy = type;
+	}
+
+	type = new Type;
+	*type = *m_retType;
+	tyBlock->m_retType = type;
+
+	return tyBlock;
+}
+
 Type * Invocation::tyParam(VarDecl * varDecl)
 {
 	assert(varDecl);
@@ -300,16 +321,14 @@ Type::typeInInvocation(Invocation &invocation)
 	case kAsYetUnspecified:
 
 	case kBlock: {
-		Type * type = new Type;
-		TyBlock * tyBlock = new TyBlock;
+		Type *type = new Type;
 		*type = *this;
-		*tyBlock = *type->m_block;
-		type->m_block = tyBlock;
+		type->m_block = type->m_block->deepCopy();
 
-		for (auto & arg: tyBlock->m_argTypes)
+		for (auto &arg : type->m_block->m_argTypes)
 			arg = arg->typeInInvocation(invocation);
-		tyBlock->m_retType = tyBlock->m_retType->typeInInvocation(
-		    invocation);
+		type->m_block->m_retType =
+		    type->m_block->m_retType->typeInInvocation(invocation);
 
 		return type;
 	}
@@ -381,6 +400,18 @@ Type::constructInto(Type *into)
 		throw std::runtime_error("Unexpected kind " +
 		    std::to_string(m_kind));
 	}
+}
+
+Type *
+Type::blockCopyIfNecessary()
+{
+	if (m_kind == kBlock /* && isGenericBlock() */) {
+		Type *type = new Type;
+		*type = *this;
+		type->m_block = type->m_block->deepCopy();
+		return type;
+	} else
+		return this;
 }
 
 void
@@ -780,8 +811,11 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 		for (int i = 0; i < argTypes.size(); i++) {
 			Type *formal = meth->args[i].second->typeInInvocation(
 			    invoc);
-			if (!argTypes[i]->isSubtypeOf(formal))
-				std::cerr << "Argument of type " << *this
+			Type *actual = argTypes[i]->blockCopyIfNecessary();
+			std::cout << "FORMAL: " << *formal << "\n";
+			std::cout << "ACTUAL: " << *actual << "\n";
+			if (!actual->isSubtypeOf(formal))
+				std::cerr << "Argument of type " << *actual
 					  << " is not a subtype of " << *formal
 					  << "\n";
 		}

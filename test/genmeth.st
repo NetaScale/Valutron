@@ -4,6 +4,7 @@ nil subclass: Object [
 Object subclass: True []
 Object subclass: False []
 Object subclass: Integer []
+Object subclass: Symbol []
 
 Object subclass: Identity [
     (T) identity: (T) anObj <T> [
@@ -14,6 +15,8 @@ Object subclass: Identity [
 Object subclass: Tester [
     (True) testMeth [
         | ident |
-        ^ (Identity new) identity: 55
+        ident <- Identity new.
+        ^ ident identity: 55.
+        ^ ident identity: #Sym
     ]
 ]

@@ -48,6 +48,11 @@ struct Type {
 	TyBlock *m_block = NULL; /* if kBlock */
 
 	/**
+	 * A generic block has to be copied before binding to any variable.
+	 */
+	Type * blockCopyIfNecessary();
+
+	/**
 	 * Type checks a block invocation with a particular set of argument
 	 * types, returning whatever type is inferred to be the block's return
 	 * type.
@@ -100,6 +105,8 @@ struct TyBlock : public TyEnv {
 	std::vector<VarDecl> m_tyParams;
 	Type *m_retType;
 	std::vector<Type *> m_argTypes;
+
+	TyBlock *deepCopy();
 };
 
 struct TyClass {
