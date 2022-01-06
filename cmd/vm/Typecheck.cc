@@ -149,7 +149,7 @@ void Type::resolveInTyEnv(TyEnv * env)
 }
 
 bool
-Type::isSubtypeOf(Type *type)
+Type::isSubtypeOf(TyEnv * env, Type *type)
 {
 	if (type->m_kind == kAsYetUnspecified) {
 		std::cerr << "Inferring uninferred RHS to be " << *this << "\n";
@@ -165,7 +165,7 @@ Type::isSubtypeOf(Type *type)
 		 * $a is a subtype of type $b.
 		 */
 		for (auto &member : m_members)
-			if (!member->isSubtypeOf(type)) {
+			if (!member->isSubtypeOf(env, type)) {
 				std::cout << *member << " is not a subtype of "
 					  << *type << "\n";
 				return false;
@@ -177,7 +177,7 @@ Type::isSubtypeOf(Type *type)
 		 * subtype of at least one member of $b.
 		 */
 		for (auto &member : type->m_members)
-			if (isSubtypeOf(member))
+			if (isSubtypeOf(env, member))
 				return true;
 		return false;
 	}
@@ -212,7 +212,7 @@ Type::isSubtypeOf(Type *type)
 		for (int i = 0; i < newBlk->m_block->m_argTypes.size(); i++) {
 			auto &rhsArg = newBlk->m_block->m_argTypes[i];
 			auto &lhsArg = type->m_block->m_argTypes[i];
-			if (rhsArg->isSubtypeOf(lhsArg)) {
+			if (rhsArg->isSubtypeOf(env, lhsArg)) {
 #if 0
 				std::cout <<"RHS arg " <<
 					*rhsArg <<
@@ -233,7 +233,7 @@ Type::isSubtypeOf(Type *type)
 			    type->m_block->m_argTypes);
 		}
 
-		if (lhsRType->isSubtypeOf(rhsRType)) {
+		if (lhsRType->isSubtypeOf(env, rhsRType)) {
 #if 0
 				std::cout <<"LHS RType " << *lhsRType <<
 				    " is a subtype of RHS RType " <<
@@ -258,7 +258,7 @@ Type::isSubtypeOf(Type *type)
 
 	case kTyVar: {
 		if (m_tyVarDecl->second)
-			return isSubtypeOf(m_tyVarDecl->second);
+			return isSubtypeOf(env, m_tyVarDecl->second);
 		else {
 			std::cout << "Potentially falsely allowing RHS " <<
 				    *this << " to be assigned to LHS " <<
@@ -309,7 +309,7 @@ Type::isSubtypeOf(Type *type)
 				else if (m_typeArgs.size() == type->m_typeArgs.size()) {
 					for (int i = 0; i < m_typeArgs.size(); i++) {
 						if (!m_typeArgs[i]->isSubtypeOf(
-						    type->m_typeArgs[i]))
+						    env, type->m_typeArgs[i]))
 							return false;
 					}
 
@@ -757,7 +757,7 @@ AssignExprNode::type(TyChecker &tyc)
 	Type * lhs = left->type(tyc);
 	Type * rhs = right->type(tyc);
 
-	if (!rhs->isSubtypeOf(lhs)) {
+	if (!rhs->isSubtypeOf(tyc.m_envs.back(), lhs)) {
 		std::cerr << "RHS of type " << *rhs <<
 		    " is not a subtype of LHS " << *lhs << "\n";
 	}
@@ -793,7 +793,7 @@ MessageExprNode::type(TyChecker &tyc)
 		std::cout << "\n";
 	}
 
-	res = recvType->typeSend(selector, argTypes);
+	res = recvType->typeSend(tyc.env(), selector, argTypes);
 
 	std::cout << " -> RESULT OF SEND: " << *res << "\n\n";
 
@@ -801,7 +801,7 @@ MessageExprNode::type(TyChecker &tyc)
 }
 
 Type *
-Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
+Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
     Type * trueReceiver, Invocation * prev_invoc)
 {
 	if (!trueReceiver)
@@ -813,8 +813,8 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 
 		result->m_kind = kUnion;
 		for (auto &member : m_members)
-			result->m_members.push_back(member->typeSend(selector,
-			    argTypes, trueReceiver, NULL));
+			result->m_members.push_back(member->typeSend(env,
+			    selector, argTypes, trueReceiver, NULL));
 
 		return result;
 	}
@@ -845,8 +845,8 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 				Type * superRecv = m_cls->m_clsNode->superType->
 				    typeInInvocation(invoc);
 				/* Try checking the super-type as receiver */
-				return superRecv->typeSend(selector, argTypes,
-				    trueReceiver, &invoc);
+				return superRecv->typeSend(env, selector,
+				    argTypes, trueReceiver, &invoc);
 			}
 
 			std::cerr << "Object of type " << *trueReceiver
@@ -866,7 +866,7 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 			Type *actual = argTypes[i]->blockCopyIfNecessary();
 			std::cout << "FORMAL: " << *formal << "\n";
 			std::cout << "ACTUAL: " << *actual << "\n";
-			if (!actual->isSubtypeOf(formal))
+			if (!actual->isSubtypeOf(env, formal))
 				std::cerr << "Argument of type " << *actual
 					  << " is not a subtype of " << *formal
 					  << "\n";
@@ -892,7 +892,7 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 		if (!meth) {
 			if (m_cls->super) {
 				return m_cls->super->m_classType->typeSend(
-					selector, argTypes, trueReceiver,
+					env, selector, argTypes, trueReceiver,
 					&invoc);
 			}
 
@@ -905,7 +905,7 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 		for (int i = 0; i < argTypes.size(); i++) {
 			Type *formal = meth->args[i].second->typeInInvocation(
 			    invoc);
-			if (!argTypes[i]->isSubtypeOf(formal))
+			if (!argTypes[i]->isSubtypeOf(env, formal))
 				std::cerr << "Argument of type " << *this
 					  << " is not a subtype of " << *formal
 					  << "\n";
@@ -999,7 +999,7 @@ ReturnStmtNode::typeCheck(TyChecker &tyc)
 {
 	Type * type = expr->type(tyc);
 	Type * retType = tyc.method()->m_retType;
-	if (!type->isSubtypeOf(retType)) {
+	if (!type->isSubtypeOf(tyc.env(), retType)) {
 		std::cerr << "Type " << *type << " is not a subtype of expected"
 		    " return type " << *retType << "\n";
 	}

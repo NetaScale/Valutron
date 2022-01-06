@@ -76,10 +76,10 @@ struct Type {
 	/**
 	 * Try to get the return type of a message send to this type.
 	 */
-	Type *typeSend(std::string selector, std::vector<Type *> &argTypes,
-	    Type *trueReceiver = NULL, Invocation *prev_invoc = NULL);
+	Type *typeSend(TyEnv * env, std::string selector,
+	    std::vector<Type *> &argTypes, Type *trueReceiver = NULL, Invocation *prev_invoc = NULL);
 
-	bool isSubtypeOf(Type *type);
+	bool isSubtypeOf(TyEnv * env, Type *type);
 
 	Type *typeInInvocation(Invocation &invocation);
 	void resolveInTyEnv(TyEnv *env);
@@ -131,6 +131,7 @@ struct TyChecker {
 
 	Type *smiType() { return m_smiType; }
 	Type *symType() { return m_symType; }
+	TyEnv * env() { return m_envs.back(); }
 
 	TyClass *findOrCreateClass(ClassNode *cls);
 	MethodNode *method() { return m_method; }
