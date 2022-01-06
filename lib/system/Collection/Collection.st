@@ -1,11 +1,11 @@
 Magnitude subclass: Collection [
 
-	< (Magnitude) coll [
+	(Integer) < (Magnitude) coll [
 		(coll respondsTo: #includes:)
 			ifFalse: [ ^ VM error:
 				  'collection compared to non collection'].
 		self do: [:x | ((self occurrencesOf: x) <
-			(coll occurrencesOf: x))ifFalse: [ ^ false ]].
+			(coll occurrencesOf: x)) ifFalse: [ ^ false ]].
 		coll do: [:x | (self includes: x) ifFalse: [ ^ true ]].
 		^ false
 	]
@@ -69,7 +69,7 @@ Magnitude subclass: Collection [
 			 into: [:x :y | x , ' ' , y printString]), ' )'
 	]
 
-	size [
+	(Integer) size [
 		^ self inject: 0 into: [:x :y | x + 1]
 	]
 

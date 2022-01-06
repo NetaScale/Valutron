@@ -417,8 +417,8 @@ block_formal_list_opt(L) ::= colon_var_list(l) LBRACKET UP type RBRACKET
     BAR. { L = l; }
 block_formal_list_opt    ::= .
 
-block_expr(B) ::= SQB_OPEN block_formal_list_opt(v) statements_opt(s) SQB_CLOSE.
-	{
+block_expr(B) ::= SQB_OPEN block_formal_list_opt(v) statements_opt(s)
+    SQB_CLOSE. {
 		B = new BlockExprNode(v, s);
 	}
 

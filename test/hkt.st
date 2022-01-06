@@ -9,6 +9,7 @@ nil subclass: Object [
 Object subclass: True []
 Object subclass: False []
 Object subclass: Integer []
+Object subclass: Symbol []
 
 Object subclass: Cltn<ElType> [
     | (ElType) el |

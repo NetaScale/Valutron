@@ -24,12 +24,13 @@ Cltn<SubElType> subclass: SubCltn<SubElType> [
 ]
 
 Object subclass: Tester [
-    (Object) testMeth <T, T2> [
+    (Cltn<Integer>) testMeth <T, T2> [
         | cltn
           obj |
         cltn <- SubCltn new.
         obj <- 55.
-        ^ cltn setEl: obj.
-        ^ cltn getEl
+        cltn setEl: obj.
+        cltn getEl.
+        ^ cltn
     ]
 ]

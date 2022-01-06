@@ -22,11 +22,11 @@ not [
   ^ self ifTrue: [ false ] ifFalse: [ true ]
 ]
 
-ifFalse: falseBlock ifTrue: trueBlock [
+(A | B) ifFalse: ([^A])falseBlock ifTrue: ([^B])trueBlock <A, B> [
   ^ self ifTrue: [ trueBlock  value ] ifFalse: [ falseBlock value ]
 ]
 
-ifTrue: trueBlock ifFalse: falseBlock [
+(A | B) ifTrue: ([^A])trueBlock ifFalse: ([^B])falseBlock <A, B> [
   ^ self ifTrue: [ trueBlock  value ] ifFalse: [ falseBlock value ]
 ]
 
@@ -34,7 +34,7 @@ ifTrue: aBlock [
   ^ self ifTrue: [ aBlock value ] ifFalse: [ false ]
 ]
 
-ifFalse: aBlock [
+(A) ifFalse: ([^A])aBlock <A> [
   ^ self ifTrue: [ true ] ifFalse: [ aBlock value ]
 ]
 

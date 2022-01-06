@@ -359,7 +359,8 @@ struct StringExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual void generateOn(CodeGen &gen);
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 };
 
 /* Integer literal */
@@ -543,7 +544,7 @@ struct BlockExprNode : public ExprNode {
 
     public:
 	BlockScope *scope;
-	Type *m_retType;
+	Type *m_retType = NULL;
 	std::vector<VarDecl> args;
 	std::vector<StmtNode *> stmts;
 

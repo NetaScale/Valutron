@@ -196,11 +196,9 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 	case kBlock: {
 		/* TODO: expand own tyvars? <- not sure what this means */
 
-		/*
-		 * we should already have returned false
-		 * for a.isBlock xor b.isBlock
-		 */
-		assert(type->m_kind == kBlock);
+		if (type->m_kind != kBlock)
+			return false;
+
 		Type *newBlk = new Type;
 
 		*newBlk = *this;
@@ -303,21 +301,7 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 			return false;
 
 		case kInstance: {
-			if (m_cls == type->m_cls) {
-				if (m_typeArgs.size() == 0)
-					return true; /** could do inference here */
-				else if (m_typeArgs.size() == type->m_typeArgs.size()) {
-					for (int i = 0; i < m_typeArgs.size(); i++) {
-						if (!m_typeArgs[i]->isSubtypeOf(
-						    env, type->m_typeArgs[i]))
-							return false;
-					}
-
-					return true;
-				}
-			}
-
-			return false;
+			return instanceIsSubtypeOfInstance(env, type);
 		}
 
 		case kBlock: /* handled earlier */
@@ -332,6 +316,56 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 	}
 
 	abort();
+}
+
+bool
+Type::instanceIsSubtypeOfInstance(TyEnv *env, Type *type)
+{
+	/**
+	 * An instance $a is a subclass of an instance $b if:
+	 *
+	 * 1. $a's class is the same as $b's; and
+	 * 2. All type parameters to $a are subtypes of the type parameters to
+	 *    $b, if there are any type arguments.
+	 *
+	 * If condition 1 is not met, then we check again with each supertype of
+	 * $a. If none of the supertypes meet conditions 1 and 2, then $a is not
+	 * a subtype of $b.
+	 */
+
+	if (m_cls == type->m_cls) {
+		if (m_typeArgs.size() == 0)
+			return true; /** could do inference here? */
+		else if (m_typeArgs.size() == type->m_typeArgs.size()) {
+			for (int i = 0; i < m_typeArgs.size(); i++) {
+				if (!m_typeArgs[i]->isSubtypeOf(env,
+					type->m_typeArgs[i]))
+					return false;
+			}
+
+			return true;
+		}
+	} else if (m_cls->super != NULL) {
+		Invocation invoc;
+		Type *superType;
+
+		invoc.receiver = type;
+		invoc.trueReceiver = type;
+
+		/* Register other type's type-arguments. */
+		for (int i = 0; i < m_typeArgs.size(); i++)
+			invoc.tyParamMap[&m_cls->m_clsNode->m_tyParams[i]] =
+			    m_typeArgs[i];
+
+		/* Construct the super-type */
+		superType = m_cls->m_clsNode->superType->typeInInvocation(
+		    invoc);
+
+		/* Try checking the super-type of the other type. */
+		return superType->isSubtypeOf(env, type);
+	}
+
+	return false;
 }
 
 Type *
@@ -368,7 +402,7 @@ Type::typeInInvocation(Invocation &invocation)
 		return this;
 
 	case kTyVar: {
-		Type * type =  invocation.tyParam(m_tyVarDecl);
+		Type * type = invocation.tyParam(m_tyVarDecl);
 		assert(type != NULL);
 		return type;
 	}
@@ -727,6 +761,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 	GLOBAL("false", "False");
 	TYPE(m_smiType, "Integer");
 	TYPE(m_symType, "Symbol");
+	TYPE(m_stringType, "String");
 }
 
 /**
@@ -744,6 +779,13 @@ IntExprNode::type(TyChecker &tyc)
 {
 	return tyc.smiType();
 }
+
+Type *
+StringExprNode::type(TyChecker &tyc)
+{
+	return tyc.stringType();
+}
+
 
 Type *
 IdentExprNode::type(TyChecker &tyc)
@@ -852,7 +894,7 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 			std::cerr << "Object of type " << *trueReceiver
 				  << " does not appear to understand message "
 				  << selector << "\n";
-			return NULL;
+			return Type::id();
 		}
 
 		/* Register any type parameters of the generic argument. */
@@ -926,7 +968,7 @@ Type * Type::typeCheckBlock(std::vector<Type *> & argTypes)
 	auto tyc = m_block->m_node->m_tyc;
 	TyEnv * env = new TyEnv;
 	std::vector<VarDecl> argDecls;
-	Type * rType;
+	Type * rType = NULL;
 
 	env->m_parent = tyc.m_envs.back();
 	tyc.m_envs.push_back(env);
@@ -953,6 +995,8 @@ Type * Type::typeCheckBlock(std::vector<Type *> & argTypes)
 
 	tyc.m_envs.pop_back();
 
+	if (!rType)
+		rType = Type::id();
 	std::cout << "Inferred block return type to be " << *rType << "\n";
 
 	return rType;
