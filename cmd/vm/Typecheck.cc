@@ -151,18 +151,15 @@ void Type::resolveInTyEnv(TyEnv * env)
 bool
 Type::isSubtypeOf(Type *type)
 {
-	switch (m_kind) {
-	case kIdent:
-		abort();
-
-	case kAsYetUnspecified: {
-		std::cerr << "Inferring uninferred LHS to be " << *type << "\n";
-		*this = *type;
-		this->m_wasInferred = true;
+	if (type->m_kind == kAsYetUnspecified) {
+		std::cerr << "Inferring uninferred RHS to be " << *this << "\n";
+		*type = *this;
+		type->m_wasInferred = true;
 		return true;
-	}
-
-	case kUnion: {
+	} else if (type->m_kind == kBlock && m_kind != kBlock)
+		/* only a block can be a subtype of a block */
+		return false;
+	else if (m_kind == kUnion) {
 		/**
 		 * A union $a is a subtype of a type $b if every member of union
 		 * $a is a subtype of type $b.
@@ -174,68 +171,82 @@ Type::isSubtypeOf(Type *type)
 				return false;
 			}
 		return true;
+	} else if (type->m_kind == kUnion) {
+		/**
+		 * A type $a is a subtype of a union type $b if type $a is a
+		 * subtype of at least one member of $b.
+		 */
+		for (auto &member : type->m_members)
+			if (isSubtypeOf(member))
+				return true;
+		return false;
+	}
+
+	switch (m_kind) {
+	case kIdent:
+		abort();
+
+	case kAsYetUnspecified: {
+		std::cerr << "Inferring uninferred LHS to be " << *type << "\n";
+		*this = *type;
+		this->m_wasInferred = true;
+		return true;
 	}
 
 	case kBlock: {
-		/* TODO: expand own tyvars? */
+		/* TODO: expand own tyvars? <- not sure what this means */
 
-		if (type->m_kind == kAsYetUnspecified) {
-			std::cerr << "Inferring uninferred RHS to be " <<
-			    *this << "\n";
-			*type = *this;
-			type->m_wasInferred = true;
-			return true;
-		}
-		else if (type->m_kind == kBlock) {
-			Type * newBlk = new Type;
+		/*
+		 * we should already have returned false
+		 * for a.isBlock xor b.isBlock
+		 */
+		assert(type->m_kind == kBlock);
+		Type *newBlk = new Type;
 
-			*newBlk = *this;
+		*newBlk = *this;
 
-			auto & rhsRType = newBlk->m_block->m_retType;
-			auto & lhsRType = type->m_block->m_retType;
-			bool unknownRType = rhsRType->m_ident == "%BlockRetType";
+		auto &rhsRType = newBlk->m_block->m_retType;
+		auto &lhsRType = type->m_block->m_retType;
+		bool unknownRType = rhsRType->m_ident == "%BlockRetType";
 
-			for (int i = 0; i < newBlk->m_block->m_argTypes.size(); i++) {
-				auto & rhsArg = newBlk->m_block->m_argTypes[i];
-				auto & lhsArg = type->m_block->m_argTypes[i];
-				if (rhsArg->isSubtypeOf(lhsArg)) {
+		for (int i = 0; i < newBlk->m_block->m_argTypes.size(); i++) {
+			auto &rhsArg = newBlk->m_block->m_argTypes[i];
+			auto &lhsArg = type->m_block->m_argTypes[i];
+			if (rhsArg->isSubtypeOf(lhsArg)) {
 #if 0
-					std::cout <<"RHS arg " <<
+				std::cout <<"RHS arg " <<
 					*rhsArg <<
 					" is a subtype of LHS arg " <<
 					*lhsArg<< "\n";
 #endif
-				} else {
-					std::cout <<"RHS arg " <<
-					*rhsArg <<
-					" is NOT! a subtype of LHS arg " <<
-					*lhsArg<< "\n";
-					return false;
-				}
+			} else {
+				std::cout << "RHS arg " << *rhsArg
+					  << " is NOT! a subtype of LHS arg "
+					  << *lhsArg << "\n";
+				return false;
 			}
+		}
 
-			if (unknownRType) {
-				newBlk->m_block->m_retType = newBlk->
-				    typeCheckBlock(type->m_block->m_argTypes);
-			}
+		if (unknownRType) {
+			/* TODO typecheck block unconditionally? */
+			newBlk->m_block->m_retType = newBlk->typeCheckBlock(
+			    type->m_block->m_argTypes);
+		}
 
-			if (lhsRType->isSubtypeOf(rhsRType)) {
+		if (lhsRType->isSubtypeOf(rhsRType)) {
 #if 0
 				std::cout <<"LHS RType " << *lhsRType <<
 				    " is a subtype of RHS RType " <<
 				    *rhsRType << "\n";
 #endif
-			} else {
-				std::cout <<"LHS RType " << *lhsRType <<
-				    " is NOT! a subtype of RHS RType " <<
-				    *rhsRType << "\n";
-				return false;
-			}
-
-			return true;
-		}
-		else
+		} else {
+			std::cout << "LHS RType " << *lhsRType
+				  << " is NOT! a subtype of RHS RType "
+				  << *rhsRType << "\n";
 			return false;
+		}
+
+		return true;
 	}
 
 	case kSelf:
@@ -252,7 +263,7 @@ Type::isSubtypeOf(Type *type)
 			std::cout << "Potentially falsely allowing RHS " <<
 				    *this << " to be assigned to LHS " <<
 				    *type << "\n";
-				return true;
+			return true;
 		}
 	}
 
@@ -265,16 +276,6 @@ Type::isSubtypeOf(Type *type)
 		switch (type->m_kind) {
 		case kIdent:
 			abort();
-
-		case kAsYetUnspecified:
-			std::cerr << "Inferring uninferred RHS to be " <<
-			    *this << "\n";
-			*type = *this;
-			type->m_wasInferred = true;
-			return true;
-
-		case kBlock:
-			return false;
 
 		case kSelf:
 		case kInstanceType:
@@ -319,11 +320,13 @@ Type::isSubtypeOf(Type *type)
 			return false;
 		}
 
-		case kMax:
+		case kBlock: /* handled earlier */
+		case kMax:   /* invalid */
 			abort();
 		}
 	}
 
+	case kUnion: /* handled earlier */
 	case kMax:
 		abort();
 	}
@@ -661,6 +664,7 @@ MethodNode::typeReg(TyChecker &tyc)
 	}
 
 	m_vars["self"] = m_parent->m_tyClass->m_instanceMasterType;
+	m_vars["instancetype"] = m_parent->m_tyClass->m_instanceMasterType;
 
 	tyc.m_envs.pop_back();
 }

@@ -1,8 +1,8 @@
 #ifndef TYPECHECK_HH_
 #define TYPECHECK_HH_
 
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
 
 struct ClassNode;
@@ -41,35 +41,34 @@ struct Type {
 	bool m_wasInferred = false; /**< was this type inferred? */
 
 	std::vector<Type *> m_members; /**< if kUnion, its types */
-	VarDecl * m_tyVarDecl = NULL; /**< if a kTyVar, the VarDecl defining it */
-	TyClass *m_cls = NULL;	/* if kClass or kInstance */
+	VarDecl *m_tyVarDecl =
+	    NULL;		 /**< if a kTyVar, the VarDecl defining it */
+	TyClass *m_cls = NULL;	 /* if kClass or kInstance */
 	TyBlock *m_block = NULL; /* if kBlock */
-
-	//Type *m_wrapped = NULL;
-
 
 	/**
 	 * A generic block has to be copied before binding to any variable.
 	 */
-	Type * blockCopyIfNecessary();
+	Type *blockCopyIfNecessary();
 
 	/**
 	 * Type checks a block invocation with a particular set of argument
 	 * types, returning whatever type is inferred to be the block's return
 	 * type.
 	 */
-	Type * typeCheckBlock(std::vector<Type *> & argTypes);
+	Type *typeCheckBlock(std::vector<Type *> &argTypes);
 
 	std::string m_ident;
-	std::vector<Type*> m_typeArgs;
+	std::vector<Type *> m_typeArgs;
 
 	static Type *id();
-	static Type *makeTyVarReference(VarDecl * tyVarDecl);
+	static Type *makeTyVarReference(VarDecl *tyVarDecl);
 	static Type *makeInstanceMaster(TyClass *cls,
 	    std::vector<VarDecl> &tyParams);
 
-	Type() : m_kind(kAsYetUnspecified) {};
-	Type(std::string ident, std::vector<Type*> typeArgs);
+	Type()
+	    : m_kind(kAsYetUnspecified) {};
+	Type(std::string ident, std::vector<Type *> typeArgs);
 	Type(TyClass *cls); /**< create kClass type */
 
 	Type *copy() const;
@@ -78,12 +77,12 @@ struct Type {
 	 * Try to get the return type of a message send to this type.
 	 */
 	Type *typeSend(std::string selector, std::vector<Type *> &argTypes,
-	    Type * trueReceiver = NULL, Invocation * prev_invoc = NULL);
+	    Type *trueReceiver = NULL, Invocation *prev_invoc = NULL);
 
 	bool isSubtypeOf(Type *type);
 
 	Type *typeInInvocation(Invocation &invocation);
-	void resolveInTyEnv(TyEnv * env);
+	void resolveInTyEnv(TyEnv *env);
 	void constructInto(Type *into);
 	void print(size_t in);
 
@@ -112,29 +111,29 @@ struct TyBlock : public TyEnv {
 
 struct TyClass {
 	std::string m_name;
-	TyClass * super;
+	TyClass *super;
 	ClassNode *m_clsNode;
 
-	Type * m_classType;
-	Type * m_instanceMasterType;
+	Type *m_classType;
+	Type *m_instanceMasterType;
 };
 
 struct TyChecker {
 	Type *m_smiType, *m_symType;
 	TyEnv *m_globals;
-	std::vector<TyEnv*> m_envs;
-	MethodNode * m_method = NULL;
+	std::vector<TyEnv *> m_envs;
+	MethodNode *m_method = NULL;
 	std::vector<BlockExprNode *> m_blocks;
 
 	TyChecker();
-	TyChecker(Type* smiType, TyEnv * globals, std::vector<TyEnv*> envs,
-	    MethodNode * method, std::vector<BlockExprNode *>m_blocks);
+	TyChecker(Type *smiType, TyEnv *globals, std::vector<TyEnv *> envs,
+	    MethodNode *method, std::vector<BlockExprNode *> m_blocks);
 
-	Type * smiType() { return m_smiType; }
+	Type *smiType() { return m_smiType; }
 	Type *symType() { return m_symType; }
 
 	TyClass *findOrCreateClass(ClassNode *cls);
-	MethodNode * method() { return m_method; }
+	MethodNode *method() { return m_method; }
 };
 
 #endif /* TYPECHECK_HH_ */
