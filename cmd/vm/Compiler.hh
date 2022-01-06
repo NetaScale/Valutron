@@ -8,35 +8,10 @@
 
 #include "lemon/lemon_base.h"
 
+#include "AST.hh"
 #include "Oops.hh"
 
 struct MethodNode;
-
-/* Details of the position of some source code. */
-class Position {
-	size_t m_oldLine, m_oldCol, m_oldPos;
-	size_t m_line, m_col, m_pos;
-
-    public:
-	Position() {};
-	Position(size_t oldLine, size_t oldCol, size_t oldPos, size_t line,
-	    size_t col, size_t pos)
-	    : m_oldLine(oldLine)
-	    , m_oldCol(oldCol)
-	    , m_oldPos(oldPos)
-	    , m_line(line)
-	    , m_col(col)
-	    , m_pos(pos)
-	{
-	}
-
-	/* Get line number */
-	size_t line() const;
-	/* Get column number*/
-	size_t col() const;
-	/* Get absolute position in source-file */
-	size_t pos() const;
-};
 
 struct Token {
 	Position m_pos;
@@ -66,6 +41,7 @@ struct Token {
 	operator std::string() const { return stringValue; }
 	operator const char *() const { return stringValue.c_str(); }
 	operator double() const { return floatValue; }
+	const Position & pos() const { return m_pos; }
 
 	double floatValue = 0.0;
 	int intValue = 0;

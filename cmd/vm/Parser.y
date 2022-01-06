@@ -358,7 +358,10 @@ primary_list(L) ::= primary_list(l) primary_expr(p).
 %type array_literal_member { ExprNode * }
 %type basic_literal_expr { ExprNode * }
 
-literal_expr(L) ::= HASH LBRACKET array_literal_members_opt(a) RBRACKET.  { L = new ArrayExprNode(a); }
+literal_expr(L) ::= HASH(beg) LBRACKET array_literal_members_opt(a)
+    RBRACKET(end). {
+	L = new ArrayExprNode({beg.pos(), end.pos()}, a);
+}
 literal_expr ::= basic_literal_expr.
 
 %type array_literal_members { std::vector<ExprNode *> }
@@ -375,30 +378,35 @@ array_literal_members(L) ::= array_literal_members(l) array_literal_member(lit).
 	}
 
 array_literal_member(A) ::= basic_literal_expr(i). { A = i; }
-array_literal_member(A) ::= identifier(i). { A = new SymbolExprNode(i); }
-array_literal_member(A) ::= keyword(k). { A = new SymbolExprNode(k); }
-array_literal_member(A) ::= LBRACKET array_literal_members_opt(a) RBRACKET. { A = new ArrayExprNode(a); }
-array_literal_member(A) ::= HASH LBRACKET array_literal_members_opt(a) RBRACKET. { A = new ArrayExprNode(a); }
+array_literal_member(A) ::= identifier(i). { A = new SymbolExprNode(i.pos(), i); }
+array_literal_member(A) ::= keyword(k). { A = new SymbolExprNode(k.pos(), k); }
+array_literal_member(A) ::= LBRACKET(l) array_literal_members_opt(a) RBRACKET(r). {
+	A = new ArrayExprNode({l.pos(), r.pos()}, a);
+}
+array_literal_member(A) ::= HASH(beg) LBRACKET array_literal_members_opt(a)
+    RBRACKET(end). {
+	A = new ArrayExprNode({beg.pos(), end.pos()}, a);
+}
 
 basic_literal_expr(S) ::= STRING(s).
 	{
-		S = new StringExprNode(removeFirstAndLastChar(s));
+		S = new StringExprNode(s.pos(), removeFirstAndLastChar(s));
 	}
 basic_literal_expr(S) ::= SYMBOL(s).
 	{
-		S = new SymbolExprNode(removeFirstChar(s));
+		S = new SymbolExprNode(s.pos(), removeFirstChar(s));
 	}
 basic_literal_expr(S) ::= INTEGER(i).
 	{
-		S = new IntExprNode(i.intValue);
+		S = new IntExprNode(i.pos(), i.intValue);
 	}
 basic_literal_expr(S) ::= FLOAT(f).
 	{
-		S = new FloatExprNode(f);
+		S = new FloatExprNode(f.pos(), f);
 	}
 basic_literal_expr(S) ::= CHAR(c).
 	{
-		S = new CharExprNode(removeFirstChar(c));
+		S = new CharExprNode(c.pos(), removeFirstChar(c));
 	}
 
 %type block_expr { BlockExprNode * }
@@ -474,11 +482,9 @@ identifier(I) ::= IDENTIFIER(i). { I = i; }
 identifier(I) ::= NAMESPACENAME(i). { I = i; }
 identifier(I) ::= NAMESPACE. { I = Token(I.m_pos, "Namespace"); }
 
-%type keyword { std::string }
-
-keyword(K) ::= KEYWORD(k). { K = k.stringValue; }
-keyword(K) ::= SUBCLASSCOLON. { K = "subclass:"; }
-keyword(K) ::= CURRENTCOLON. { K = "current:"; }
+keyword(K) ::= KEYWORD(k). { K = k; }
+keyword(K) ::= SUBCLASSCOLON(s). { K = s; K.stringValue = "subclass:"; }
+keyword(K) ::= CURRENTCOLON(s). { K = s; K.stringValue = "current:"; }
 
 %type binary_op { std::string }
 %type binary_op_part { std::string }

@@ -7,9 +7,40 @@
 #include <vector>
 
 #include "Misc.hh"
-#include "Oops.hh"
 #include "ObjectMemory.hh"
+#include "Oops.hh"
 #include "Typecheck.hh"
+
+/* Details of the position of some source code. */
+class Position {
+	size_t m_oldLine, m_oldCol, m_oldPos;
+	size_t m_line, m_col, m_pos;
+
+    public:
+	Position() {};
+	Position(size_t oldLine, size_t oldCol, size_t oldPos, size_t line,
+	    size_t col, size_t pos)
+	    : m_oldLine(oldLine)
+	    , m_oldCol(oldCol)
+	    , m_oldPos(oldPos)
+	    , m_line(line)
+	    , m_col(col)
+	    , m_pos(pos) {};
+	Position(const Position &a, const Position &b)
+	    : m_oldLine(a.m_oldLine)
+	    , m_oldCol(a.m_oldCol)
+	    , m_oldPos(a.m_oldPos)
+	    , m_line(b.m_line)
+	    , m_col(b.m_col)
+	    , m_pos(b.m_pos) {};
+
+	/* Get line number */
+	size_t line() const;
+	/* Get column number*/
+	size_t col() const;
+	/* Get absolute position in source-file */
+	size_t pos() const;
+};
 
 class CodeGen;
 class CompilationContext;
@@ -24,14 +55,15 @@ struct ClassNode;
 typedef int RegisterID;
 
 class SynthContext {
-	ObjectMemory & m_omem;
+	ObjectMemory &m_omem;
 	TyChecker m_tyChecker;
 
-	public:
-	SynthContext(ObjectMemory & omem) : m_omem(omem) {};
+    public:
+	SynthContext(ObjectMemory &omem)
+	    : m_omem(omem) {};
 
-	ObjectMemory&omem() { return m_omem; }
-	TyChecker & tyChecker() { return m_tyChecker; }
+	ObjectMemory &omem() { return m_omem; }
+	TyChecker &tyChecker() { return m_tyChecker; }
 };
 
 struct Var {
@@ -217,6 +249,12 @@ struct BlockScope : public AbstractCodeScope {
 };
 
 struct Node {
+	Position m_pos;
+
+	Node() = default;
+	Node(Position pos)
+	    : m_pos(pos) {};
+
 	virtual void print(int in)
 	{
 		std::cout << blanks(in) << "<node: " << typeid(*this).name()
@@ -225,19 +263,15 @@ struct Node {
 };
 
 struct SelectorNode {
-	Type * m_retType;
+	Type *m_retType;
 	std::string m_sel;
 	std::vector<VarDecl> m_params;
 };
 
 struct StmtNode : Node {
 	virtual void synthInScope(Scope *scope) = 0;
-	virtual void typeCheck(TyChecker &tyc)
-	{
-		std::cout << "Unimplemented typecheck for "
-			  << typeid(*this).name() << "\n";
-	}
-	virtual void generateOn(CodeGen &gen) { throw std::runtime_error("No generation support"); };
+	virtual void typeCheck(TyChecker &tyc) = 0;
+	virtual void generateOn(CodeGen &gen) = 0;
 };
 
 /**
@@ -246,6 +280,10 @@ struct StmtNode : Node {
  */
 
 struct ExprNode : Node {
+	ExprNode() = default;
+	ExprNode(Position pos)
+	    : Node(pos) {};
+
 	virtual void synthInScope(Scope *scope) = 0;
 	virtual void typeCheck(TyChecker &tyc)
 	{
@@ -263,7 +301,10 @@ struct ExprNode : Node {
 	virtual bool isSuper() { return false; }
 };
 
-struct LiteralExprNode : ExprNode {
+struct LiteralExprNode : public ExprNode {
+	LiteralExprNode(Position pos)
+	    : ExprNode(pos) {};
+
 	virtual void synthInScope(Scope *parentScope) { }
 };
 
@@ -271,8 +312,9 @@ struct LiteralExprNode : ExprNode {
 struct CharExprNode : LiteralExprNode {
 	std::string khar;
 
-	CharExprNode(std::string aChar)
-	    : khar(aChar)
+	CharExprNode(Position pos, std::string aChar)
+	    : LiteralExprNode(pos)
+	    , khar(aChar)
 	{
 	}
 
@@ -283,8 +325,9 @@ struct CharExprNode : LiteralExprNode {
 struct SymbolExprNode : LiteralExprNode {
 	std::string sym;
 
-	SymbolExprNode(std::string aSymbol)
-	    : sym(aSymbol)
+	SymbolExprNode(Position pos, std::string aSymbol)
+	    : LiteralExprNode(pos)
+	    , sym(aSymbol)
 	{
 	}
 
@@ -296,8 +339,9 @@ struct SymbolExprNode : LiteralExprNode {
 struct IntExprNode : LiteralExprNode {
 	int num;
 
-	IntExprNode(int aNum)
-	    : num(aNum)
+	IntExprNode(Position pos, int aNum)
+	    : LiteralExprNode(pos)
+	    , num(aNum)
 	{
 	}
 
@@ -309,8 +353,9 @@ struct IntExprNode : LiteralExprNode {
 struct StringExprNode : LiteralExprNode {
 	std::string str;
 
-	StringExprNode(std::string aString)
-	    : str(aString)
+	StringExprNode(Position pos, std::string aString)
+	    : LiteralExprNode(pos)
+	    , str(aString)
 	{
 	}
 
@@ -321,8 +366,9 @@ struct StringExprNode : LiteralExprNode {
 struct FloatExprNode : LiteralExprNode {
 	double num;
 
-	FloatExprNode(double aNum)
-	    : num(aNum)
+	FloatExprNode(Position pos, double aNum)
+	    : LiteralExprNode(pos)
+	    , num(aNum)
 	{
 	}
 
@@ -332,8 +378,9 @@ struct FloatExprNode : LiteralExprNode {
 struct ArrayExprNode : LiteralExprNode {
 	std::vector<ExprNode *> elements;
 
-	ArrayExprNode(std::vector<ExprNode *> exprs)
-	    : elements(exprs)
+	ArrayExprNode(Position pos, std::vector<ExprNode *> exprs)
+	    : LiteralExprNode(pos)
+	    , elements(exprs)
 	{
 	}
 
@@ -426,8 +473,8 @@ struct MessageExprNode : ExprNode {
 
 	virtual void synthInScope(Scope *scope);
 	virtual void generateOn(CodeGen &gen);
-	//void typeCheck(TyChecker &tyc);
-	Type * type(TyChecker &tyc);
+	// void typeCheck(TyChecker &tyc);
+	Type *type(TyChecker &tyc);
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 
@@ -496,7 +543,7 @@ struct BlockExprNode : public ExprNode {
 
     public:
 	BlockScope *scope;
-	Type * m_retType;
+	Type *m_retType;
 	std::vector<VarDecl> args;
 	std::vector<StmtNode *> stmts;
 
@@ -507,7 +554,7 @@ struct BlockExprNode : public ExprNode {
 	}
 
 	virtual void synthInScope(Scope *parentScope) override;
-	Type * type(TyChecker & tyc) override;
+	Type *type(TyChecker &tyc) override;
 	virtual void generateOn(CodeGen &gen) override;
 
 	void print(int in) override;
@@ -548,25 +595,25 @@ struct ReturnStmtNode : StmtNode {
 };
 
 struct DeclNode : Node {
-	virtual void registerNamesIn(SynthContext & sctx, DictionaryOop ns) = 0;
-	virtual void synthInNamespace(SynthContext & sctx, DictionaryOop ns) = 0;
+	virtual void registerNamesIn(SynthContext &sctx, DictionaryOop ns) = 0;
+	virtual void synthInNamespace(SynthContext &sctx, DictionaryOop ns) = 0;
 	virtual void typeReg(TyChecker &tyc) = 0;
-	virtual void typeCheck(TyChecker & tyc) = 0;
-	virtual void generate(ObjectMemory & omem) = 0;
+	virtual void typeCheck(TyChecker &tyc) = 0;
+	virtual void generate(ObjectMemory &omem) = 0;
 };
 
 struct MethodNode : public Node, public TyEnv {
 	MethodScope *scope;
 
 	bool isClassMethod;
-	Type * m_retType;
+	Type *m_retType;
 	std::string sel;
 	std::vector<VarDecl> m_tyParams;
 	std::vector<VarDecl> args;
 	std::vector<VarDecl> locals;
 	std::vector<StmtNode *> stmts;
 
-	MethodNode(bool isClassMethod, Type * retType, std::string sel,
+	MethodNode(bool isClassMethod, Type *retType, std::string sel,
 	    std::vector<VarDecl> tyParams, std::vector<VarDecl> args,
 	    std::vector<VarDecl> locals, std::vector<StmtNode *> stmts)
 	    : isClassMethod(isClassMethod)
@@ -581,42 +628,42 @@ struct MethodNode : public Node, public TyEnv {
 
 	MethodNode *synthInClassScope(ClassScope *clsScope);
 	void typeReg(TyChecker &tyc);
-	void typeCheck(TyChecker & tyc);
-	MethodOop generate(ObjectMemory & omem);
+	void typeCheck(TyChecker &tyc);
+	MethodOop generate(ObjectMemory &omem);
 
 	void print(int in);
 };
 
-struct ClassNode : public DeclNode, public TyEnv{
+struct ClassNode : public DeclNode, public TyEnv {
 	ClassScope *scope;
 	ClassOop cls;
 
 	std::string name;
 	std::string superName;
-	Type * superType;
+	Type *superType;
 	std::vector<VarDecl> m_tyParams;
 	std::vector<VarDecl> cVars;
 	std::vector<VarDecl> iVars;
 	std::vector<MethodNode *> cMethods;
 	std::vector<MethodNode *> iMethods;
 
-	TyClass * tyClass;
+	TyClass *tyClass;
 
 	/* Resolved later */
 	// GlobalVar * superClass;
 
 	ClassNode(std::string name, std::vector<VarDecl> m_tyParams,
-	    std::string superName, std::vector<Type*> superTyArgs,
+	    std::string superName, std::vector<Type *> superTyArgs,
 	    std::vector<VarDecl> cVars, std::vector<VarDecl> iVars);
 
 	void addMethods(std::vector<MethodNode *> meths);
 
-	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
-	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void registerNamesIn(SynthContext &sctx, DictionaryOop ns);
+	void synthInNamespace(SynthContext &sctx, DictionaryOop ns);
 	void typeReg(TyChecker &tyc);
-	void typeCheck(TyChecker & tyc);
+	void typeCheck(TyChecker &tyc);
 
-	void generate(ObjectMemory & omem);
+	void generate(ObjectMemory &omem);
 
 	void print(int in);
 };
@@ -631,11 +678,11 @@ struct NamespaceNode : public DeclNode {
 	{
 	}
 
-	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
-	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
+	void registerNamesIn(SynthContext &sctx, DictionaryOop ns);
+	void synthInNamespace(SynthContext &sctx, DictionaryOop ns);
 	void typeReg(TyChecker &tyc);
-	void typeCheck(TyChecker & tyc);
-	void generate(ObjectMemory & omem);
+	void typeCheck(TyChecker &tyc);
+	void generate(ObjectMemory &omem);
 };
 
 struct ProgramNode : public DeclNode {
@@ -646,23 +693,22 @@ struct ProgramNode : public DeclNode {
 	{
 	}
 
-	void registerNamesIn(SynthContext & sctx, DictionaryOop ns);
-	void registerNames(SynthContext & sctx )
+	void registerNamesIn(SynthContext &sctx, DictionaryOop ns);
+	void registerNames(SynthContext &sctx)
 	{
-		registerNamesIn (sctx, ObjectMemory::objGlobals);
+		registerNamesIn(sctx, ObjectMemory::objGlobals);
 	}
 
-	void synthInNamespace(SynthContext & sctx, DictionaryOop ns);
-	void synth(SynthContext & sctx )
+	void synthInNamespace(SynthContext &sctx, DictionaryOop ns);
+	void synth(SynthContext &sctx)
 	{
-		synthInNamespace (sctx, ObjectMemory::objGlobals);
+		synthInNamespace(sctx, ObjectMemory::objGlobals);
 	}
 	void typeReg(TyChecker &tyc);
-	void typeCheck(TyChecker & tyc);
-	void generate(ObjectMemory & omem);
+	void typeCheck(TyChecker &tyc);
+	void generate(ObjectMemory &omem);
 
 	void print(int in);
 };
-
 
 #endif /* AST_HH_ */
