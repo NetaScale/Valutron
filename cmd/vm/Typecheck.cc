@@ -132,8 +132,7 @@ void Type::resolveInTyEnv(TyEnv * env)
 		type->constructInto(this);
 		for (auto & arg: m_typeArgs)
 			arg->resolveInTyEnv(env); // ???
-	}
-	else if (m_kind == kBlock) {
+	} else if (m_kind == kBlock) {
 		m_block->TyEnv::m_parent = env;
 		/* Register block's generic type parameters */
 		for (auto & tyParam: m_block->m_tyParams) {
@@ -143,6 +142,9 @@ void Type::resolveInTyEnv(TyEnv * env)
 		for (auto & type: m_block->m_argTypes)
 			type->resolveInTyEnv(m_block);
 		m_block->m_retType->resolveInTyEnv(m_block);
+	} else if (m_kind == kUnion) {
+		for (auto &type : m_members)
+			type->resolveInTyEnv(env);
 	}
 }
 
@@ -151,10 +153,26 @@ Type::isSubtypeOf(Type *type)
 {
 	switch (m_kind) {
 	case kIdent:
+		abort();
+
 	case kAsYetUnspecified: {
 		std::cerr << "Inferring uninferred LHS to be " << *type << "\n";
 		*this = *type;
 		this->m_wasInferred = true;
+		return true;
+	}
+
+	case kUnion: {
+		/**
+		 * A union $a is a subtype of a type $b if every member of union
+		 * $a is a subtype of type $b.
+		 */
+		for (auto &member : m_members)
+			if (!member->isSubtypeOf(type)) {
+				std::cout << *member << " is not a subtype of "
+					  << *type << "\n";
+				return false;
+			}
 		return true;
 	}
 
@@ -427,16 +445,17 @@ Type::print(size_t in)
 
 	std::cout << blanks(in) << "Ident: " << m_ident << "\n";
 
-	if(m_tyVarDecl && m_tyVarDecl->second != NULL)
-	{
+	if (m_tyVarDecl && m_tyVarDecl->second != NULL) {
 		std::cout << blanks(in) << "Bound: \n" << "\n";
 		m_tyVarDecl->second->print(in + 2);
 	}
 
+#if 0
 	if (m_wrapped != NULL) {
 		std::cout << blanks(in) << "Wrapping: \n";
 		m_wrapped->print(in + 2);
 	}
+#endif
 
 	if (!m_typeArgs.empty()) {
 		std::cout << blanks(in) << "Args: [\n";
@@ -461,7 +480,6 @@ operator<<(std::ostream &os, Type const &type)
 std::ostream &
 Type::niceName(std::ostream &os) const
 {
-	os << "{";
 	if (m_wasInferred)
 		os << italic;
 
@@ -473,6 +491,20 @@ Type::niceName(std::ostream &os) const
 	case kAsYetUnspecified:
 		os << "not-yet-inferred";
 		break;
+
+	case kUnion: {
+		bool first = true;
+		os << "(";
+		for (auto &type : m_members) {
+			if (!first)
+				os << " | ";
+			else
+				first = false;
+			os << *type;
+		}
+		os << ")";
+		break;
+	}
 
 	case kBlock:
 		os << "[^" << *m_block->m_retType;
@@ -499,8 +531,10 @@ Type::niceName(std::ostream &os) const
 
 	case kTyVar:
 		os << "typeParameter " << m_ident;
+#if 0
 		if (m_wrapped)
 			os << "(" << (*m_wrapped) << ")";
+#endif
 		break;
 
 	case kClass:
@@ -530,7 +564,7 @@ Type::niceName(std::ostream &os) const
 	if (m_wasInferred)
 		os << normal;
 
-	return os << "}";
+	return os;
 }
 
 Type *
@@ -747,10 +781,13 @@ MessageExprNode::type(TyChecker &tyc)
 	for (auto &argType : argTypes)
 		argType->print(8);
 #endif
-	std::cout << "Argument types: ";
-	for (auto & type: argTypes)
-		std::cout << *type;
-	std::cout << "\n";
+
+	if (argTypes.size()) {
+		std::cout << "Argument types: ";
+		for (auto &type : argTypes)
+			std::cout << *type;
+		std::cout << "\n";
+	}
 
 	res = recvType->typeSend(selector, argTypes);
 
@@ -767,6 +804,17 @@ Type::typeSend(std::string selector, std::vector<Type *> &argTypes,
 		trueReceiver = this;
 
 	switch (m_kind) {
+	case kUnion: {
+		Type *result = new Type;
+
+		result->m_kind = kUnion;
+		for (auto &member : m_members)
+			result->m_members.push_back(member->typeSend(selector,
+			    argTypes, trueReceiver, NULL));
+
+		return result;
+	}
+
 	case kInstance: {
 		MethodNode *meth = NULL;
 		Invocation invoc;

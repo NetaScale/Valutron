@@ -21,6 +21,8 @@ struct Type {
 
 		kAsYetUnspecified,
 
+		kUnion,
+
 		kBlock,
 		kSelf,
 		kInstanceType,
@@ -38,14 +40,13 @@ struct Type {
 	bool m_isConstructor = false;
 	bool m_wasInferred = false; /**< was this type inferred? */
 
+	std::vector<Type *> m_members; /**< if kUnion, its types */
 	VarDecl * m_tyVarDecl = NULL; /**< if a kTyVar, the VarDecl defining it */
-	Type *m_wrapped = NULL;
 	TyClass *m_cls = NULL;	/* if kClass or kInstance */
-
-	/**
-	 * for kBlocks
-	 */
 	TyBlock *m_block = NULL; /* if kBlock */
+
+	//Type *m_wrapped = NULL;
+
 
 	/**
 	 * A generic block has to be copied before binding to any variable.

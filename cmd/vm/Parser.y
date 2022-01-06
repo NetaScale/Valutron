@@ -32,6 +32,7 @@ static std::string removeFirstAndLastChar(std::string aString)
 
 %token_type    {Token}
 %token_prefix  TOK_
+%left BAR.
 
 %code {
 ProgramNode * MVST_Parser::parseFile (std::string fName)
@@ -514,6 +515,17 @@ type(T) ::= SQB_OPEN UP type(r) block_arg_types_opt(a) SQB_CLOSE. {
 	T->m_block = blk;
 	blk->m_retType = r;
 	blk->m_argTypes = a;
+}
+type(T) ::= type(t1) BAR type(t2). {
+	if (t1->m_kind == Type::kUnion) {
+		t1->m_members.push_back(t2);
+		T = t1;
+	} else {
+		T = new Type;
+		T->m_kind = Type::kUnion;
+		T->m_members.push_back(t1);
+		T->m_members.push_back(t2);
+	}
 }
 
 %type block_arg_types_opt { std::vector<Type *> }
