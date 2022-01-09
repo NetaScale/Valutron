@@ -109,22 +109,4 @@ class MVST_Parser : public lemon_base<Token> {
 	void incCol() { m_col++; }
 };
 
-inline size_t
-Position::line() const
-{
-	return m_line;
-}
-
-inline size_t
-Position::col() const
-{
-	return m_col;
-}
-
-inline size_t
-Position::pos() const
-{
-	return m_pos;
-}
-
 #endif /* COMPILER_HH_ */

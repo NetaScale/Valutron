@@ -1,3 +1,3 @@
-@include 'Char.st'
+@include 'Character.st'
 @include 'String.st'
 @include 'Symbol.st'

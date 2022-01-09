@@ -80,7 +80,7 @@ class ObjectMemory {
 	static ClassOop clsSystemDictionary;
 	static ClassOop clsFloat;
 	static ClassOop clsVM;
-	static ClassOop clsChar;
+	static ClassOop clsCharacter;
 	static ClassOop clsProcessor;
 	static ClassOop clsNativeCode;
 	static ClassOop clsNativePointer;

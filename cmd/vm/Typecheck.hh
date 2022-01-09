@@ -124,7 +124,7 @@ struct TyClass {
 };
 
 struct TyChecker {
-	Type *m_smiType, *m_symType, *m_stringType;
+	Type *m_charType, *m_floatType, *m_smiType, *m_symType, *m_stringType;
 	TyEnv *m_globals;
 	std::vector<TyEnv *> m_envs;
 	MethodNode *m_method = NULL;
@@ -134,6 +134,8 @@ struct TyChecker {
 	TyChecker(Type *smiType, TyEnv *globals, std::vector<TyEnv *> envs,
 	    MethodNode *method, std::vector<BlockExprNode *> m_blocks);
 
+	Type *charType() { return m_charType; }
+	Type *floatType() { return m_floatType; }
 	Type *smiType() { return m_smiType; }
 	Type *symType() { return m_symType; }
 	Type *stringType() { return m_stringType; }

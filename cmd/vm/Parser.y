@@ -264,7 +264,7 @@ statement(S) ::= assign_expr(e). { S = new ExprStmtNode(e); }
 
 assign_expr(E) ::= identifier(i) ASSIGN continuation_expr(e).
 	{
-		E = new AssignExprNode(new IdentExprNode (i), e);
+		E = new AssignExprNode(new IdentExprNode (i.pos(), i), e);
 	}
 assign_expr(E) ::= continuation_expr(e). { E = e;}
 
@@ -332,7 +332,7 @@ binary_expr(E) ::= binary_expr(r) binary_op(s) unary_expr(a).
 unary_expr(E) ::= primary_expr(e). { E = e; }
 unary_expr(U) ::= unary_expr(p) identifier(i). { U  = new MessageExprNode(p, i); }
 
-primary_expr(S) ::= identifier(i). { S = new IdentExprNode (i); }
+primary_expr(S) ::= identifier(i). { S = new IdentExprNode (i.pos(), i); }
 primary_expr(S) ::= LBRACKET assign_expr(s) RBRACKET. { S = s; }
 primary_expr ::= block_expr.
 primary_expr ::= literal_expr.

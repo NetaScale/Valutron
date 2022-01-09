@@ -82,7 +82,7 @@ Number subclass: Integer
 	]
 
 	asCharacter [
-		^ Char value: self
+		^ Character value: self
 	]
 
 	asDigit [

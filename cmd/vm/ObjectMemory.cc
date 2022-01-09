@@ -43,7 +43,7 @@ ClassOop ObjectMemory::clsSymbolTable;
 ClassOop ObjectMemory::clsSystemDictionary;
 ClassOop ObjectMemory::clsFloat;
 ClassOop ObjectMemory::clsVM;
-ClassOop ObjectMemory::clsChar;
+ClassOop ObjectMemory::clsCharacter;
 ClassOop ObjectMemory::clsProcessor;
 ClassOop ObjectMemory::clsNativeCode;
 ClassOop ObjectMemory::clsNativePointer;
@@ -292,7 +292,7 @@ ObjectMemory::setupInitialObjects()
 	CreateClass(SystemDictionary);
 	CreateClass(Float);
 	CreateClass(VM);
-	CreateClass(Char);
+	CreateClass(Character);
 	CreateClass(NativeCode);
 	CreateClass(NativePointer);
 

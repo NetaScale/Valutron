@@ -6,12 +6,14 @@ Object subclass: VM [
 
 	echo [
 		" enable - disable echo input "
-		echoInput <- echoInput not
+		"echoInput <- echoInput not"
+		^ 'fixMe'
 	]
 
 	error: aString [
 		" print a message, and remove current process "
-		stderr print: aString.
+		"stderr print: aString."
+		^ 'fixMe'
 		scheduler currentProcess yourself; trace; terminate
 	]
 

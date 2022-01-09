@@ -37,8 +37,8 @@ Object subclass: Scheduler [
 		ifFalse: [
 			(string size > 0) ifTrue: [
 				string logChunk.
-				echoInput ifTrue: [
-					string print ].
+				"echoInput ifTrue: [
+					string print ]."
 				[ string value print ] fork ] ]
 	]
 

@@ -1,4 +1,4 @@
-Magnitude subclass: Char [
+Magnitude subclass: Character [
 	| value |
 
 	class>>	value: aValue [

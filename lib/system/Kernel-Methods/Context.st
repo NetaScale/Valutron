@@ -14,7 +14,8 @@ Object subclass: Context [
 	]
 
 	literals [
-		^ literals
+		"^ literals"
+		^ 'fixme'
 	]
 
 	arguments [
@@ -64,11 +65,13 @@ Object subclass: Context [
 	]
 
 	method: m [
-		method <- m
+		"method <- m"
+		^ 'fixMe'
 	]
 
 	method: aMeth arguments: aVec temporaries: tVec [
-		method <- aMeth.
+		"method <- aMeth."
+		^ 'fixMe'.
 		arguments <- aVec.
 		temporaries <- tVec
 	]

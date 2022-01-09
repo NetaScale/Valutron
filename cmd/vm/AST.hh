@@ -35,9 +35,9 @@ class Position {
 	    , m_pos(b.m_pos) {};
 
 	/* Get line number */
-	size_t line() const;
+	size_t line() const { return m_oldLine; }
 	/* Get column number*/
-	size_t col() const;
+	size_t col() const { return m_oldCol; }
 	/* Get absolute position in source-file */
 	size_t pos() const;
 };
@@ -374,7 +374,8 @@ struct FloatExprNode : LiteralExprNode {
 	{
 	}
 
-	virtual void generateOn(CodeGen &gen);
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 };
 
 struct ArrayExprNode : LiteralExprNode {
@@ -395,8 +396,9 @@ struct IdentExprNode : ExprNode {
 
 	virtual bool isSuper() override { return id == "super"; }
 
-	IdentExprNode(std::string id)
-	    : id(id)
+	IdentExprNode(Position pos, std::string id)
+	    : ExprNode(pos)
+	    , id(id)
 	    , var(NULL)
 	{
 	}

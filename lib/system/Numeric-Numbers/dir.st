@@ -2,3 +2,4 @@
 @include 'Integer.st'
 @include 'Fraction.st'
 @include 'LongInteger.st'
+@include 'Float.st'

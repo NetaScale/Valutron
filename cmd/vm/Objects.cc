@@ -101,7 +101,7 @@ CharOop
 CharOopDesc::newWith(ObjectMemory &omem, intptr_t value)
 {
 	CharOop newChar = omem.newOopObj<CharOop>(1);
-	newChar.setIsa(ObjectMemory::clsChar);
+	newChar.setIsa(ObjectMemory::clsCharacter);
 	newChar->setValue(value);
 	return newChar;
 }

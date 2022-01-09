@@ -51,10 +51,10 @@ ByteArray subclass: String [
 	]
 
 	basicAt: index put: aValue [
-		(aValue isMemberOf: Char)
+		(aValue isMemberOf: Character)
 			ifTrue: [ super basicAt: index put: aValue asInteger ]
 			ifFalse: [ VM error:
-				'cannot put non Char into string' ]
+				'cannot put non Character into string' ]
 	]
 
 	copy [
@@ -95,6 +95,7 @@ ByteArray subclass: String [
 
 	print [
 		"stdout print: self"
+		^ 'fixMe'
 	]
 
 	printString [

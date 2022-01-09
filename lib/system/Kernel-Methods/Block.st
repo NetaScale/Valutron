@@ -25,15 +25,17 @@ Object subclass: Block [
 
 	newProcess [
 		" create a new process to execute block "
-		^ Process context: context startAt: bytePointer
+		"^ Process context: context startAt: bytePointer"
+		^ 'fixMe'
 	]
 
 	newProcessWith: args [
-		(self checkArgumentCount: args size)
+		"(self checkArgumentCount: args size)
 			ifTrue: [ (1 to: args size) do: [:i |
 				   context at: (argLoc + i - 1)
 					put: (args at: i)]].
-		^ self newProcess
+		^ self newProcess"
+		^ 'fixMe'
 	]
 
 	value [
@@ -41,24 +43,27 @@ Object subclass: Block [
 	]
 
 	value: x [
-		^ (self checkArgumentCount:  1)
+		"^ (self checkArgumentCount:  1)
 			ifTrue: [ context at: argLoc put: x.
-				  context returnToBlock: bytePointer ]
+				  context returnToBlock: bytePointer ]"
+		^ 'fixMe'
 	]
 
 	value: x value: y [
-		^ (self checkArgumentCount: 2)
+		"^ (self checkArgumentCount: 2)
 			ifTrue: [ context at: argLoc put: x.
 				  context at: argLoc + 1 put: y.
-				  context returnToBlock: bytePointer ]
+				  context returnToBlock: bytePointer ]"
+		^ 'fixMe'
 	]
 
 	value: x value: y value: z [
-		^ (self checkArgumentCount:  3)
+		"^ (self checkArgumentCount:  3)
 			ifTrue: [ context at: argLoc put: x.
 				  context at: argLoc + 1 put: y.
 				  context at: argLoc + 2 put: z.
-				  context returnToBlock: bytePointer ]
+				  context returnToBlock: bytePointer ]"
+		^ 'fixMe'
 	]
 
 	whileFalse [

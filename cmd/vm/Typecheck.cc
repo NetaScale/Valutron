@@ -819,6 +819,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 #define TYPE(VAR, NAME)               \
 	tyc.VAR = new Type(NAME, {}); \
 	tyc.VAR->resolveInTyEnv(tyc.m_globals)
+	GLOBAL("thisContext", "Dictionary");
 	GLOBAL("classes", "Dictionary");
 	GLOBAL("symbols", "SymbolTable");
 	GLOBAL("smalltalk", "Smalltalk");
@@ -826,6 +827,8 @@ ProgramNode::typeReg(TyChecker &tyc)
 	GLOBAL("scheduler", "Scheduler");
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");
+	TYPE(m_charType, "Character");
+	TYPE(m_floatType, "Float");
 	TYPE(m_smiType, "Integer");
 	TYPE(m_symType, "Symbol");
 	TYPE(m_stringType, "String");
@@ -838,7 +841,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 Type *
 CharExprNode::type(TyChecker &tyc)
 {
-	return tyc.stringType();
+	return tyc.charType();
 }
 
 Type *
@@ -860,11 +863,28 @@ StringExprNode::type(TyChecker &tyc)
 }
 
 Type *
+FloatExprNode::type(TyChecker &tyc)
+{
+	return tyc.floatType();
+}
+
+Type *
 IdentExprNode::type(TyChecker &tyc)
 {
 	if (isSuper())
 		return Type::super();
-	return tyc.m_envs.back()->lookupVar(id);
+	else {
+		Type * type = tyc.m_envs.back()->lookupVar(id);
+
+		if (!type) {
+			std::cerr << m_pos.line() << ":" << m_pos.col() <<
+			    ":" << " Identifier " << id <<
+			    " could not be resolved.\n";
+			throw std::runtime_error("Unresolved identifier");
+		}
+
+		return type;
+	}
 }
 
 Type *
