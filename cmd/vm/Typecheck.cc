@@ -93,53 +93,65 @@ Type::Type(TyClass *cls)
 	m_cls = cls;
 }
 
-Type * Type::id()
+Type *
+Type::id()
 {
-	Type * type = new Type;
+	Type *type = new Type;
 	type->m_kind = kId;
 	return type;
 }
 
-Type * Type::makeInstanceMaster(TyClass *cls, std::vector<VarDecl> &tyParams)
+Type *
+Type::super()
 {
-	Type * type = new Type;
+	Type *type = new Type;
+	type->m_kind = kSuper;
+	return type;
+}
+
+Type *
+Type::makeInstanceMaster(TyClass *cls, std::vector<VarDecl> &tyParams)
+{
+	Type *type = new Type;
 	type->m_kind = kInstance;
 	type->m_ident = cls->m_name;
 	type->m_cls = cls;
 	if (tyParams.size()) {
 		type->m_isConstructor = true;
 		for (auto &tyParam : tyParams)
-			type->m_typeArgs.push_back(Type::makeTyVarReference(
-			    &tyParam));
+			type->m_typeArgs.push_back(
+			    Type::makeTyVarReference(&tyParam));
 	}
 	return type;
 }
 
-Type *Type::makeTyVarReference(VarDecl * varDecl)
+Type *
+Type::makeTyVarReference(VarDecl *varDecl)
 {
-	Type * type = new Type;
+	Type *type = new Type;
 	type->m_ident = varDecl->first;
 	type->m_kind = kTyVar;
 	type->m_tyVarDecl = varDecl;
 	return type;
 }
 
-void Type::resolveInTyEnv(TyEnv * env)
+void
+Type::resolveInTyEnv(TyEnv *env)
 {
 	if (m_kind == kIdent) {
-		Type * type = env->lookupType(m_ident);
+		Type *type = env->lookupType(m_ident);
 		type->resolveInTyEnv(env); // ???
 		type->constructInto(this);
-		for (auto & arg: m_typeArgs)
+		for (auto &arg : m_typeArgs)
 			arg->resolveInTyEnv(env); // ???
 	} else if (m_kind == kBlock) {
 		m_block->TyEnv::m_parent = env;
 		/* Register block's generic type parameters */
-		for (auto & tyParam: m_block->m_tyParams) {
+		for (auto &tyParam : m_block->m_tyParams) {
 			m_block->TyEnv::m_types[tyParam.first] =
-			     Type::makeTyVarReference(&tyParam);
+			    Type::makeTyVarReference(&tyParam);
 		}
-		for (auto & type: m_block->m_argTypes)
+		for (auto &type : m_block->m_argTypes)
 			type->resolveInTyEnv(m_block);
 		m_block->m_retType->resolveInTyEnv(m_block);
 	} else if (m_kind == kUnion) {
@@ -302,6 +314,7 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 			return instanceIsSubtypeOfInstance(env, type);
 		}
 
+		case kSuper:
 		case kAsYetUnspecified: /* handled earlier */
 		case kUnion:		/* handled earlier */
 		case kBlock: /* handled earlier */
@@ -310,6 +323,7 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 		}
 	}
 
+	case kSuper:
 	case kId:    /* handled earlier */
 	case kUnion: /* handled earlier */
 	case kMax:
@@ -425,6 +439,7 @@ Type::typeInInvocation(Invocation &invocation)
 		return type;
 	}
 
+	case kSuper:
 	case kIdent:
 	case kAsYetUnspecified:
 	case kMax:
@@ -603,6 +618,10 @@ Type::niceName(std::ostream &os) const
 		}
 		break;
 	}
+
+	case kSuper:
+		os << "super";
+		break;
 
 	case kMax:
 		abort();
@@ -800,6 +819,9 @@ ProgramNode::typeReg(TyChecker &tyc)
 #define TYPE(VAR, NAME)               \
 	tyc.VAR = new Type(NAME, {}); \
 	tyc.VAR->resolveInTyEnv(tyc.m_globals)
+	GLOBAL("classes", "Dictionary");
+	GLOBAL("symbols", "SymbolTable");
+	GLOBAL("smalltalk", "Smalltalk");
 	GLOBAL("systemProcess", "Process");
 	GLOBAL("scheduler", "Scheduler");
 	GLOBAL("true", "True");
@@ -812,6 +834,12 @@ ProgramNode::typeReg(TyChecker &tyc)
 /**
  * Type inferencing and type checking
  */
+
+Type *
+CharExprNode::type(TyChecker &tyc)
+{
+	return tyc.stringType();
+}
 
 Type *
 SymbolExprNode::type(TyChecker &tyc)
@@ -831,10 +859,11 @@ StringExprNode::type(TyChecker &tyc)
 	return tyc.stringType();
 }
 
-
 Type *
 IdentExprNode::type(TyChecker &tyc)
 {
+	if (isSuper())
+		return Type::super();
 	return tyc.m_envs.back()->lookupVar(id);
 }
 
@@ -897,10 +926,16 @@ MessageExprNode::fullType(TyChecker &tyc, bool cascade, Type *recvType)
 
 Type *
 Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
-    Type * trueReceiver, Invocation * prev_invoc)
+    Type * trueReceiver, Invocation * prev_invoc, bool skipFirst)
 {
 	if (!trueReceiver)
 		trueReceiver = this;
+	if (m_kind == kSuper) {
+		std::string self("self");
+		trueReceiver =  env->lookupVar(self);
+		return trueReceiver->typeSend(env, selector, argTypes,
+		    trueReceiver, prev_invoc, true);
+	}
 
 	switch (m_kind) {
 	case kUnion: {
@@ -914,13 +949,15 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 		return result;
 	}
 
+	case kSuper:
 	case kInstance: {
 		MethodNode *meth = NULL;
 		Invocation invoc;
 
 		if (prev_invoc)
 			invoc.m_super = prev_invoc;
-		invoc.receiver = this;
+
+		invoc.receiver = trueReceiver;
 		invoc.trueReceiver = trueReceiver;
 
 		/* Register this (the receiver) type's type-arguments. */
@@ -928,10 +965,13 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 			invoc.tyParamMap[&m_cls->m_clsNode->m_tyParams[i]] =
 			    m_typeArgs[i];
 
-		/* Search for the instance method in the class node. */
-		for (auto &aMeth : m_cls->m_clsNode->iMethods)
-			if (aMeth->sel == selector)
-				meth = aMeth;
+		if (!skipFirst) {
+			/* Search for the instance method in the class node. */
+			for (auto &aMeth : m_cls->m_clsNode->iMethods) {
+				if (aMeth->sel == selector)
+					meth = aMeth;
+			}
+		}
 
 		/* Method not found? */
 		if (!meth) {

@@ -32,6 +32,7 @@ struct Type {
 		kTyVar,
 		kClass,
 		kInstance,
+		kSuper,
 		kMax
 	} m_kind;
 
@@ -62,6 +63,7 @@ struct Type {
 	std::vector<Type *> m_typeArgs;
 
 	static Type *id();
+	static Type *super();
 	static Type *makeTyVarReference(VarDecl *tyVarDecl);
 	static Type *makeInstanceMaster(TyClass *cls,
 	    std::vector<VarDecl> &tyParams);
@@ -76,9 +78,9 @@ struct Type {
 	/**
 	 * Try to get the return type of a message send to this type.
 	 */
-	Type *typeSend(TyEnv * env, std::string selector,
+	Type *typeSend(TyEnv *env, std::string selector,
 	    std::vector<Type *> &argTypes, Type *trueReceiver = NULL,
-	    Invocation *prev_invoc = NULL);
+	    Invocation *prev_invoc = NULL, bool skipFirst = false);
 
 	bool isSubtypeOf(TyEnv * env, Type *type);
 	bool instanceIsSubtypeOfInstance(TyEnv * env, Type * type);

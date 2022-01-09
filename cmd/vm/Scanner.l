@@ -62,7 +62,8 @@ Identifier (:?{Letter})(:?{Letter}|{Digit}|::)*
 LineTerminator ((\n)|(\r)|(\r\n))
 QuotedComment \"(\\.|[^"])*\"
 
-RegularChar [^ \t\n.()\[]
+RegularChar [^ \t\n\r.()\[]
+CharacterConstant [^\t\n\r]
 
 Exponent (e[-+]?[0-9]+)
 RadixInteger [0-9]+r-?[0-9A-Z]+
@@ -80,7 +81,7 @@ RadixInteger [0-9]+r-?[0-9A-Z]+
 "Namespace"			{ p(NAMESPACE); }
 "current:"			{ p(CURRENTCOLON); }
 
-${RegularChar}					{ ps(CHAR); }
+${CharacterConstant}				{ ps(CHAR); }
 #{RegularChar}+					{ ps(SYMBOL); }
 {RadixInteger}(\.[0-9A-Z]+)?{Exponent}?		{ pf(FLOAT); }
 -[0-9]+						{ pi(INTEGER); }

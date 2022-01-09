@@ -16,8 +16,9 @@ Object subclass: VM [
 	]
 
 	getPrompt: aString [
-		stdout printNoReturn: aString.
-		^ stdin getString
+		"stdout printNoReturn: aString.
+		^ stdin getString"
+		^ 'fixMe'
 	]
 
 	inquire: aString [	| response |
@@ -47,20 +48,25 @@ Object subclass: VM [
 	]
 
 	saveImage: name	 [
+		"
 		scheduler critical: [
-			" first get rid of our own process "
+			first get rid of our own process 
 			scheduler removeProcess: scheduler currentProcess.
-		(File name: name open: 'w')
+	(File name: name open: 'w')
 			yourself;
 			saveImage;
 			close ]
+			55.
+		]"
+		55.
 	]
 
 	shutDown [
-		files do: [ :e |
+		"files do: [ :e |
 			e notNil ifTrue: [
 				(#('stdin' 'stdout' 'stderr') includes: e name) ifFalse: [
-					e close ] ] ]
+					e close ] ] ]"
+		^ 'fixme'
 	]
 
 	watch [

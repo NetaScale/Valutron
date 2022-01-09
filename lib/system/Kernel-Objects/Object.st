@@ -32,7 +32,7 @@ nil subclass: Object [
 		" edit a method definition until it compiles correctly "
 		tmp <- aString.
 		[ tmp <- tmp edit trimmed.
-		  ans <- Parser new parse: tmp in: self.
+		  "ans <- Parser new parse: tmp in: self."
 		  ans notNil ifTrue: [
 			^ ans ]
 		  ifFalse: [
@@ -56,7 +56,7 @@ nil subclass: Object [
 		cStr <- aMth methodClass name asString.
 		mStr <- aMth name asString.
 		aStr <- cStr , '.' , mStr , '.st'.
-		(aFile <- File name: aStr mode: 'w') open.
+		"(aFile <- File name: aStr mode: 'w') open."
 		aFile putChunk: '{'.
 		aFile putChunk: cStr , ' methods'.
 		aFile putChunk: aMth trimmedText.
@@ -344,3 +344,5 @@ nil subclass: Object [
 	]
 
 ]
+
+Object subclass: Smalltalk [ ]

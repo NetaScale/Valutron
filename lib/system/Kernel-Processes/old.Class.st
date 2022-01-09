@@ -2,7 +2,7 @@ Behavior subclass: Class [
 
 	fileOut [		| f |
 		" file out whole class on class.st "
-		(f <- File name: (name asString,'.st') mode: 'w') open.
+		"(f <- File name: (name asString,'.st') mode: 'w') open."
 		self fileOutOn: f.
 		f close
 	]

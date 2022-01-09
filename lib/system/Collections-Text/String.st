@@ -67,13 +67,13 @@ ByteArray subclass: String [
 	]
 
 	edit [	| file text |
-		(file <- File new)
+		"(file <- File new)
 			yourself;
 			scratchFile;
 			open: 'w';
 			print: self;
-			close.
-		(editor, ' ', file name) unixCommand.
+			close."
+		"(editor, ' ', file name) unixCommand."
 		file open: 'r'.
 		text <- file asString.
 		file yourself; close; delete.
@@ -82,7 +82,7 @@ ByteArray subclass: String [
 
 	execute [	| meth |
 		" execute self as body of a method "
-		meth <- Parser new parse: 'DoIt ' , self in: UndefinedObject.
+		"meth <- Parser new parse: 'DoIt ' , self in: UndefinedObject."
 		^ meth notNil ifTrue: [
 			meth executeWith: (Array new: 1) ]	"nil"
 		ifFalse: [
@@ -94,7 +94,7 @@ ByteArray subclass: String [
 	]
 
 	print [
-		stdout print: self
+		"stdout print: self"
 	]
 
 	printString [

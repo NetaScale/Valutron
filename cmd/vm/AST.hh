@@ -318,6 +318,7 @@ struct CharExprNode : LiteralExprNode {
 	{
 	}
 
+	Type *type(TyChecker &tyc) override;
 	void generateOn(CodeGen &gen) override;
 };
 

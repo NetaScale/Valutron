@@ -2,22 +2,22 @@ Object subclass: UndefinedObject [
 
 	initBot [	| aBlock saveFile saveAns |
 		" initialize the initial object image "
-		aBlock <- [ files do: [:f | f notNil ifTrue: [ f open ]].
+		"aBlock <- [ files do: [:f | f notNil ifTrue: [ f open ]].
 				   echoInput <- false.
 				   scheduler run.
 				   scheduler <- Scheduler new.
-				   systemProcess <- aBlock newProcess ].
+				   systemProcess <- aBlock newProcess ]."
 		scheduler <- Scheduler new.
 		systemProcess <- aBlock newProcess.
-		saveFile <- File
+		"saveFile <- File
 			name: 'systemImage'
-			open: 'w'.
+			open: 'w'."
 		saveAns <- saveFile saveImage.
 		saveFile close.
-		stdout
+		"stdout
 			yourself;
 			printNoReturn: 'saveImage: ';
-			print: saveAns printString
+			print: saveAns printString"
 	]
 
 	initMid [
@@ -36,11 +36,12 @@ Object subclass: UndefinedObject [
 
 	initTop [
 		" initialize the initial object image "
-		files <- Array new: 15.
-		(stdin <- File name: 'stdin' mode: 'r') open.
+		"files <- Array new: 15."
+		"(stdin <- File name: 'stdin' mode: 'r') open.
 		(stdout <- File name: 'stdout' mode: 'w') open.
-		(stderr <- File name: 'stderr' mode: 'w') open.
-		editor <- 'vi'
+		(stderr <- File name: 'stderr' mode: 'w') open."
+		"editor <- 'vi'"
+		^ 'fixme'
 	]
 
 	initialize [
