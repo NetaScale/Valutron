@@ -154,13 +154,15 @@ ClassOopDesc::setupClass(ObjectMemory &omem, ClassOop superClass,
     std::string name)
 {
 	/* allocate metaclass if necessary */
-	if (isa().isNil())
+	if (isa().isNil()) {
 		setIsa(ClassOopDesc::allocateRawClass(omem));
 
-	/* set metaclass isa to object metaclass */
-	isa().setIsa(ObjectMemory::clsObjectMeta);
+		/* set metaclass isa to object metaclass */
+		isa().setIsa(ObjectMemory::clsObjectClass);
 
-	isa()->setName(SymbolOopDesc::fromString(omem, name + "Meta"));
+		isa()->setName(SymbolOopDesc::fromString(omem, name + " class"));
+	}
+
 	setName(SymbolOopDesc::fromString(omem, name));
 
 	setupSuperclass(superClass);

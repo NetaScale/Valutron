@@ -1,5 +1,5 @@
+@include 'Object.st'
 @include 'Boolean.st'
 @include 'True.st'
 @include 'False.st'
-@include 'Object.st'
 @include 'UndefinedObject.st'

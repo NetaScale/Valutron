@@ -51,8 +51,17 @@ class ObjectMemory {
 	static MemOop objUnused2;
 	static MemOop objUnused3;
 	static MemOop objMinClass;
-	static ClassOop clsObjectMeta;
+
+	/** the metaclass hierarchy */
+	static ClassOop clsObjectClass;
 	static ClassOop clsObject;
+#if 0
+	static ClassOop clsBehavior;
+	static ClassOop clsClassDescription;
+	static ClassOop clsClass;
+	static ClassOop clsMetaclass;
+#endif
+
 	static ClassOop clsSymbol;
 	static ClassOop clsInteger;
 	static ClassOop clsArray;

@@ -125,11 +125,11 @@ nil subclass: Object [
 		variables <- vArray
 	]
 
-	class>>new [
+	class>> (instancetype) new [
 		^ self primOrefs: (self basicAt: 4)
 	]
 
-	class>>new: size [
+	class>> (instancetype) new: size [
 		^ self primOrefs: size
 	]
 
@@ -209,14 +209,6 @@ nil subclass: Object [
 			ifTrue: [ ^ m watch:
 				[:a | ('executing ', name) print. a print] ]
 			ifFalse: [ ^ 'no such method' ]
-	]
-
-	(Boolean) = aValue [
-		^ self == aValue
-	]
-
-	(Boolean) == aValue [
-		^ <21 self aValue>
 	]
 
 	(String) asString [
@@ -335,6 +327,14 @@ nil subclass: Object [
 		^ self
 	]
 
+	(Boolean) = aValue [
+		^ self == aValue
+	]
+
+	(Boolean) == aValue [
+		^ <21 self aValue>
+	]
+
 	(Boolean) ~= aValue [
 		^ self ~~ aValue
 	]
@@ -342,6 +342,5 @@ nil subclass: Object [
 	(Boolean) ~~ aValue [
 		^ (self == aValue) not
 	]
-
 
 ]

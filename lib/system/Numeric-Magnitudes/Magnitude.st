@@ -1,5 +1,4 @@
 Object subclass: Magnitude [
-
 	< value [
 		^ (self <= value) and: [ self ~= value ]
 	]
@@ -43,6 +42,4 @@ Object subclass: Magnitude [
 	~= value [
 		^ (self = value) not
 	]
-
-
 ]

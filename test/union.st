@@ -3,6 +3,7 @@ nil subclass: Object [
 ]
 Object subclass: Integer []
 Object subclass: Symbol []
+Object subclass: String []
 Object subclass: Boolean []
 
 Boolean subclass: True [

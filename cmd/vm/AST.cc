@@ -432,7 +432,7 @@ MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 		gen.genIfTrueIfFalse ();
 	else
 #endif
-	return gen.genMessage(isSuper, selector, argRegs);
+	gen.genMessage(isSuper, selector, argRegs);
 }
 
 void
@@ -440,8 +440,8 @@ CascadeExprNode::generateOn(CodeGen &gen)
 {
 	if (messages.size() == 1) {
 		receiver->generateOn(gen);
-		return messages.front()->generateOn(gen, -1,
-		    receiver->isSuper());
+		 messages.front()->generateOn(gen, -1,
+		   receiver->isSuper());
 	} else {
 		RegisterID rcvr;
 

@@ -23,7 +23,7 @@ MemOop ObjectMemory::objUnused1;
 MemOop ObjectMemory::objUnused2;
 MemOop ObjectMemory::objUnused3;
 MemOop ObjectMemory::objMinClass;
-ClassOop ObjectMemory::clsObjectMeta;
+ClassOop ObjectMemory::clsObjectClass;
 ClassOop ObjectMemory::clsObject;
 ClassOop ObjectMemory::clsSymbol;
 ClassOop ObjectMemory::clsInteger;
@@ -267,34 +267,34 @@ ObjectMemory::setupInitialObjects()
 	objGlobals->symbolInsert(*this,
 	    SymbolOopDesc::fromString(*this, "Array"), clsArray);
 
-#define CreateClassPair(Name)                                        \
+#define CreateClass(Name)                                        \
 	cls##Name = ClassOopDesc::allocateRawClass(*this);           \
 	cls##Name->setName(SymbolOopDesc::fromString(*this, #Name)); \
 	objGlobals->symbolInsert(*this,                              \
 	    SymbolOopDesc::fromString(*this, #Name), cls##Name)
 
-	CreateClassPair(ObjectMeta);
-	CreateClassPair(Object);
-	clsObject.setIsa(clsObjectMeta);
-	CreateClassPair(Integer);
-	CreateClassPair(ByteArray);
-	CreateClassPair(String);
-	CreateClassPair(Method);
-	CreateClassPair(Process);
-	CreateClassPair(UndefinedObject);
-	CreateClassPair(True);
-	CreateClassPair(False);
-	CreateClassPair(Link);
-	CreateClassPair(Dictionary);
-	CreateClassPair(Block);
-	CreateClassPair(Context);
-	CreateClassPair(SymbolTable);
-	CreateClassPair(SystemDictionary);
-	CreateClassPair(Float);
-	CreateClassPair(VM);
-	CreateClassPair(Char);
-	CreateClassPair(NativeCode);
-	CreateClassPair(NativePointer);
+	CreateClass(ObjectClass);
+	CreateClass(Object);
+	clsObject.setIsa(clsObjectClass);
+	CreateClass(Integer);
+	CreateClass(ByteArray);
+	CreateClass(String);
+	CreateClass(Method);
+	CreateClass(Process);
+	CreateClass(UndefinedObject);
+	CreateClass(True);
+	CreateClass(False);
+	CreateClass(Link);
+	CreateClass(Dictionary);
+	CreateClass(Block);
+	CreateClass(Context);
+	CreateClass(SymbolTable);
+	CreateClass(SystemDictionary);
+	CreateClass(Float);
+	CreateClass(VM);
+	CreateClass(Char);
+	CreateClass(NativeCode);
+	CreateClass(NativePointer);
 
 #define AddGlobal(name, obj)            				       \
 	objGlobals->symbolInsert(*this, SymbolOopDesc::fromString(*this,       \

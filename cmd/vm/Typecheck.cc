@@ -20,8 +20,8 @@ const char *Type::kindStr[kMax] = {
 	"NotYetInferred",
 
 	"Block",
-	"Self",
-	"InstanceType",
+	"self",
+	"instancetype",
 	"id",
 
 	"TyVar",
@@ -156,7 +156,9 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 		*type = *this;
 		type->m_wasInferred = true;
 		return true;
-	} else if (type->m_kind == kBlock && m_kind != kBlock)
+	} else if (type->m_kind == kId || m_kind == kId)
+		return true;
+	else if (type->m_kind == kBlock && m_kind != kBlock)
 		/* only a block can be a subtype of a block */
 		return false;
 	else if (m_kind == kUnion) {
@@ -251,9 +253,6 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 	case kInstanceType:
 		abort();
 
-	case kId:
-		return true;
-
 	case kTyVar: {
 		if (m_tyVarDecl->second)
 			return isSubtypeOf(env, m_tyVarDecl->second);
@@ -267,7 +266,6 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 
 	case kClass:
 		abort();
-
 
 	case kInstance: {
 		test:
@@ -304,12 +302,15 @@ Type::isSubtypeOf(TyEnv * env, Type *type)
 			return instanceIsSubtypeOfInstance(env, type);
 		}
 
+		case kAsYetUnspecified: /* handled earlier */
+		case kUnion:		/* handled earlier */
 		case kBlock: /* handled earlier */
 		case kMax:   /* invalid */
 			abort();
 		}
 	}
 
+	case kId:    /* handled earlier */
 	case kUnion: /* handled earlier */
 	case kMax:
 		abort();
@@ -372,8 +373,14 @@ Type *
 Type::typeInInvocation(Invocation &invocation)
 {
 	switch (m_kind) {
-	case kIdent:
-	case kAsYetUnspecified:
+
+	case kUnion: {
+		Type *type = new Type;
+		*type = *this;
+		for (auto &member : type->m_members)
+			member = member->typeInInvocation(invocation);
+		return type;
+	}
 
 	case kBlock: {
 		Type *type = new Type;
@@ -418,7 +425,9 @@ Type::typeInInvocation(Invocation &invocation)
 		return type;
 	}
 
-	default:
+	case kIdent:
+	case kAsYetUnspecified:
+	case kMax:
 		abort();
 	}
 }
@@ -611,8 +620,10 @@ TyEnv::lookupVar(std::string &txt)
 		return m_vars[txt];
 	else if (m_parent)
 		return m_parent->lookupVar(txt);
-	else
+	else {
+		std::cout << "Failed to find var " << txt << "\n";
 		return NULL;
+	}
 }
 
 Type *
@@ -704,6 +715,25 @@ MethodNode::typeReg(TyChecker &tyc)
 }
 
 void
+Type::registerIVars(Invocation &invoc, std::map<std::string, Type *> &vars)
+{
+	auto superType = m_cls->m_clsNode->superType;
+
+	for (auto &var : m_cls->m_clsNode->m_vars)
+		vars[var.first] = var.second->typeInInvocation(invoc);
+
+	if (superType != NULL) {
+		/* Register type-arguments. */
+		for (int i = 0; i < superType->m_typeArgs.size(); i++)
+			invoc.tyParamMap[&superType->m_cls->m_clsNode
+					      ->m_tyParams[i]] =
+			    superType->m_typeArgs[i];
+
+		superType->registerIVars(invoc, vars);
+	}
+}
+
+void
 ClassNode::typeReg(TyChecker &tyc)
 {
 	TyEnv::m_parent = tyc.m_envs.back();
@@ -718,6 +748,19 @@ ClassNode::typeReg(TyChecker &tyc)
 	if (superName != "nil") {
 		superType->resolveInTyEnv(this);
 		tyClass->super = superType->m_cls;
+
+		Invocation invoc;
+
+		invoc.receiver = tyClass->m_instanceMasterType;
+		invoc.trueReceiver = tyClass->m_instanceMasterType;
+
+		/* Register type-arguments. */
+		for (int i = 0; i < superType->m_typeArgs.size(); i++)
+			invoc.tyParamMap[&superType->m_cls->m_clsNode
+					      ->m_tyParams[i]] =
+			    superType->m_typeArgs[i];
+
+		superType->registerIVars(invoc, m_vars);
 	}
 	else {
 		delete superType;
@@ -757,6 +800,8 @@ ProgramNode::typeReg(TyChecker &tyc)
 #define TYPE(VAR, NAME)               \
 	tyc.VAR = new Type(NAME, {}); \
 	tyc.VAR->resolveInTyEnv(tyc.m_globals)
+	GLOBAL("systemProcess", "Process");
+	GLOBAL("scheduler", "Scheduler");
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");
 	TYPE(m_smiType, "Integer");
@@ -810,9 +855,17 @@ AssignExprNode::type(TyChecker &tyc)
 Type *
 MessageExprNode::type(TyChecker &tyc)
 {
-	Type *recvType = receiver->type(tyc);
+	return fullType(tyc, false, NULL);
+}
+
+Type *
+MessageExprNode::fullType(TyChecker &tyc, bool cascade, Type *recvType)
+{
 	std::vector<Type *> argTypes;
 	Type *res;
+
+	if (!cascade)
+		recvType = receiver->type(tyc);
 
 	std::cout<< "Typechecking a send of #" << selector << " to " <<
 	    *recvType << "\n";
@@ -941,7 +994,8 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 			std::cerr << "Object of type " << *this
 				  << " does not appear to understand message "
 				  << selector << "\n";
-			return NULL;
+
+			return Type::id();
 		}
 
 		for (int i = 0; i < argTypes.size(); i++) {
@@ -1000,6 +1054,27 @@ Type * Type::typeCheckBlock(std::vector<Type *> & argTypes)
 	std::cout << "Inferred block return type to be " << *rType << "\n";
 
 	return rType;
+}
+
+Type *
+CascadeExprNode::type(TyChecker &tyc)
+{
+	Type *recvType = receiver->type(tyc);
+	Type *result;
+
+	for (auto it = std::begin(messages); it != std::end(messages); it++)
+		result = (*it)->fullType(tyc, true, recvType);
+
+	return result;
+}
+
+Type *
+PrimitiveExprNode::type(TyChecker &tyc)
+{
+	for (auto &arg : args)
+		arg->type(tyc);
+
+	return Type::id();
 }
 
 Type *

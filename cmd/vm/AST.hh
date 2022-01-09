@@ -388,22 +388,6 @@ struct ArrayExprNode : LiteralExprNode {
 	virtual void generateOn(CodeGen &gen);
 };
 
-struct PrimitiveExprNode : ExprNode {
-	int num;
-	std::vector<ExprNode *> args;
-
-	PrimitiveExprNode(int num, std::vector<ExprNode *> args)
-	    : num(num)
-	    , args(args)
-	{
-	}
-
-	virtual void print(int in);
-
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
-};
-
 struct IdentExprNode : ExprNode {
 	std::string id;
 	Var *var;
@@ -472,14 +456,16 @@ struct MessageExprNode : ExprNode {
 		}
 	}
 
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
+	virtual void synthInScope(Scope *scope) override;
+	virtual void generateOn(CodeGen &gen) override;
 	// void typeCheck(TyChecker &tyc);
-	Type *type(TyChecker &tyc);
+	Type *type(TyChecker &tyc) override;
+	Type *fullType(TyChecker &tyc, bool cascade = false,
+	    Type *recvType = NULL);
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 
-	void print(int in)
+	void print(int in) override
 	{
 		std::cout << blanks(in) << "<message>\n";
 
@@ -514,10 +500,11 @@ struct CascadeExprNode : ExprNode {
 		}
 	}
 
-	virtual void synthInScope(Scope *scope);
-	virtual void generateOn(CodeGen &gen);
+	void synthInScope(Scope *scope) override;
+	Type *type(TyChecker &tyc) override;
+	void generateOn(CodeGen &gen) override;
 
-	void print(int in)
+	void print(int in) override
 	{
 		std::cout << blanks(in) << "<cascade>\n";
 
@@ -531,6 +518,23 @@ struct CascadeExprNode : ExprNode {
 
 		std::cout << blanks(in) << "</cascade>\n";
 	}
+};
+
+struct PrimitiveExprNode : ExprNode {
+	int num;
+	std::vector<ExprNode *> args;
+
+	PrimitiveExprNode(int num, std::vector<ExprNode *> args)
+	    : num(num)
+	    , args(args)
+	{
+	}
+
+	void print(int in) override;
+
+	void synthInScope(Scope *scope) override;
+	Type *type(TyChecker & tyc) override;
+	void generateOn(CodeGen &gen) override;
 };
 
 struct BlockExprNode : public ExprNode {

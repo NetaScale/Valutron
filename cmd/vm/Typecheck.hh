@@ -84,6 +84,7 @@ struct Type {
 	bool instanceIsSubtypeOfInstance(TyEnv * env, Type * type);
 
 	Type *typeInInvocation(Invocation &invocation);
+	void registerIVars(Invocation & invoc, std::map<std::string, Type*> & vars);
 	void resolveInTyEnv(TyEnv *env);
 	void constructInto(Type *into);
 	void print(size_t in);
