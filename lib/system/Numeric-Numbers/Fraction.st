@@ -1,107 +1,107 @@
 Number subclass: Fraction [
-	| top bottom |
+	| (Number)top (Number)bottom |
 
 	class>>top: tNum bottom: bNum [
 		^ self new top: tNum bottom: bNum
 	]
 
 
-	* f [
+	(id) * (Number)f [
 		f isFraction
 			ifTrue: [ ^ (top * f top) / (bottom * f bottom) ]
 			ifFalse: [ ^ super * f ]
 	]
 
-	+ f [
+	(id) + (Number)f [
 		f isFraction
 			ifTrue: [ ^ ((top * f bottom) + (bottom * f top)) /
 					(bottom * f bottom) ]
 			ifFalse:[ ^ super + f ]
 	]
 
-	- f [
+	(id) - (Number)f [
 		f isFraction
 			ifTrue: [ ^ ((top * f bottom) - (bottom * f top)) /
 					(bottom * f bottom) ]
 			ifFalse:[ ^ super - f ]
 	]
 
-	/ f [
+	(id) / (Number)f [
 		^ self * f reciprocal
 	]
 
-	< f [
+	(Boolean) < (Number)f [
 		f isFraction
 			ifTrue: [ ^ (top * f bottom) < (bottom * f top) ]
 			ifFalse:[ ^ super < f ]
 	]
 
-	= f [
+	(Boolean) = (Number)f [
 		f isFraction
 			ifTrue: [ ^ (top = f top) and: [ bottom = f bottom ] ]
 			ifFalse: [ ^ super = f ]
 	]
 
-	abs [
+	(id) abs [
 		^ top abs / bottom
 	]
 
-	asFloat [
+	(Float) asFloat [
 		" convert to a floating point number "
 
 		^ top asFloat / bottom asFloat
 	]
 
-	bottom  [
+	(id) bottom  [
 		^ bottom
 	]
 
-	coerce: x [
+	(Fraction) coerce: (Number)x [
 		" coerce a value into being a fraction "
 
 		^ x asFraction
 	]
 
-	generality [
+	(Integer) generality [
 		" generality value - used in mixed type arithmetic "
 		^ 5
 	]
 
-	isFraction [
+	(Boolean) isFraction [
 		^ true
 	]
 
-	ln [
+	(id) ln [
 		^ (top ln) - (bottom ln)
 	]
 
-	printString [
+	(String) printString [
 		^ top printString, '/', bottom printString
 	]
 
-	raisedTo: x [
+	(id) raisedTo: (Number)x [
 		^ (top raisedTo: x) / (bottom raisedTo: x)
 	]
 
-	reciprocal [
+	(id) reciprocal [
 		^ bottom / top
 	]
 
-	top [
+	(id) top [
 		^ top
 	]
 
-	top: tNum bottom: bNum [
+	(self) top: (Number)tNum bottom: (Number)bNum [
 		top <- tNum.
 		bottom <- bNum
 	]
 
-	truncated [
+	(id) truncated [
 		" convert to an integer rounded towards zero "
 		^ top quo: bottom
 	]
 
-	with: t over: b [
+	(self) with: (Number)t over: (Number)b [
 		" initialization "
 
 		top <- t.

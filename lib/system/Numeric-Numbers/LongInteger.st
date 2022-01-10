@@ -1,18 +1,18 @@
 Integer subclass: LongInteger [
-    | negative digits |
+    | (Boolean)negative (Array)digits |
 
-	class>>negative: nBool digits: dArray [
+	class>>(instancetype) negative: (Boolean)nBool digits: (Array)dArray [
 		^ self basicNew negative: nBool digits: dArray
 	]
 
-	class>>new [
+	class>>(instancetype) new [
 		^ self basicNew
 			negative: nil
 			digits: nil
 	]
 
 
-	* n [		| result |
+	(id) * (Number)n [		| result |
 		n isShortInteger ifTrue: [ ^ self timesShort: n ].
 		n isLongInteger  ifFalse: [ ^ super * n ].
 		result <- 0 asLongInteger.
@@ -23,7 +23,7 @@ Integer subclass: LongInteger [
 		^ result
 	]
 
-	+ n [		| newDigits z carry |
+	(id) + (Number)n [		| newDigits z carry |
 		n isLongInteger
 			ifFalse: [ ^ super + n ].
 		negative ifTrue: [ ^ n - self negated ].
@@ -39,7 +39,7 @@ Integer subclass: LongInteger [
 		^ LongInteger negative: false digits: newDigits asArray
 	]
 
-	- n [	| result newDigits z borrow |
+	(id) - (Number)n [	| result newDigits z borrow |
 		n isLongInteger
 			ifFalse: [ ^ super - n ].
 		negative ifTrue: [ ^ (self negated + n) negated ].
@@ -57,7 +57,7 @@ Integer subclass: LongInteger [
 		^ result
 	]
 
-	< n [		| result |
+	(Boolean) < (Number)n [		| result |
 		n isLongInteger
 			ifFalse: [ ^ super < n ].
 		(negative == n negative) ifFalse: [ ^ negative ].
@@ -69,72 +69,72 @@ Integer subclass: LongInteger [
 		^ result
 	]
 
-	= n [
+	(Boolean) = (Number)n [
 		n isLongInteger
 			ifFalse: [ ^ super = n ].
 		(negative == n negative) ifFalse: [ ^ false ].
 		^ digits = n digits
 	]
 
-	abs [
+	(LongInteger) abs [
 		negative ifTrue: [ ^ self negated]
 	]
 
-	asFloat [		| r |
+	(Float) asFloat [		| r |
 		r <- 0.0 .
 		digits reverseDo: [ :x | r <- r * 100.0 + x asFloat].
 		negative ifTrue: [ r <- r negated ].
 		^ r.
 	]
 
-	bitShift: n [
+	(id) bitShift: (Number)n [
 		(n >= 0)
 			ifTrue: [ ^ self * (2 raisedTo: n) ]
 			ifFalse: [ ^ self quo: (2 raisedTo: n negated)]
 	]
 
-	coerce: n [
+	(LongInteger) coerce: (Number)n [
 		^ n asLongInteger
 	]
 
-	digits [
+	(Array)digits [
 		^ digits
 	]
 
-	generality [
+	(Integer) generality [
 		^ 4 "generality value - used in mixed type arithmetic "
 	]
 
-	isLongInteger [
+	(Boolean) isLongInteger [
 		^ true
 	]
 
-	isShortInteger [
+	(Boolean) isShortInteger [
 		" override method in class Integer "
 		^ false
 	]
 
-	negated [
+	(LongInteger) negated [
 		^ LongInteger negative: negative not digits: digits
 	]
 
-	negative [
+	(Boolean) negative [
 		^ negative
 	]
 
-	negative: nBool digits: dArray [
+	(self) negative: (Boolean) nBool digits: dArray [
 		negative <- nBool.
 		digits <- dArray
 	]
 
-	printString [	| str |
+	(String) printString [	| str |
 		str <- negative ifTrue: [ '-' ] ifFalse: [ '' ].
 		digits reverseDo: [:x | str <- str ,
 			(x quo: 10) printString , (x rem: 10) printString ].
 		^ str
 	]
 
-	quo: value [	| a b quo result |
+	(id) quo: (Number)value [	| a b quo result |
 		result <- 0.
 		a <- self abs. b <- value abs.
 		[a > b] whileTrue:
@@ -143,12 +143,12 @@ Integer subclass: LongInteger [
 		^ result
 	]
 
-	sign: s digits: d [
+	(self) sign: (Boolean) s digits: d [
 		negative <- s.
 		digits <- d.
 	]
 
-	timesShort: value [	| y z carry newDigits |
+	(LongInteger) timesShort: (Number)value [	| y z carry newDigits |
 		y <- value abs.
 		carry <- 0.
 		newDigits <- digits collect:
@@ -160,7 +160,7 @@ Integer subclass: LongInteger [
 					digits: newDigits
 	]
 
-	with: n bitDo: aBlock [	| d di dj |
+	with: (Number)n bitDo: aBlock [	| d di dj |
 		" run down two digits lists in parallel doing block "
 		di <- digits size.
 		d <- n digits.

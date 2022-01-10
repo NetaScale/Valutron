@@ -1,20 +1,20 @@
 Number subclass: Float [
-	* value [
+	(id) * (Number)value [
 		^ value isFloat
 			ifTrue: [ <118 self value> ]
 			ifFalse: [ super * value ]
 	]
-	+ value [
+	(id) + (Number)value [
 		^ value isFloat
 			ifTrue: [ <110 self value> " floating add " ]
 			ifFalse: [ super + value ]
 	]
-	- value [
+	(id) - (Number)value [
 		^ value isFloat
 			ifTrue: [ <111 self value> " floating subtract " ]
 			ifFalse: [ super - value ]
 	]
-	/ value [
+	(id) / (Number)value [
 		^ value isFloat
 			ifTrue: [ (value = 0.0)
 					ifTrue: [ smalltalk error:
@@ -22,51 +22,52 @@ Number subclass: Float [
 					ifFalse: [ <119 self value> ]]
 			ifFalse: [ super / value ]
 	]
-	< value [
+	(Boolean) < (Number)value [
 		^ value isFloat
 			ifTrue: [ <112 self value> " floating comparison " ]
 			ifFalse: [ super < value ]
 	]
-	= value [
+	(Boolean) = (id)value [
 		^ value isFloat
 			ifTrue: [ <116 self value> ]
 			ifFalse: [ super = value ]
 	]
-	coerce: value [
+	(Float) coerce: (Number)value [
 		" convert the value into a floating point number "
 		^ value asFloat
 	]
-	exp [
+	(Float) exp [
 		" return e raised to self "
 		^ <103 self>
 	]
-	generality [
+	(Integer) generality [
 		" our numerical generality - used for mixed mode arithmetic"
 		^ 7
 	]
-	integerPart [	| i j |
+	(Integer) integerPart [	| i j |
 		i <- <106 self>. j <- i basicAt: 2. i <- i basicAt: 1.
 		j < 0 ifTrue: [ ^ 0 ] ifFalse: [ ^ i * (2 raisedTo: j)]
 	]
-	isFloat [
+	(Boolean) isFloat [
 		^ true
 	]
-	ln [
+	(Float) ln [
 		" natural log of self "
 		^ <102 self>
 	]
-	printString [
+	(String) printString [
 		^ <101 self>
 	]
-	quo: value [
+	(id) quo: (Number)value [
 		^ (self / value) truncated
 	]
-	rounded [
+	(Float) rounded [
 		^ (self + 0.5) floor
 	]
-	truncated [	| result f i |
+	(Integer) truncated [	| result f i |
 		" truncate to an integer rounded towards zero"
-		f <- self. result <- 0.
+		f <- self.
+		result <- 0.
 		[ i <- f integerPart. i > 0] whileTrue:
 			[ result <- result + i. f <- f - i ].
 		^ result

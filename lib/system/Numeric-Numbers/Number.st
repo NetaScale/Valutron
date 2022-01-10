@@ -1,97 +1,100 @@
 Magnitude subclass: Number
 [
-	* value [
+	(id) * (Number)value [
 		^ (self maxgen: value) * (value maxgen: self)
 	]
 
-	+ value [
+	(id) + (Number)value [
 		^ (self maxgen: value) + (value maxgen: self)
 	]
 
-	- value [
+	(id) - (Number)value [
 		^ (self maxgen: value) - (value maxgen: self)
 	]
 
-	/ value [
+	(id) / (Number)value [
 		^ (self maxgen: value) / (value maxgen: self)
 	]
 
-	// value [
+	(id) // (Number)value [
 		" integer division, truncate towards negative infinity"
 		" see quo: "
 		^ (self / value) floor
 	]
 
-	< value [
+	(Boolean) < (Number)value [
 		^ (self maxgen: value) < (value maxgen: self)
 	]
 
-	= value [
+	(Boolean) = (id)value [
 		^ value isNumber
 			ifTrue: [ (self maxgen: value) = (value maxgen: self) ]
 			ifFalse: [ false ]
 	]
 
-	\\ value [
+	(id) \\ value [
 		" remainder after integer division "
 		^ self - ((self // value) * value)
 	]
 
-	abs [
+	(id) abs [
 		^ (self < 0)
 			ifTrue: [ 0 - self ]
 			ifFalse: [ self ]
 	]
 
-	ceiling [		| i |
+	(id) ceiling [		| i |
 		i <- self truncated.
 		^ ((self positive) and: [ self ~= i ])
 			ifTrue: [ i + 1 ]
 			ifFalse: [ i ]
 	]
 
-	copy [
+	(instancetype) copy [
 		^ self
 	]
 
-	exp [
+	(Float) exp [
 		^ self asFloat exp
 	]
 
-	fib [
+	(id) fib [
 		^ self > 1
 			ifTrue: [ (self - 1) fib + (self - 2) fib ]
 			ifFalse: [ self ]
 	]
 
-	floor [		| i |
+	(id) floor [		| i |
 		i <- self truncated.
 		^ ((self negative) and: [ self ~= i ])
 			ifTrue: [ i - 1 ]
 			ifFalse: [ i ]
 	]
 
-	fractionalPart [
+	(id) fractionalPart [
 		^ self - self truncated
 	]
 
-	isInteger [
+	(Boolean) isInteger [
 		^ self isLongInteger or: [ self isShortInteger ]
 	]
 
-	isNumber [
+	(Boolean) isNumber [
 		^ true
 	]
 
-	ln [
+	"Natural logarithm of the number"
+	(Float) ln [
 		^ self asFloat ln
 	]
 
-	log: value [
+	"Logarithm to the base of value"
+	(Float) log: (Number)value [
 		^ self ln / value ln
 	]
 
-	maxgen: value [
+	"Maximum generality number of self vs another number"
+	(Number) maxgen: (Number)value [
 		(self isNumber and: [ value isNumber ])
 			ifFalse: [ ^ VM error:
 				'arithmetic on non-numbers' ].
@@ -100,23 +103,23 @@ Magnitude subclass: Number
 			ifFalse: [ value coerce: self ]
 	]
 
-	negated [
+	(id) negated [
 		^ 0 - self
 	]
 
-	negative [
+	(Boolean) negative [
 		^ self < 0
 	]
 
-	positive [
+	(Boolean) positive [
 		^ self >= 0
 	]
 
-	quo: value [
+	(id) quo: (Number)value [
 		^ (self maxgen: value) quo: (value maxgen: self)
 	]
 
-	raisedTo: x [	| y |
+	(id) raisedTo: (Number)x [	| y |
 		x negative
 			ifTrue: [ ^ 1 / (self raisedTo: x negated) ].
 		x isShortInteger
@@ -128,46 +131,46 @@ Magnitude subclass: Number
 			ifFalse: [ ^ ( x * self ln ) exp ]
 	]
 
-	reciprocal [
+	(id) reciprocal [
 		^ 1 / self
 	]
 
-	rem: value [
+	(id) rem: (Number)value [
 		^ self - ((self quo: value) * value)
 	]
 
-	roundTo: value [
+	(id) roundTo: (Number)value [
 		^ (self / value ) rounded * value
 	]
 
-	sign [
+	(id) sign [
 		^ (self = 0) ifTrue: [ 0 ]
 			ifFalse: [ self / self abs ]
 	]
 
-	sqrt [
+	(id) sqrt [
 		^ (self negative)
 			ifTrue: [ VM error: 'sqrt of negative']
 			ifFalse: [ self raisedTo: 0.5 ]
 	]
 
-	squared [
+	(id) squared [
 		^ self * self
 	]
 
-	strictlyPositive [
+	(id) strictlyPositive [
 		^ self > 0
 	]
 
-	to: value [
+	(Interval) to: (Number)value [
 		^ Interval lower: self upper: value step: 1
 	]
 
-	to: value by: step [
+	(Interval) to: (Number)value by: (Number)step [
 		^ Interval lower: self upper: value step: step
 	]
 
-	trucateTo: value [
+	(id) truncateTo: (Number)value [
 		^ (self / value) trucated * value
 	]
 

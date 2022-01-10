@@ -140,8 +140,16 @@ Type::resolveInTyEnv(TyEnv *env)
 {
 	if (m_kind == kIdent) {
 		Type *type = env->lookupType(m_ident);
+
+		if (!type) {
+			std::cout << "Error: Type name " << m_ident <<
+			    " could not be resolved.\n";
+			throw std::runtime_error("Type error");
+		}
+
 		type->resolveInTyEnv(env); // ???
 		type->constructInto(this);
+
 		for (auto &arg : m_typeArgs)
 			arg->resolveInTyEnv(env); // ???
 	} else if (m_kind == kBlock) {
@@ -639,10 +647,8 @@ TyEnv::lookupVar(std::string &txt)
 		return m_vars[txt];
 	else if (m_parent)
 		return m_parent->lookupVar(txt);
-	else {
-		std::cout << "Failed to find var " << txt << "\n";
+	else
 		return NULL;
-	}
 }
 
 Type *
