@@ -1,14 +1,23 @@
 nil subclass: Object [
     class>> (instancetype) new [ ^ 42 ]
 ]
+
+Object subclass: Character []
+Object subclass: Dictionary []
+Object subclass: Float []
 Object subclass: Integer []
+Object subclass: Process []
+Object subclass: Scheduler []
+Object subclass: String []
 Object subclass: Symbol []
+Object subclass: SymbolTable []
+Object subclass: Smalltalk []
 
 Object subclass: True [
     (False) asFalse [ ^false ]
 ]
 Object subclass: False [
-    (Integer) asFalse [ ^ 45 ]
+    (True) asFalse [ ^ 45 ]
 ]
 
 Object subclass: Cltn<T> [
@@ -21,7 +30,7 @@ Object subclass: Tester [
           (Cltn<False>) falseCltn
           mapFun |
         mapFun <- [ :each | each asFalse ].
-        ^ trueCltn map: mapFun.
-        ^ falseCltn map: mapFun
+        ^ trueCltn map: mapFun. "should fail with Cltn<False>"
+        ^ falseCltn map: mapFun "should fail with Cltn<True>"
     ]
 ]

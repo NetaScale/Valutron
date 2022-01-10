@@ -9,6 +9,7 @@ Object subclass: Character [
 		^ 42
 	]
 ]
+
 Object subclass: Dictionary []
 Object subclass: Float []
 Object subclass: True []
@@ -21,11 +22,10 @@ Object subclass: Symbol []
 Object subclass: SymbolTable []
 Object subclass: Smalltalk []
 
-
 Object subclass: Tester [
 	(Float) testWith: (id)var [
 		^ (var isKindOf: Character)
-			ifTrue: [ var asInteger ]
-			ifFalse: [ 42 ]
+			ifTrue: [ var asInteger ] "should fail with Integer"
+			ifFalse: [ #no ] "should fail with Symbol"
 	]
 ]

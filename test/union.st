@@ -1,10 +1,19 @@
 nil subclass: Object [
     class>> (instancetype) new [ ^ 42 ]
 ]
+
+Object subclass: Character []
+Object subclass: Dictionary []
+Object subclass: Float []
+Object subclass: True []
+Object subclass: False []
 Object subclass: Integer []
-Object subclass: Symbol []
+Object subclass: Process []
+Object subclass: Scheduler []
 Object subclass: String []
-Object subclass: Boolean []
+Object subclass: Symbol []
+Object subclass: SymbolTable []
+Object subclass: Smalltalk []
 
 Boolean subclass: True [
     (False) not [
@@ -20,6 +29,6 @@ Boolean subclass: False [
 Object subclass: Tester [
     (Boolean) testMeth [
         | (True | False) union |
-        ^ union not
+        ^ union not "succeeds with False | True"
     ]
 ]
