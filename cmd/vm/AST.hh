@@ -297,7 +297,12 @@ struct ExprNode : Node {
 		throw std::runtime_error(
 		    std::string("No type() for ") + typeid(*this).name());
 	}
+	virtual std::vector<FlowInference> makeFlowInferences(TyChecker &tyc)
+	{
+		return {};
+	}
 
+	virtual bool isIdent() { return false; }
 	virtual bool isSuper() { return false; }
 };
 
@@ -409,6 +414,8 @@ struct IdentExprNode : ExprNode {
 	void generateAssignOn(CodeGen &gen, ExprNode *rValue);
 
 	void print(int in) override;
+
+	bool isIdent() override { return true; }
 };
 
 struct AssignExprNode : ExprNode {
@@ -461,10 +468,10 @@ struct MessageExprNode : ExprNode {
 
 	virtual void synthInScope(Scope *scope) override;
 	virtual void generateOn(CodeGen &gen) override;
-	// void typeCheck(TyChecker &tyc);
 	Type *type(TyChecker &tyc) override;
 	Type *fullType(TyChecker &tyc, bool cascade = false,
 	    Type *recvType = NULL);
+	std::vector<FlowInference> makeFlowInferences(TyChecker &tyc) override;
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
 

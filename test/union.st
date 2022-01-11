@@ -2,11 +2,10 @@ nil subclass: Object [
     class>> (instancetype) new [ ^ 42 ]
 ]
 
+Object subclass: Boolean []
 Object subclass: Character []
 Object subclass: Dictionary []
 Object subclass: Float []
-Object subclass: True []
-Object subclass: False []
 Object subclass: Integer []
 Object subclass: Process []
 Object subclass: Scheduler []

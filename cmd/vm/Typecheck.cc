@@ -391,6 +391,24 @@ Type::instanceIsSubtypeOfInstance(TyEnv *env, Type *type)
 	return false;
 }
 
+#define UNIMPLEMENTED throw std::runtime_error("narrowing Not yet implemented")
+
+Type *
+Type::narrow(TyEnv *env, Type *type)
+{
+	if (m_kind == kUnion) {
+		UNIMPLEMENTED;
+	}
+	if (type->m_kind == kUnion) {
+		UNIMPLEMENTED;
+	}
+
+	if (type->isSubtypeOf(env, this))
+		return type;
+	else
+		UNIMPLEMENTED;
+}
+
 Type *
 Type::typeInInvocation(Invocation &invocation)
 {
@@ -922,11 +940,41 @@ MessageExprNode::fullType(TyChecker &tyc, bool cascade, Type *recvType)
 	if (!cascade)
 		recvType = receiver->type(tyc);
 
+
 	std::cout<< "Typechecking a send of #" << selector << " to " <<
 	    *recvType << "\n";
 
-	for (auto &arg : args)
-		argTypes.push_back(arg->type(tyc));
+	if (!cascade && selector == "ifTrue:ifFalse:") {
+		auto inferences = receiver->makeFlowInferences(tyc);
+		if (!inferences.empty()) {
+			auto trueEnv = new TyEnv;
+
+			trueEnv->m_parent = tyc.env();
+			trueEnv->m_tyClass = tyc.env()->m_tyClass;
+
+			for (auto &inference : inferences) {
+				Type *oldType = tyc.env()->lookupVar(
+				    inference.ident);
+				Type *newType = oldType->narrow(tyc.env(),
+				    inference.inferredType);
+
+				std::cout << "Narrowing type of " <<
+				    inference.ident << " from " << *oldType <<
+				    " to " << *newType << "\n";
+				trueEnv->m_vars[inference.ident] = newType;
+			}
+
+			tyc.m_envs.push_back(trueEnv);
+			argTypes.push_back(args[0]->type(tyc));
+			tyc.m_envs.pop_back();
+			argTypes.push_back(args[1]->type(tyc));
+		} else
+			goto normal;
+	} else {
+	normal:
+		for (auto &arg : args)
+			argTypes.push_back(arg->type(tyc));
+	}
 
 #if 0
 	printf("RECEIVER TYPE:\n");
@@ -1149,6 +1197,7 @@ BlockExprNode::type(TyChecker &tyc)
 	TyBlock * blk = new TyBlock;
 	Type * type = new Type;
 
+	/* capture state of typechecker */
 	m_tyc = tyc;
 
 	blk->m_argTypes.resize(args.size(), NULL);
@@ -1177,7 +1226,6 @@ ExprStmtNode::typeCheck(TyChecker &tyc)
 {
 	expr->type(tyc);
 }
-
 
 void
 ReturnStmtNode::typeCheck(TyChecker &tyc)

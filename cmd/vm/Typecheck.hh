@@ -14,6 +14,7 @@ struct TyEnv;
 struct Type;
 typedef std::pair<std::string, Type *> VarDecl;
 struct Invocation;
+struct FlowInference;
 
 struct Type {
 	enum Kind {
@@ -82,11 +83,13 @@ struct Type {
 	    std::vector<Type *> &argTypes, Type *trueReceiver = NULL,
 	    Invocation *prev_invoc = NULL, bool skipFirst = false);
 
-	bool isSubtypeOf(TyEnv * env, Type *type);
-	bool instanceIsSubtypeOfInstance(TyEnv * env, Type * type);
+	bool isSubtypeOf(TyEnv *env, Type *type);
+	bool instanceIsSubtypeOfInstance(TyEnv *env, Type *type);
+	Type * narrow(TyEnv * env, Type * type);
 
 	Type *typeInInvocation(Invocation &invocation);
-	void registerIVars(Invocation & invoc, std::map<std::string, Type*> & vars);
+	void registerIVars(Invocation &invoc,
+	    std::map<std::string, Type *> &vars);
 	void resolveInTyEnv(TyEnv *env);
 	void constructInto(Type *into);
 	void print(size_t in);
@@ -139,10 +142,17 @@ struct TyChecker {
 	Type *smiType() { return m_smiType; }
 	Type *symType() { return m_symType; }
 	Type *stringType() { return m_stringType; }
-	TyEnv * env() { return m_envs.back(); }
+	TyEnv *env() { return m_envs.back(); }
 
 	TyClass *findOrCreateClass(ClassNode *cls);
 	MethodNode *method() { return m_method; }
+};
+
+struct FlowInference {
+	bool isNegated;
+	bool isExact; /* whether is isMemberOf: rather than isKindOf: */
+	std::string ident;
+	Type *inferredType;
 };
 
 #endif /* TYPECHECK_HH_ */
