@@ -652,20 +652,22 @@ struct MethodNode : public Node, public TyEnv {
 struct ClassNode : public DeclNode, public TyEnv {
 	ClassScope *scope;
 	ClassOop cls;
+	TyEnv *m_env; /**< type environment for both class and instance */
+	TyEnv *m_nstEnv; /**< type environment for instance */
+	TyEnv *m_clsEnv; /**< type environment for class */
 
 	std::string name;
 	std::string superName;
 	Type *superType;
+	ClassNode * super;
 	std::vector<VarDecl> m_tyParams;
 	std::vector<VarDecl> cVars;
 	std::vector<VarDecl> iVars;
 	std::vector<MethodNode *> cMethods;
 	std::vector<MethodNode *> iMethods;
 
-	TyClass *tyClass;
-
-	/* Resolved later */
-	// GlobalVar * superClass;
+	Type *m_nstMasterType; /**< the master type of its instances */
+	Type *m_clsType; /**< the type of the class object */
 
 	ClassNode(std::string name, std::vector<VarDecl> m_tyParams,
 	    std::string superName, std::vector<Type *> superTyArgs,

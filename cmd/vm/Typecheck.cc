@@ -86,9 +86,9 @@ Type::Type(std::string ident, std::vector<Type *> typeArgs)
 		m_kind = kIdent;
 }
 
-Type::Type(TyClass *cls)
+Type::Type(ClassNode *cls)
 {
-	m_ident = cls->m_name;
+	m_ident = cls->name;
 	m_kind = kClass;
 	m_cls = cls;
 }
@@ -110,11 +110,11 @@ Type::super()
 }
 
 Type *
-Type::makeInstanceMaster(TyClass *cls, std::vector<VarDecl> &tyParams)
+Type::makeInstanceMaster(ClassNode *cls, std::vector<VarDecl> &tyParams)
 {
 	Type *type = new Type;
 	type->m_kind = kInstance;
-	type->m_ident = cls->m_name;
+	type->m_ident = cls->name;
 	type->m_cls = cls;
 	if (tyParams.size()) {
 		type->m_isConstructor = true;
@@ -377,11 +377,11 @@ Type::instanceIsSubtypeOfInstance(TyEnv *env, Type *type)
 
 		/* Register other type's type-arguments. */
 		for (int i = 0; i < m_typeArgs.size(); i++)
-			invoc.tyParamMap[&m_cls->m_clsNode->m_tyParams[i]] =
+			invoc.tyParamMap[&m_cls->m_tyParams[i]] =
 			    m_typeArgs[i];
 
 		/* Construct the super-type */
-		superType = m_cls->m_clsNode->superType->typeInInvocation(
+		superType = m_cls->superType->typeInInvocation(
 		    invoc);
 
 		/* Try checking the super-type of the other type. */
@@ -440,8 +440,7 @@ Type::typeInInvocation(Invocation &invocation)
 
 	case kInstanceType: {
 		Type * type = new Type;
-		invocation.trueReceiver->m_cls->m_instanceMasterType->
-		    constructInto(type);
+		invocation.trueReceiver->m_cls->m_nstMasterType->constructInto(type);
 		return type;
 	}
 
@@ -552,7 +551,7 @@ Type::print(size_t in)
 	}
 
 	if (m_cls)
-		std::cout << blanks(in) << "Class: " << m_cls->m_name << "\n";
+		std::cout << blanks(in) << "Class: " << m_cls->name << "\n";
 
 	in -= 2;
 	std::cout << blanks(in) << "}\n";
@@ -680,25 +679,21 @@ TyEnv::lookupType(std::string &txt)
 		return NULL;
 }
 
-TyClass *
+ClassNode *
 TyChecker::findOrCreateClass(ClassNode *cls)
 {
 	Type *type = m_globals->lookupVar(cls->name);
 	if (type && type->m_kind == Type::kClass)
 		return type->m_cls;
 	else {
-		TyClass *tyc = new TyClass;
-
-		tyc->m_name = cls->name;
-		tyc->m_clsNode = cls;
-		tyc->m_classType = new Type(tyc);
-		tyc->m_instanceMasterType = Type::makeInstanceMaster(tyc,
+		cls->m_clsType = new Type(cls);
+		cls->m_nstMasterType = Type::makeInstanceMaster(cls,
 		    cls->m_tyParams);
 
-		m_globals->m_vars[cls->name] = tyc->m_classType;
-		m_globals->m_types[cls->name] = tyc->m_instanceMasterType;
+		m_globals->m_vars[cls->name] = cls->m_clsType;
+		m_globals->m_types[cls->name] = cls->m_nstMasterType;
 
-		return tyc;
+		return cls;
 	}
 }
 
@@ -728,7 +723,7 @@ void
 MethodNode::typeReg(TyChecker &tyc)
 {
 	TyEnv::m_parent = tyc.m_envs.back();
-	auto tyClass = m_parent->m_tyClass;
+	auto tyClass = m_parent->m_cls;
 	tyc.m_envs.push_back(this);
 
 	assert(tyClass);
@@ -751,8 +746,7 @@ MethodNode::typeReg(TyChecker &tyc)
 		m_vars[var.first] = var.second;
 	}
 
-	m_vars["self"] = m_parent->m_tyClass->m_instanceMasterType;
-	m_vars["instancetype"] = m_parent->m_tyClass->m_instanceMasterType;
+	m_vars["self"] = m_parent->m_cls->m_nstMasterType;
 
 	tyc.m_envs.pop_back();
 }
@@ -760,16 +754,15 @@ MethodNode::typeReg(TyChecker &tyc)
 void
 Type::registerIVars(Invocation &invoc, std::map<std::string, Type *> &vars)
 {
-	auto superType = m_cls->m_clsNode->superType;
+	auto superType = m_cls->superType;
 
-	for (auto &var : m_cls->m_clsNode->m_vars)
+	for (auto &var : m_cls->m_vars)
 		vars[var.first] = var.second->typeInInvocation(invoc);
 
 	if (superType != NULL) {
 		/* Register type-arguments. */
 		for (int i = 0; i < superType->m_typeArgs.size(); i++)
-			invoc.tyParamMap[&superType->m_cls->m_clsNode
-					      ->m_tyParams[i]] =
+			invoc.tyParamMap[&superType->m_cls->m_tyParams[i]] =
 			    superType->m_typeArgs[i];
 
 		superType->registerIVars(invoc, vars);
@@ -780,7 +773,7 @@ void
 ClassNode::typeReg(TyChecker &tyc)
 {
 	TyEnv::m_parent = tyc.m_envs.back();
-	TyEnv::m_tyClass = tyClass;
+	TyEnv::m_cls = this;
 	tyc.m_envs.push_back(this);
 
 	for (auto & tyParam : m_tyParams) {
@@ -790,25 +783,24 @@ ClassNode::typeReg(TyChecker &tyc)
 
 	if (superName != "nil") {
 		superType->resolveInTyEnv(this);
-		tyClass->super = superType->m_cls;
+		super = superType->m_cls;
 
 		Invocation invoc;
 
-		invoc.receiver = tyClass->m_instanceMasterType;
-		invoc.trueReceiver = tyClass->m_instanceMasterType;
+		invoc.receiver = m_nstMasterType;
+		invoc.trueReceiver = m_nstMasterType;
 
 		/* Register type-arguments. */
 		for (int i = 0; i < superType->m_typeArgs.size(); i++)
-			invoc.tyParamMap[&superType->m_cls->m_clsNode
-					      ->m_tyParams[i]] =
-			    superType->m_typeArgs[i];
+			invoc.tyParamMap[&superType->m_cls->
+			    m_tyParams[i]] = superType->m_typeArgs[i];
 
 		superType->registerIVars(invoc, m_vars);
 	}
 	else {
 		delete superType;
 		superType = NULL;
-		tyClass->super = NULL;
+		super = NULL;
 	}
 
 	for (auto &var : iVars) {
@@ -946,11 +938,12 @@ MessageExprNode::fullType(TyChecker &tyc, bool cascade, Type *recvType)
 
 	if (!cascade && selector == "ifTrue:ifFalse:") {
 		auto inferences = receiver->makeFlowInferences(tyc);
+
 		if (!inferences.empty()) {
 			auto trueEnv = new TyEnv;
 
 			trueEnv->m_parent = tyc.env();
-			trueEnv->m_tyClass = tyc.env()->m_tyClass;
+			trueEnv->m_cls = tyc.env()->m_cls;
 
 			for (auto &inference : inferences) {
 				Type *oldType = tyc.env()->lookupVar(
@@ -1036,12 +1029,12 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 
 		/* Register this (the receiver) type's type-arguments. */
 		for (int i = 0; i < m_typeArgs.size(); i++)
-			invoc.tyParamMap[&m_cls->m_clsNode->m_tyParams[i]] =
+			invoc.tyParamMap[&m_cls->m_tyParams[i]] =
 			    m_typeArgs[i];
 
 		if (!skipFirst) {
 			/* Search for the instance method in the class node. */
-			for (auto &aMeth : m_cls->m_clsNode->iMethods) {
+			for (auto &aMeth : m_cls->iMethods) {
 				if (aMeth->sel == selector)
 					meth = aMeth;
 			}
@@ -1051,7 +1044,7 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 		if (!meth) {
 			if (m_cls->super) {
 				/* Construct the super-type */
-				Type * superRecv = m_cls->m_clsNode->superType->
+				Type * superRecv = m_cls->superType->
 				    typeInInvocation(invoc);
 				/* Try checking the super-type as receiver */
 				return superRecv->typeSend(env, selector,
@@ -1094,13 +1087,13 @@ Type::typeSend(TyEnv * env, std::string selector, std::vector<Type *> &argTypes,
 		invoc.trueReceiver = trueReceiver;
 		invoc.isClass = true;
 
-		for (auto &aMeth : m_cls->m_clsNode->cMethods)
+		for (auto &aMeth : m_cls->cMethods)
 			if (aMeth->sel == selector)
 				meth = aMeth;
 
 		if (!meth) {
 			if (m_cls->super) {
-				return m_cls->super->m_classType->typeSend(
+				return m_cls->super->m_clsType->typeSend(
 					env, selector, argTypes, trueReceiver,
 					&invoc);
 			}

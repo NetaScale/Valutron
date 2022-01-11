@@ -230,7 +230,7 @@ ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 	    ivarNames));
 	cls->setDictionary(ns);
 	ns->symbolInsert(sctx.omem(), cls->name(), cls);
-	tyClass = sctx.tyChecker().findOrCreateClass(this);
+	sctx.tyChecker().findOrCreateClass(this);
 }
 
 void

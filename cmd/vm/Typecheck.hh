@@ -8,7 +8,6 @@
 struct ClassNode;
 struct MethodNode;
 struct BlockExprNode;
-struct TyClass;
 struct TyBlock;
 struct TyEnv;
 struct Type;
@@ -45,7 +44,7 @@ struct Type {
 	std::vector<Type *> m_members; /**< if kUnion, its types */
 	VarDecl *m_tyVarDecl =
 	    NULL;		 /**< if a kTyVar, the VarDecl defining it */
-	TyClass *m_cls = NULL;	 /* if kClass or kInstance */
+	ClassNode *m_cls = NULL;	 /* if kClass or kInstance */
 	TyBlock *m_block = NULL; /* if kBlock */
 
 	/**
@@ -66,13 +65,13 @@ struct Type {
 	static Type *id();
 	static Type *super();
 	static Type *makeTyVarReference(VarDecl *tyVarDecl);
-	static Type *makeInstanceMaster(TyClass *cls,
+	static Type *makeInstanceMaster(ClassNode *cls,
 	    std::vector<VarDecl> &tyParams);
 
 	Type()
 	    : m_kind(kAsYetUnspecified) {};
 	Type(std::string ident, std::vector<Type *> typeArgs);
-	Type(TyClass *cls); /**< create kClass type */
+	Type(ClassNode *cls); /**< create kClass type */
 
 	Type *copy() const;
 
@@ -100,7 +99,7 @@ struct Type {
 
 struct TyEnv {
 	TyEnv *m_parent = NULL;
-	TyClass *m_tyClass = NULL;
+	ClassNode *m_cls = NULL; /**< enclosing class of this environment */
 	std::map<std::string, Type *> m_vars;  /**< variable names */
 	std::map<std::string, Type *> m_types; /**< type names */
 
@@ -115,15 +114,6 @@ struct TyBlock : public TyEnv {
 	std::vector<Type *> m_argTypes;
 
 	TyBlock *deepCopy();
-};
-
-struct TyClass {
-	std::string m_name;
-	TyClass *super;
-	ClassNode *m_clsNode;
-
-	Type *m_classType;
-	Type *m_instanceMasterType;
 };
 
 struct TyChecker {
@@ -144,7 +134,7 @@ struct TyChecker {
 	Type *stringType() { return m_stringType; }
 	TyEnv *env() { return m_envs.back(); }
 
-	TyClass *findOrCreateClass(ClassNode *cls);
+	ClassNode *findOrCreateClass(ClassNode *cls);
 	MethodNode *method() { return m_method; }
 };
 

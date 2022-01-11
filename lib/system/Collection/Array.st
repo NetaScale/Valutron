@@ -1,13 +1,12 @@
 IndexedCollection subclass: Array [
 
-    class>>basicNew [
+	class>>basicNew [
 		^ self basicNew: 0
 	]
 
 	class>>new [
 		^ self new: 0
 	]
-
 
 	< coll [
 		(coll isKindOf: Array)
