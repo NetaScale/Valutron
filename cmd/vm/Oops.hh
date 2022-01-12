@@ -68,7 +68,8 @@ typedef OopRef    <ByteArrayOopDesc>	ByteArrayOop;
 /* clang-format on */
 
 template <class T> class OopRef {
-    protected:
+    //protected:
+    public:
 	friend class OopRef<OopDesc>;
 
 	enum Tag {
@@ -92,7 +93,7 @@ template <class T> class OopRef {
 	inline bool isSmi() const { return VT_isSmi(m_ptr); }
 	inline bool isNil() const { return m_ptr == 0; }
 	inline int64_t smi() const { return VT_intValue(m_ptr); }
-	template <typename OT> inline OT as() { return OT(m_ptr); }
+	template <typename OT> inline OT & as() { return reinterpret_cast<OT&>(*this); }
 
 	inline ClassOop &isa(); //{ return isSmi() ? 0 : as<MemOop>()->isa(); }
 	inline ClassOop &setIsa(ClassOop oop);
@@ -173,14 +174,17 @@ class OopOopDesc : public MemOopDesc {
 	 * Return a reference to the Oop value at /a index.
 	 * 0-based indexing!
 	 */
-	Oop &basicAt(size_t idx) { return m_oops[idx]; };
+	Oop &basicAt0(size_t idx) { return m_oops[idx]; };
 
 	/**
 	 * At index /a index, put Oop value /a value.
 	 * 0-based indexing!
 	 * @return Reference to the value placed at the index.
 	 */
-	Oop &basicAtPut(size_t i, Oop val) { return m_oops[i] = val; };
+	Oop &basicAtPut0(size_t i, Oop val) { return m_oops[i] = val; };
+
+	Oop &basicAt(size_t idx) { return m_oops[idx - 1]; }
+	Oop &basicAtPut(size_t i, Oop val) { return m_oops[i - 1] = val; }
 };
 
 class ByteOopDesc : public MemOopDesc {
@@ -188,20 +192,23 @@ class ByteOopDesc : public MemOopDesc {
 	/** Return a pointer to the object's von Neumann space. */
 	uint8_t *vns() { return m_bytes; }
 	/** Return the size of the object's von Neumann space. */
-	size_t size();
+	size_t size() { return m_size; }
 
 	/**
 	 * Return a reference to the byte value at /a index.
 	 * 0-based indexing!
 	 */
-	uint8_t &basicAt(size_t i) { return m_bytes[i]; };
+	uint8_t &basicAt0(size_t i) { return m_bytes[i]; };
 
 	/**
 	 * At index /a index, put byte value /a value.
 	 * 0-based indexing!
 	 * @return Reference to value placed at the index.
 	 */
-	uint8_t &basicAtPut(size_t i, uint8_t val) { return m_bytes[i] = val; };
+	uint8_t &basicAtPut0(size_t i, uint8_t val) { return m_bytes[i] = val; };
+
+	uint8_t &basicAt(size_t idx) { return m_bytes[idx - 1]; }
+	uint8_t &basicAtPut(size_t i, uint8_t val) { return m_bytes[i - 1] = val; }
 };
 
 /**
@@ -210,7 +217,7 @@ class ByteOopDesc : public MemOopDesc {
  */
 
 #define AccessorPair(Type, GetName, SetName, Index)                    \
-	inline Type GetName() { return m_oops[Index].as<Type>(); }     \
+	inline Type &GetName() { return m_oops[Index].as<Type>(); }     \
 	inline Type SetName(Type toValue)                              \
 	{                                                              \
 		return (m_oops[Index] = toValue.as<Oop>()).as<Type>(); \
@@ -452,27 +459,28 @@ class BlockOopDesc : public OopOopDesc {
 };
 
 class ContextOopDesc : public OopOopDesc {
-	static const int clsNstLength = 12;
+	static const int clsNstLength = 10;
 
     public:
 	AccessorPair(ContextOop, previousContext, setPreviousContext, 0);
 	AccessorPair(SmiOop, programCounter, setProgramCounter, 1);
 	AccessorPair(SmiOop, stackPointer, setStackPointer, 2);
 	AccessorPair(Oop, receiver, setReceiver, 3);
-	AccessorPair(ArrayOop, arguments, setArguments, 4);
-	AccessorPair(ArrayOop, temporaries, setTemporaries, 5);
-	AccessorPair(ArrayOop, heapVars, setHeapVars, 6);
-	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 7);
-	AccessorPair(ArrayOop, stack, setStack, 8);
-	AccessorPair(ByteArrayOop, bytecode, setBytecode, 9);
-	AccessorPair(OopOop, methodOrBlock, setMethodOrBlock, 10);
-	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 11);
+	/*AccessorPair(ArrayOop, arguments, setArguments, 4);
+	AccessorPair(ArrayOop, temporaries, setTemporaries, 5);*/
+	AccessorPair(ArrayOop, heapVars, setHeapVars, 4);
+	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 5);
+	AccessorPair(ArrayOop, stack, setStack, 6);
+	AccessorPair(ByteArrayOop, bytecode, setBytecode, 7);
+	AccessorPair(OopOop, methodOrBlock, setMethodOrBlock, 8);
+	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 9);
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
 	/* Fetch the next byte of bytecode, incrementing the program counter. */
 	uint8_t fetchByte();
 
+#if 0
 	/**
 	 * Duplicate the top of the stack
 	 */
@@ -489,6 +497,7 @@ class ContextOopDesc : public OopOopDesc {
 	 * Fetch the value at the top of the stack
 	 */
 	Oop top();
+#endif
 
 	bool isBlockContext();
 
@@ -505,7 +514,7 @@ class ProcessOopDesc : public OopOopDesc {
     public:
 	AccessorPair(ContextOop, context, setContext, 0);
 
-	static ProcessOop allocate();
+	static ProcessOop allocate(ObjectMemory &omem);
 };
 
 /**

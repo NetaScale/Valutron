@@ -60,7 +60,7 @@ CodeGen::genMoveParentHeapVarToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 void
 CodeGen::genMoveArgumentToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 {
-	gen(Op::kLdar, argIndex(index));
+	gen(Op::kLdar, index);
 	gen(Op::kStaMyHeapVar, promotedIndex);
 }
 
@@ -86,7 +86,7 @@ CodeGen::genLdar(RegisterID reg)
 void
 CodeGen::genLoadArgument(uint8_t index)
 {
-	genLdar(argIndex(index));
+	genLdar(index); /* arg index is 1-based addressing */
 }
 
 void

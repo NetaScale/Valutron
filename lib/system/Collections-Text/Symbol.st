@@ -1,10 +1,9 @@
 Object subclass: Symbol [
-
-    apply: args [
+	apply: args [
 		^ self apply: args ifError: [ 'does not apply' ]
 	]
 
-    apply: args ifError: aBlock [
+	apply: args ifError: aBlock [
 		^ smalltalk perform: self withArguments: args ifError: aBlock
 	]
 
@@ -42,6 +41,4 @@ Object subclass: Symbol [
 	value [
 		^ <87 self>
 	]
-
-
 ]

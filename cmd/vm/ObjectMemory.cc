@@ -259,8 +259,8 @@ ObjectMemory::setupInitialObjects()
 	clsSymbol = ClassOopDesc::allocateRawClass(*this);
 	clsArray = ClassOopDesc::allocateRawClass(*this);
 
-	objSymbolTable->basicAtPut(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
-	objGlobals->basicAtPut(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
+	objSymbolTable->basicAtPut0(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
+	objGlobals->basicAtPut0(0, ArrayOopDesc::newWithSize(*this, 3 * 53));
 
 	objGlobals->symbolInsert(*this,
 	    SymbolOopDesc::fromString(*this, "Symbol"), clsSymbol);

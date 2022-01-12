@@ -132,8 +132,8 @@ struct TyChecker {
 	Type *smiType() { return m_smiType; }
 	Type *symType() { return m_symType; }
 	Type *stringType() { return m_stringType; }
-	TyEnv *env() { return m_envs.back(); }
 
+	TyEnv *env() { return m_envs.back(); }
 	ClassNode *findOrCreateClass(ClassNode *cls);
 	MethodNode *method() { return m_method; }
 };

@@ -26,8 +26,7 @@ class CodeGen {
 	int m_nArgs;
 	int m_nLocals;
 
-	int argIndex(int idx) { return 1 + idx; }
-	int localIndex(int idx) { return 1 + m_nArgs + idx; }
+	int localIndex(int idx) { return m_nArgs + idx; }
 
 	void genCode(uint8_t code);
 	void gen (Op::Opcode code);

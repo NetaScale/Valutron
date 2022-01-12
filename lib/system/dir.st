@@ -8,3 +8,9 @@
 @include 'Kernel-Native/dir.st'
 @include 'Kernel-Processes/dir.st'
 @include 'Numeric-Numbers/dir.st'
+
+Object subclass: INITIAL [
+	initial [
+		^ 2 + 2.
+	]
+]

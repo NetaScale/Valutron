@@ -27,7 +27,7 @@ void OopRef<T>::print(size_t in)
         as<SymbolOop> ()->print (in);
     Case (Symbol);
 //    Case (Method);
-//    Case (Block);
+    Case (Block);
     Case (Link);
     /*else if ((anOop->index () > ObjectMemory::clsObject ().index ()) &&
              (anOop->index () < ObjectMemory::clsSystemDictionary ().index ()))
@@ -236,14 +236,14 @@ DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 	Oop tablentry;
 
 	/* first get the hash table */
-	table = basicAt(0).as<ArrayOop>();
+	table = basicAt0(0).as<ArrayOop>();
 
 	if (table->size() < 3) {
 		perror("attempt to insert into too small name table");
 	} else {
 		hash = 3 * (hash % (table->size() / 3));
 		assert(hash <= table->size() - 3);
-		tablentry = table->basicAt(hash);
+		tablentry = table->basicAt0(hash);
 
 		/* FIXME: I adapted this from the PDST C sources, and this
 		 * doesn't appear to handle anything other than symbols (because
@@ -252,13 +252,13 @@ DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 		 * the future, maybe?
 		 */
 		if (tablentry.isNil() || (tablentry == key)) {
-			table->basicAtPut(hash, key);
-			table->basicAtPut(hash + 1, value);
+			table->basicAtPut0(hash, key);
+			table->basicAtPut0(hash + 1, value);
 		} else {
 			nwLink = LinkOopDesc::newWith(omem, key, value);
-			link = table->basicAt(hash + 2).as<LinkOop>();
+			link = table->basicAt0(hash + 2).as<LinkOop>();
 			if (link.isNil()) {
-				table->basicAtPut(hash + 2, nwLink);
+				table->basicAtPut0(hash + 2, nwLink);
 			} else
 				while (1)
 					/* ptrEq (orefOf (link, 1),
@@ -284,7 +284,7 @@ std::pair<Oop, Oop>
 DictionaryOopDesc::findPairByFun(uint32_t hash, ExtraType extraVal,
     int (*fun)(Oop, ExtraType))
 {
-	ArrayOop table = basicAt(0).as<ArrayOop>();
+	ArrayOop table = basicAt0(0).as<ArrayOop>();
 	Oop key, value;
 	LinkOop link;
 	Oop *hp;
@@ -384,14 +384,14 @@ DictionaryOopDesc::newWithSize(ObjectMemory &omem, size_t numBuckets)
 {
 	DictionaryOop dict = omem.newOopObj<DictionaryOop>(1);
 	dict->setIsa(ObjectMemory::clsDictionary);
-	dict->basicAtPut(0, ArrayOopDesc::newWithSize(omem, numBuckets * 3));
+	dict->basicAtPut0(0, ArrayOopDesc::newWithSize(omem, numBuckets * 3));
 	return dict;
 }
 
 void
 DictionaryOopDesc::print(int in)
 {
-	ArrayOop table = basicAt(0).as<ArrayOop>();
+	ArrayOop table = basicAt0(0).as<ArrayOop>();
 	Oop key, value;
 	LinkOop link;
 	Oop *hp;
@@ -517,4 +517,37 @@ BlockOopDesc::new0(ObjectMemory &omem)
 	BlockOop newBlock = omem.newOopObj<BlockOop>(clsNstLength);
 	newBlock.setIsa(ObjectMemory::clsBlock);
 	return newBlock;
+}
+
+void BlockOopDesc::print (int in)
+{
+    std::cout << blanks (in) + "Block\n" << blanks (in) << "{\n";
+    in += 1;
+    /*std::cout << blanks (in) + "Bytecode:\n";
+    printAllBytecode (bytecode (), in + 1);
+    std::cout << blanks (in) + "Literals:\n";
+    for (int i = 1; i <= literals ()->size (); i++)
+    {
+        std::cout << blanks (in) + "Literal " << i << ":\n";
+        literals ()->basicAt (i)->print (in + 2);
+    }*/
+
+    /*   DeclareAccessorPair (ByteArrayOop, bytecode, setBytecode);
+       DeclareAccessorPair (ArrayOop, literals, setLiterals);
+       DeclareAccessorPair (StringOop, sourceText, setSourceText);
+       DeclareAccessorPair (SymbolOop, selector, setSelector);
+       DeclareAccessorPair (SmiOop, stackSize, setStackSize);
+       DeclareAccessorPair (SmiOop, temporarySize, setTemporarySize);
+       DeclareAccessorPair (Oop, receiver, setReceiver);
+       DeclareAccessorPair (SmiOop, argumentCount, setArgumentCount);*/
+    in -= 1;
+    std::cout << blanks (in) << "}\n";
+}
+
+ProcessOop
+ProcessOopDesc::allocate(ObjectMemory &omem)
+{
+	ProcessOop proc = omem.newOopObj<ProcessOop>(4);
+	proc->setIsa(ObjectMemory::clsProcess);
+	return proc;
 }

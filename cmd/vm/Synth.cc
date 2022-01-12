@@ -214,7 +214,7 @@ classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 
 	for (int i = 0; i < aClass->nstVars()->size(); i++)
 		scope->addIvar(
-		    aClass->nstVars()->basicAt(i).as<SymbolOop>()->asString());
+		    aClass->nstVars()->basicAt0(i).as<SymbolOop>()->asString());
 }
 
 void

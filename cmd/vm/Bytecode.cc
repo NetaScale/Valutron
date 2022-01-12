@@ -174,7 +174,7 @@ disassemble(uint8_t *code, int length)
 
 		/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
 		case Op::kPrimitive: {
-			unsigned dst = FETCH, prim = FETCH, nArgs = FETCH;
+			unsigned prim = FETCH, nArgs = FETCH;
 			std::cout << "Primitive: " << prim;
 
 			if (nArgs > 0) {
@@ -182,7 +182,7 @@ disassemble(uint8_t *code, int length)
 				for (int i = 0; i < nArgs; i++) {
 					if (i > 0)
 						std::cout << ",";
-					std::cout << "r" << FETCH;
+					std::cout << "r" << (unsigned)FETCH;
 				}
 				std::cout << "]";
 			}

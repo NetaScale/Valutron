@@ -252,8 +252,10 @@ Var::generateRestoreOn(CodeGen &gen)
 	case kParentsHeapVar:
 		gen.genMoveMyHeapVarToParentHeapVars(promotedIndex, getIndex());
 		return;
+	/* FIXME: i don't think we need to do any restoration in this case
 	default:
 		throw std::runtime_error("unreachable");
+	*/
 	}
 }
 
@@ -417,15 +419,16 @@ MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 
 	if (args.size()) {
 		if (receiver == -1)
-			RegisterID receiver = gen.genStar();
+			receiver = gen.genStar();
 		for (auto a : args) {
 			a->generateOn(gen);
 			argRegs.push_back(gen.genStar());
 		}
 	}
 
-	if (receiver != -1)
+	if (receiver != -1) {
 		gen.genLdar(receiver);
+	}
 
 #if 0
 	if (selector == std::string ("ifTrue:ifFalse:"))
@@ -539,7 +542,7 @@ MethodNode::generate(ObjectMemory &omem)
 
 	for (auto s : stmts) {
 		s->generateOn(gen);
-		if (s != stmts.back() && dynamic_cast<ReturnStmtNode *>(s) ==
+		if (s == stmts.back() && dynamic_cast<ReturnStmtNode *>(s) ==
 		    NULL)
 			gen.genReturnSelf();
 	}

@@ -111,7 +111,9 @@ template <class T>
 inline ClassOop &
 OopRef<T>::isa()
 {
-	return isSmi() ? ObjectMemory::clsInteger : as<MemOop>()->isa();
+	return isSmi() ? ObjectMemory::clsInteger :
+	    isNil()    ? ObjectMemory::clsUndefinedObject :
+			       as<MemOop>()->isa();
 }
 
 template <class T>

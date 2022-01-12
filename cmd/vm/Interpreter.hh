@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include "Oops.hh"
+
 /**
  * Layout of context registers:
  * | self [arguments] [locals] [temporaries] |
@@ -63,7 +65,6 @@ class Op {
 	};
 };
 
-class Interpreter {
-};
+int execute(ObjectMemory & omem, ProcessOop proc);
 
 #endif /* INTERPRETER_HH_ */
