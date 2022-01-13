@@ -98,7 +98,7 @@ CodeGen::genLoadGlobal(std::string name)
 void
 CodeGen::genLoadInstanceVar(uint8_t index)
 {
-	gen(Op::kLdaGlobal, index);
+	gen(Op::kLdaNstVar, index);
 }
 
 void

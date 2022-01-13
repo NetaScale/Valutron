@@ -67,8 +67,8 @@ class SynthContext {
 };
 
 struct Var {
-	bool promoted;
-	int promotedIndex;
+	bool promoted; /** whether this var was promoted to HeapVar */
+	int promotedIndex; /** (1-based) index into our heapvars */
 
 	enum Kind {
 		kHeapVar,

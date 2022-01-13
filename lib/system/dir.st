@@ -10,7 +10,8 @@
 @include 'Numeric-Numbers/dir.st'
 
 Object subclass: INITIAL [
+
 	initial [
-		^ 2 + 2.
+		^ 255 radix: 16
 	]
 ]

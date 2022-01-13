@@ -75,7 +75,7 @@ ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	return ctx;
 }
 
-inline bool ContextOopDesc::isBlockContext()
+bool ContextOopDesc::isBlockContext()
 {
 	return methodOrBlock().isa() == ObjectMemory::clsBlock;
 }
@@ -84,7 +84,7 @@ inline uint8_t ContextOopDesc::fetchByte ()
 {
     int64_t pos = programCounter().smi() + 1;
     programCounter() = SmiOop(pos);
-    std::cout << blanks(in) << "Fetching from pos " << pos <<"\n";
+    //std::cout << blanks(in) << "Fetching from pos " << pos <<"\n";
     return bytecode ()->basicAt (pos);
 }
 
@@ -94,15 +94,15 @@ static inline MethodOop lookupMethodInClass (
     ClassOop lookupClass = super ? cls->superClass () : cls;
     MethodOop meth;
 
-    printf (" -> Begin search for %s in class %s\n", selector->asCStr(), lookupClass->name ()->asCStr ());
+    //printf (" -> Begin search for %s in class %s\n", selector->asCStr(), lookupClass->name ()->asCStr ());
 
     if (!lookupClass->methods ().isNil ())
     {
         meth = lookupClass->methods ()->symbolLookup (selector).as<MethodOop> ();
     }
-    else
-        printf (" -> Class %s has blank methods table\n ",
-                 lookupClass->name ()->asCStr ());
+   // else
+   //     printf (" -> Class %s has blank methods table\n ",
+   //              lookupClass->name ()->asCStr ());
 
     if (meth.isNil ())
     {
@@ -111,7 +111,7 @@ static inline MethodOop lookupMethodInClass (
             (super == lookupClass))
         {
             ContextOop ctx = proc->context ();
-            printf (" -> Failed to find method %s in class %s\n",
+            /*printf (" -> Failed to find method %s in class %s\n",
                      selector->asCStr (),
                      cls->name ()->asCStr ());
             printf ("          --> %s>>%s\n",
@@ -128,15 +128,15 @@ static inline MethodOop lookupMethodInClass (
                                                 : ctx->methodOrBlock ()
                                                       .as<MethodOop> ()
                                                       ->selector ()
-                                                      ->asCStr ());
+                                                      ->asCStr ());*/
             abort ();
         }
         else
         {
-            printf (
+            /*printf (
                 " -> DID NOT find method %s in class %s, searching super\n",
                 selector->asCStr (),
-                cls->name ()->asCStr ());
+                cls->name ()->asCStr ());*/
             return lookupMethodInClass (proc, receiver, super, selector, false);
         }
     }
@@ -153,7 +153,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 	loop:
 	op = FETCH;
 
-	std::cout << blanks(in) << "Execute Op " << (unsigned)op <<"\n";
+	//std::cout << blanks(in) << "Execute Op " << (unsigned)op <<"\n";
 
 	switch((Op::Opcode) op) {
 		/* u8 index/reg, u8 dest */
@@ -233,7 +233,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kLdar: {
 			unsigned src = FETCH;
-			std::cout << blanks(in) << "LDAR " << src << "\n";
+			//std::cout << blanks(in) << "LDAR " << src << "\n";
 			ac = REG(src);
 			break;
 		}
@@ -276,8 +276,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		/**
-		 * u8 dest-reg, u8 receiver-reg, u8 selector-lit-idx,
-		 * u8 num-args, (u8 arg-reg)+
+		 * a receiver, u8 selector-literal-index, u8 num-args,
+		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSend: {
 			unsigned selIdx = FETCH, nArgs = FETCH;
@@ -293,22 +293,41 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
 			}
 
-			std::cout << blanks(in) <<"Beginning send.\n";
+			std::cout << blanks(in) << "=> " <<
+			    ac.isa()->name()->asCStr() << ">>" <<
+			    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
 			CTX = ctx;
 			in++;
 
-			disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
+			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 
 			break;
 		}
 
 		/**
-		 * u8 dest-reg, u8 selector-literal-index, u8 num-args,
-		 * (u8 arg-register)+
+		 * a receiver, u8 selector-literal-index, u8 num-args,
+		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSendSuper: {
 			unsigned selIdx = FETCH, nArgs = FETCH;
-			throw std::runtime_error("Unimplemented kSendSuper");
+			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
+			    LITERAL(selIdx).as<SymbolOop>(), true);
+
+			assert(!meth.isNil());
+
+			ContextOop ctx = ContextOopDesc::newWithMethod(omem, ac, meth);
+			ctx->previousContext() = CTX;
+
+			for (int i = 0; i < nArgs; i++) {
+				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
+			}
+
+			std::cout << blanks(in) << "=> " <<
+			    ac.isa()->name()->asCStr() << ">>" <<
+			    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
+			CTX = ctx;
+			in++;
+
 			break;
 		}
 
@@ -317,8 +336,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			unsigned prim = FETCH, nArgs = FETCH;
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
-			std::cout << blanks(in) << "Invoke primitive " <<
-			    prim << " with " << nArgs << " args\n";
+			//std::cout << blanks(in) << "Invoke primitive " <<
+			//    prim << " with " << nArgs << " args\n";
 			for (int i = 0; i < nArgs; i++) {
 				args->basicAt0(i) = REG(FETCH);
 			}
@@ -349,7 +368,21 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kBlockReturn: {
-			throw std::runtime_error("Unimplemented kBlockReturn");
+			MethodOop meth = lookupMethodInClass(proc,
+			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
+			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"),
+			    false);
+
+			assert(!meth.isNil());
+
+			ContextOop ctx = ContextOopDesc::newWithMethod(omem,
+			    CTX->methodOrBlock(), meth);
+			ctx->previousContext() = CTX;
+
+			ctx->stack()->basicAt0(1) = ac;
+
+			std::cout << blanks(in) <<"Beginning block return.\n";
+			CTX = ctx;
 			break;
 		}
 	} /* switch (op) */

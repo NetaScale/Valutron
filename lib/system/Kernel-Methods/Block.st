@@ -91,6 +91,8 @@ Object subclass: Block [
 
 		| i prevContext tempHomeContext |
 
+		<162 'Begin non local returnage.\n'>.
+
 		i <- 1.
 		tempHomeContext <- homeContext.
 		prevContext <- thisContext.
@@ -113,6 +115,8 @@ Object subclass: Block [
 			].
 
 		"Now escape the method context. "
+		<162 'Testing PRevContext'>.
+		<161 prevContext>.
 		prevContext <- prevContext prevContext.
 		prevContext isNil ifTrue: [ <163 'PrevContext is nil'> ].
 		<162 'Stack unwind completed. Activating return continuation:'>.

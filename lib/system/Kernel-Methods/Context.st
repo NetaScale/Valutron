@@ -1,11 +1,10 @@
 Object subclass: Context [
-	| prevContext programCounter stackPointer receiver arguments
-	  temporaries heapVars parentHeapVars stack bytecode methodOrBlock
-	  homeMethodContext |
+	| prevContext programCounter stackPointer receiver heapVars
+	  parentHeapVars stack bytecode methodOrBlock homeMethodContext |
 
-	class>>method: aMeth arguments: aVec temporaries: tVec [
+	"class>>method: aMeth arguments: aVec temporaries: tVec [
 		^ self new method: aMeth arguments: aVec temporaries: tVec
-	]
+	]"
 
 	"accessing"
 
@@ -18,7 +17,7 @@ Object subclass: Context [
 		^ 'fixme'
 	]
 
-	arguments [
+	"arguments [
 		 ^arguments
 	]
 	arguments: a [
@@ -27,7 +26,7 @@ Object subclass: Context [
 
 	temporaries [
 		 ^ temporaries
-	]
+	]"
 
 	heapVars [
 		 ^ heapVars
@@ -50,9 +49,9 @@ Object subclass: Context [
 	]
 
 
-	at: key put: value [
+	"at: key put: value [
 		temporaries at: key put: value
-	]
+	]"
 
 	blockReturn [
 		<18 self>
@@ -61,7 +60,7 @@ Object subclass: Context [
 	]
 
 	copy [
-		^ super copy temporaries: temporaries copy
+		^ super copy "temporaries: temporaries copy"
 	]
 
 	method: m [
@@ -72,18 +71,19 @@ Object subclass: Context [
 	method: aMeth arguments: aVec temporaries: tVec [
 		"method <- aMeth."
 		^ 'fixMe'.
-		arguments <- aVec.
-		temporaries <- tVec
+		"arguments <- aVec.
+		temporaries <- tVec"
 	]
 
 	returnToBlock: bytePtr [
 		" change the location we will return to, to execute a block"
-		<28 self bytePtr>
+		"<28 self bytePtr>"
+		^ 0
 	]
 
-	temporaries: t [
+	"temporaries: t [
 		temporaries <- t
-	]
+	]"
 
 
 ]

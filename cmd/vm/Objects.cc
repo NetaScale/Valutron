@@ -26,7 +26,8 @@ void OopRef<T>::print(size_t in)
     else if (isa () == ObjectMemory::clsString)
         as<SymbolOop> ()->print (in);
     Case (Symbol);
-//    Case (Method);
+    Case (Method);
+    Case (Context);
     Case (Block);
     Case (Link);
     /*else if ((anOop->index () > ObjectMemory::clsObject ().index ()) &&
@@ -196,6 +197,8 @@ ClassOopDesc::allocate(ObjectMemory &omem, ClassOop superClass,
 	ClassOop metaCls = omem.newOopObj<ClassOop>(clsInstLength),
 		 cls = omem.newOopObj<ClassOop>(clsInstLength);
 
+	metaCls->setIsa(ObjectMemory::clsObjectClass);
+	metaCls->setName(SymbolOopDesc::fromString(omem, name + " class"));
 	cls->setIsa(metaCls);
 	cls->setupClass(omem, superClass, name);
 
@@ -221,6 +224,15 @@ void ClassOopDesc::print (int in)
 /**
  * @}
  */
+
+void ContextOopDesc::print (int in)
+{
+    std::cout << blanks (in) << "Context " << this << "{\n";
+    std::cout << blanks (in) << "BlockOrMethod:\n";
+    methodOrBlock().print(in + 2);
+    std::cout << blanks (in) << "}\n";
+}
+
 
 /**
  * \defgroup DictionaryOop
@@ -518,6 +530,14 @@ MethodOopDesc::new0(ObjectMemory &omem)
 	newMeth.setIsa(ObjectMemory::clsMethod);
 	return newMeth;
 }
+
+void
+MethodOopDesc::print (int in)
+{
+    std::cout << blanks (in) << "Method " << this << "{\n";
+    std::cout << blanks (in) << "}\n";
+}
+
 
 BlockOop
 BlockOopDesc::new0(ObjectMemory &omem)

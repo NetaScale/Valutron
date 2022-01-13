@@ -520,8 +520,12 @@ void
 ReturnStmtNode::generateOn(CodeGen &gen)
 {
 	expr->generateOn(gen);
-	if (gen.isBlock())
+	if (gen.isBlock()) {
+		/*RegisterID ret = gen.genStar();
+		gen.genLoadSelf();
+		gen.genMessage(false, "nonLocalReturn", {ret});*/
 		gen.genBlockReturn();
+	}
 	else
 		gen.genReturn();
 }
@@ -555,13 +559,13 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
-	disassemble(gen.bytecode().data(), gen.bytecode().size());
+	/*disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");
 	for (int i = 0; i < gen.literals().size(); i++)
 	{
 		std::cout << " " << i << "\t";
 		gen.literals()[i].print(2);
-	}
+	}*/
 
 	gen.popCurrentScope();
 
