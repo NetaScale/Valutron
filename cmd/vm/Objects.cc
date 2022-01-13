@@ -210,6 +210,14 @@ ClassPair::allocateRaw(ObjectMemory &omem)
 	return ClassPair(cls, metaCls);
 }
 
+void ClassOopDesc::print (int in)
+{
+    std::cout << blanks (in) + "C;ass\n" << blanks (in) << "{\n";
+    in += 1;
+    in -= 1;
+    std::cout << blanks (in) << "}\n";
+}
+
 /**
  * @}
  */

@@ -47,6 +47,33 @@ ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
 	return ctx;
 }
 
+ContextOop
+ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
+{
+	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength);
+	size_t argCount, tempSize, heapVarsSize;
+
+	argCount = aMethod->argumentCount().smi();
+	tempSize = aMethod->temporarySize().smi();
+	heapVarsSize = aMethod->heapVarsSize().smi();
+
+	ctx.setIsa(ObjectMemory::clsContext);
+	ctx->setBytecode(aMethod->bytecode());
+	ctx->setReceiver(aMethod->receiver());
+	ctx->setMethodOrBlock(aMethod.as<OopOop>());
+	ctx->setHeapVars(heapVarsSize ?
+		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
+		      Oop().as<ArrayOop>());
+	ctx->setStack(ArrayOopDesc::newWithSize(omem,
+	    aMethod->stackSize().smi() + 1 /* nil pushed */));
+	ctx->setProgramCounter(SmiOop((intptr_t)0));
+	ctx->setStackPointer(SmiOop((intptr_t)0));
+
+	ctx->stack()->basicAt0(0) = aMethod->receiver();
+
+	return ctx;
+}
+
 inline bool ContextOopDesc::isBlockContext()
 {
 	return methodOrBlock().isa() == ObjectMemory::clsBlock;

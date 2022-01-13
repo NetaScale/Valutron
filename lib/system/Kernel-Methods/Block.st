@@ -46,7 +46,7 @@ Object subclass: Block [
 		"^ (self checkArgumentCount:  1)
 			ifTrue: [ context at: argLoc put: x.
 				  context returnToBlock: bytePointer ]"
-		^ 'fixMe'
+		^ <160 self x>
 	]
 
 	value: x value: y [
@@ -54,7 +54,7 @@ Object subclass: Block [
 			ifTrue: [ context at: argLoc put: x.
 				  context at: argLoc + 1 put: y.
 				  context returnToBlock: bytePointer ]"
-		^ 'fixMe'
+		^ <160 self x y>
 	]
 
 	value: x value: y value: z [
@@ -63,7 +63,7 @@ Object subclass: Block [
 				  context at: argLoc + 1 put: y.
 				  context at: argLoc + 2 put: z.
 				  context returnToBlock: bytePointer ]"
-		^ 'fixMe'
+		^ <160 self x y z>
 	]
 
 	whileFalse [

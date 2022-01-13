@@ -5,6 +5,9 @@
 
 #include "Oops.hh"
 
+typedef Oop PrimitiveMethod (ObjectMemory &omem, ProcessOop proc, ArrayOop args);
+extern PrimitiveMethod * primVec[];
+
 /**
  * Layout of context registers:
  * | self [arguments] [locals] [temporaries] |

@@ -89,6 +89,8 @@ template <class T> class OopRef {
 	inline OopRef(void *ptr)
 	    : m_ptr((T *)ptr) {};
 
+	static inline OopRef nil() { return OopRef(); }
+
 	inline bool isPtr() const { return VT_isPtr(m_ptr); }
 	inline bool isSmi() const { return VT_isSmi(m_ptr); }
 	inline bool isNil() const { return m_ptr == 0; }
@@ -149,6 +151,10 @@ class MemOopDesc : public OopDesc {
 	};
 
     public:
+	/**
+	 * Return the size of the object's von Neumann space in Oops or bytes.
+	 */
+	size_t size() { return m_size; }
 	inline ClassOop &isa() { return m_isa; }
 	inline ClassOop &setIsa(ClassOop oop) { return m_isa = oop; }
 
@@ -167,8 +173,6 @@ class OopOopDesc : public MemOopDesc {
     public:
 	/** Return a pointer to the object's von Neumann space. */
 	Oop *vns() { return m_oops; }
-	/** Return the size of the object's von Neumann space. */
-	size_t size() { return m_size; }
 
 	/**
 	 * Return a reference to the Oop value at /a index.
@@ -191,8 +195,6 @@ class ByteOopDesc : public MemOopDesc {
     public:
 	/** Return a pointer to the object's von Neumann space. */
 	uint8_t *vns() { return m_bytes; }
-	/** Return the size of the object's von Neumann space. */
-	size_t size() { return m_size; }
 
 	/**
 	 * Return a reference to the byte value at /a index.
@@ -209,6 +211,12 @@ class ByteOopDesc : public MemOopDesc {
 
 	uint8_t &basicAt(size_t idx) { return m_bytes[idx - 1]; }
 	uint8_t &basicAtPut(size_t i, uint8_t val) { return m_bytes[i - 1] = val; }
+};
+
+class FloatOopDesc : public ByteOopDesc {
+    public:
+	/** Return a pointer to the object's von Neumann space. */
+	double &floatValue() { return *(double *)m_bytes; }
 };
 
 /**
