@@ -82,6 +82,12 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
+		case Op::kLdaBlockCopy: {
+			unsigned src = FETCH;
+			std::cout << "LdaBlockCopy: l" << src << "\n";
+			break;
+		}
+
 		case Op::kLdar: {
 			unsigned src = FETCH;
 			std::cout << "Ldar: r" << src << "\n";

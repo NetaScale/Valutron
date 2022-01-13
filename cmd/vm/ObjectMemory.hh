@@ -95,6 +95,11 @@ class ObjectMemory {
 	 * Allocates an object composed of bytes.
 	 */
 	template <class T> T newByteObj(size_t len);
+	/**
+	 * Copies any object.
+	 */
+	template <class T> T copyObj(MemOop obj);
+
 
 	ClassOop findOrCreateClass(ClassOop superClass, std::string name);
 	ClassOop lookupClass(std::string name);
@@ -195,6 +200,35 @@ ObjectMemory::newByteObj(size_t len)
 		obj->m_size = len;
 #endif
 
+
+	return obj;
+}
+
+template <class T>
+T
+ObjectMemory::copyObj(MemOop oldObj)
+{
+	typename T::PtrType * obj;
+	size_t size =  ALIGN(sizeof(MemOopDesc) +
+	    (oldObj->m_kind == MemOopDesc::kBytes ? 
+	    sizeof(uint8_t) :
+	    sizeof (Oop)) * oldObj->size());
+
+#if 0
+	do {
+		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
+		if (res != MPS_RES_OK)
+			FATAL("out of memory in newByteObj");
+		obj->m_kind = oldObj->m_kind;
+		obj->m_size = oldObj->size;
+	} while (!mps_commit(m_objAP, ((void *)obj), size));
+#endif
+#if 1
+	obj = (typename T::PtrType*)calloc(1, size);
+#endif
+
+	memcpy(obj, &*oldObj, size);
+	obj->m_hash = getHashCode();
 
 	return obj;
 }

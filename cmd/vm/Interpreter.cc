@@ -64,6 +64,7 @@ ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	ctx->setHeapVars(heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
 		      Oop().as<ArrayOop>());
+	ctx->setParentHeapVars(aMethod->parentHeapVars());
 	ctx->setStack(ArrayOopDesc::newWithSize(omem,
 	    aMethod->stackSize().smi() + 1 /* nil pushed */));
 	ctx->setProgramCounter(SmiOop((intptr_t)0));
@@ -219,6 +220,17 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			break;
 		}
 
+		case Op::kLdaBlockCopy: {
+			unsigned src = FETCH;
+			BlockOop block = omem.copyObj <BlockOop> (LITERAL(src).
+			    as<MemOop>());
+			block->parentHeapVars() = proc->context()->heapVars();
+			block->receiver() = RECEIVER;
+			block->homeMethodContext() = CTX;
+			ac = block;
+			break;
+		}
+
 		case Op::kLdar: {
 			unsigned src = FETCH;
 			std::cout << blanks(in) << "LDAR " << src << "\n";
@@ -302,8 +314,18 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
 		case Op::kPrimitive: {
-			unsigned dst = FETCH, prim = FETCH, nArgs = FETCH;
-			throw std::runtime_error("Unimplemented kPrimitive");
+			unsigned prim = FETCH, nArgs = FETCH;
+			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
+
+			std::cout << blanks(in) << "Invoke primitive " <<
+			    prim << " with " << nArgs << " args\n";
+			for (int i = 0; i < nArgs; i++) {
+				args->basicAt0(i) = REG(FETCH);
+			}
+
+			ac = primVec[prim](omem, proc, args);
+
+			//throw std::runtime_error("Unimplemented kPrimitive");
 			break;
 		}
 
@@ -318,7 +340,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kReturn: {
 			CTX = CTX->previousContext();
 			std::cout << blanks(in--) << "Returning\n";
-
+			if (CTX.isNil()) {
+				std::cout << "Completed evaluation with result:\n";
+				ac.print(5);
+				return 0;
+			}
 			break;
 		}
 

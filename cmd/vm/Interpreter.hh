@@ -33,6 +33,7 @@ class Op {
 		kLdaGlobal,
 		kLdaNstVar,
 		kLdaLiteral,
+		kLdaBlockCopy, /* u8 literal index */
 		kLdar,
 
 		/* a value, u8 index */

@@ -176,7 +176,7 @@ CodeGen::genLoadInteger(int val)
 void
 CodeGen::genLoadBlockCopy(BlockOop block)
 {
-	gen(Op::kLdaLiteral, addLit(block));
+	gen(Op::kLdaBlockCopy, addLit(block));
 }
 
 RegisterID
