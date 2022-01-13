@@ -20,10 +20,10 @@
 #define PC proc->context()->programCounter()
 
 #define METHODCLASS                  					       \
-	(CTX->isBlockContext()) ?    					       \
+	((CTX->isBlockContext()) ?    					       \
 	CTX->homeMethodContext()->methodOrBlock().as<MethodOop>()    	       \
 	    ->methodClass() :    					       \
-	CTX->methodOrBlock().as<MethodOop>()->methodClass()
+	CTX->methodOrBlock().as<MethodOop>()->methodClass())
 
 size_t in = 0;
 
@@ -77,6 +77,7 @@ ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	    aMethod->stackSize().smi() + 1 /* nil pushed */));
 	ctx->setProgramCounter(SmiOop((intptr_t)0));
 	ctx->setStackPointer(SmiOop((intptr_t)0));
+	ctx->setHomeMethodContext(aMethod->homeMethodContext());
 
 	ctx->stack()->basicAt0(0) = aMethod->receiver();
 
@@ -372,7 +373,6 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSend: {
-			printf("MAKING REGULAR SEND\n");
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
 			    LITERAL(selIdx).as<SymbolOop>());
@@ -386,9 +386,6 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
 			}
 
-			//std::cout << blanks(in) << "=> " <<
-			//    ac.isa()->name()->asCStr() << ">>" <<
-			//    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
 			CTX = ctx;
 			in++;
 
@@ -402,7 +399,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSendSuper: {
-			printf("MAKING SUPER SEND\n");
+
+
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			ClassOop cls = METHODCLASS->superClass();
 			MethodOop meth = lookupMethodInClass(proc, ac, cls,

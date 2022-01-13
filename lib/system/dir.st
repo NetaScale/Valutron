@@ -16,14 +16,16 @@ Object subclass: INITIAL [
 			n <= 1 
 				ifTrue: [n]
 				ifFalse: [n * (fac value: n - 1)]
-			]."
-	^ (35 asLongInteger factorial printString) "(fac value: (20 asLongInteger)) printString"
+			].
+			^ fac value: 3 asLongInteger."
+	^ (15 asLongInteger factorial printString) "(fac value: (20 asLongInteger)) printString"
 		"^ 2 + 3"
 		"^ false and: [ true ]"
 
 		"fac <- 1.
 		[ fac < 5 ] whileTrue: [ fac <- fac + 1. 42].
 		^ fac"
+		"^ 258 radix: 16"
 	]
 ]
 "real    0m8.311s"

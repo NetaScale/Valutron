@@ -26,9 +26,9 @@ Integer subclass: LongInteger [
 	(id) + (Number)n [		| newDigits z carry |
 		<162 'Hello, Hello'>.
 		n isLongInteger
-			ifFalse: [ <162 'Supa PlusN'>. ^ super + n ].
-		negative ifTrue: [ <162 'Supa NegN'>. ^ n - self negated ].
-		n negative ifTrue: [ <162 'Supa NegN2'>. ^ self - n negated ].
+			ifFalse: [ ^ super + n ].
+		negative ifTrue: [ ^ n - self negated ].
+		n negative ifTrue: [ ^ self - n negated ].
 		" reduced to positive + positive case "
 		newDigits <- List new.  carry <- 0.
 		self with: n bitDo:

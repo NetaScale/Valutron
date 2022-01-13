@@ -42,7 +42,7 @@ main(int argc, char * argv[])
 	clock_t begin = clock();
 	execute(omem, firstProcess);
 	clock_t end = clock();
-	std::cout << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
+	std::cerr << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
 
 	return 0;
 }
