@@ -12,6 +12,7 @@
 Object subclass: INITIAL [
 
 	initial [
-		^ 255 radix: 16
+		^ 9999 radix: 16
+		"^ false and: [ true ]"
 	]
 ]

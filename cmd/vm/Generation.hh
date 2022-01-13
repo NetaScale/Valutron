@@ -92,6 +92,10 @@ class CodeGen {
 	void genStoreParentHeapVar (uint8_t index);
 	void genStoreMyHeapVar (uint8_t index);
 
+	size_t genJump();
+	size_t genBranchIfFalse();
+	void patchJumpToHere(size_t jumpInstrLoc);
+
 	void genMessage(bool isSuper,std::string selector,
 	    std::vector<RegisterID> args);
 	void genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
@@ -99,6 +103,7 @@ class CodeGen {
 	void genReturn();
 	void genReturnSelf();
 	void genBlockReturn();
+
 
 };
 

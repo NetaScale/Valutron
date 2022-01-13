@@ -16,6 +16,7 @@
 #define NSTVAR(x) proc->context()->receiver().as<OopOop>()->basicAt(x)
 #define REG(x) proc->context()->stack()->basicAt0(x)
 #define RECEIVER proc->context()->receiver()
+#define PC proc->context()->programCounter()
 
 size_t in = 0;
 
@@ -272,6 +273,28 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kMove: {
 			unsigned dst = FETCH, src = FETCH;
 			REG(dst) = REG(src);
+			break;
+		}
+
+		/* a value, u8 src-reg */
+		case Op::kAnd: {
+			unsigned src = FETCH;
+			if (ac == ObjectMemory::objTrue && REG(src) == ObjectMemory::objTrue)
+			{
+				printf("TRUE\n");
+			}
+			break;
+		}
+
+		/* a value, i16 pc-offset */
+		case Op::kBranchIfFalse: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			if(ac == ObjectMemory::objFalse) {
+				std::cout << "Branching " << offs << "for false\n";
+				PC = SmiOop(PC.smi() + offs);
+			}
 			break;
 		}
 

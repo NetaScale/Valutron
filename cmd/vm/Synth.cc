@@ -147,8 +147,14 @@ void
 MessageExprNode::synthInScope(Scope *scope)
 {
 	receiver->synthInScope(scope);
-	for (auto arg : args)
-		arg->synthInScope(scope);
+
+	if (selector == "and:") {
+		m_specialKind = kAnd;
+		args[0]->synthInlineInScope(scope);
+	} else {
+		for (auto arg : args)
+			arg->synthInScope(scope);
+	}
 }
 
 void
@@ -169,6 +175,17 @@ BlockExprNode::synthInScope(Scope *parentScope)
 
 	for (auto stmt : stmts)
 		stmt->synthInScope(scope);
+}
+
+void
+BlockExprNode::synthInlineInScope(Scope *parentScope)
+{
+	assert(args.empty());
+
+	m_inlined = true;
+
+	for (auto stmt : stmts)
+		stmt->synthInScope(parentScope);
 }
 
 #pragma statements

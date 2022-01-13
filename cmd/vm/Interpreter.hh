@@ -48,6 +48,12 @@ class Op {
 		/* u8 src-reg, u8 dst-reg */
 		kMove,
 
+		/* a value, u8 src-reg */
+		kAnd,
+
+		/* a value, i16 pc-offset */
+		kBranchIfFalse,
+
 		/**
 		 * a receiver, u8 selector-literal-index, u8 num-args,
 		 *     (u8 arg-reg)+ -> a result

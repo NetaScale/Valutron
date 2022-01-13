@@ -203,7 +203,6 @@ Number subclass: Integer
 	(String) radix: (Integer)base [ 	| sa text |
 		" return a printed representation of self in given base"
 		sa <- self abs.
-		<161 sa>.
 		text <- (sa \\ base) asDigit asString.
 		^ (sa < base)
 			ifTrue: [ (self negative)

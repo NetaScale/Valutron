@@ -285,6 +285,10 @@ struct ExprNode : Node {
 	    : Node(pos) {};
 
 	virtual void synthInScope(Scope *scope) = 0;
+	virtual void synthInlineInScope(Scope *scope)
+	{
+		return synthInScope(scope);
+	}
 	virtual void typeCheck(TyChecker &tyc)
 	{
 		std::cout << "Unimplemented typecheck for "
@@ -448,6 +452,15 @@ struct MessageExprNode : ExprNode {
 	std::string selector;
 	std::vector<ExprNode *> args;
 
+	enum {
+		kNormal,
+		kIfTrueIfFalse,
+		kIfTrue,
+		kIfFalse,
+		kAnd,
+		kOr
+	} m_specialKind = kNormal;
+
 	MessageExprNode(ExprNode *receiver, std::string selector,
 	    std::vector<ExprNode *> args = {})
 	    : receiver(receiver)
@@ -474,6 +487,7 @@ struct MessageExprNode : ExprNode {
 	std::vector<FlowInference> makeFlowInferences(TyChecker &tyc) override;
 	/* if receiver = -1, then assumed to be in accumulator */
 	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
+	void generateSpecialOn(CodeGen &gen, RegisterID receiver);
 
 	void print(int in) override
 	{
@@ -554,10 +568,12 @@ struct BlockExprNode : public ExprNode {
 	/**< data needed to set up a TypeChecker for checking */
 	TyChecker m_tyc;
 
+	bool m_inlined = false;
+
 	void generateReturnPreludeOn(CodeGen &gen);
 
     public:
-	BlockScope *scope;
+	BlockScope *scope = NULL;
 	Type *m_retType = NULL;
 	std::vector<VarDecl> args;
 	std::vector<StmtNode *> stmts;
@@ -568,9 +584,11 @@ struct BlockExprNode : public ExprNode {
 	{
 	}
 
-	virtual void synthInScope(Scope *parentScope) override;
+	void synthInScope(Scope *parentScope) override;
+	void synthInlineInScope(Scope *scope) override;
 	Type *type(TyChecker &tyc) override;
-	virtual void generateOn(CodeGen &gen) override;
+	void generateOn(CodeGen &gen) override;
+	void generateInlineOn(CodeGen &gen);
 
 	void print(int in) override;
 };

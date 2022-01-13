@@ -1,3 +1,4 @@
+#include <cassert>
 #include <stdexcept>
 #include "AST.hh"
 #include "Generation.hh"
@@ -415,6 +416,10 @@ MessageExprNode::generateOn(CodeGen &gen)
 void
 MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 {
+	if (m_specialKind != kNormal) {
+		assert(!isSuper);
+		return generateSpecialOn(gen, receiver);
+	}
 	std::vector<RegisterID> argRegs;
 
 	if (args.size()) {
@@ -430,13 +435,47 @@ MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 		gen.genLdar(receiver);
 	}
 
-#if 0
-	if (selector == std::string ("ifTrue:ifFalse:"))
-		gen.genIfTrueIfFalse ();
-	else
-#endif
 	gen.genMessage(isSuper, selector, argRegs);
 }
+
+void
+MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver)
+{
+	assert(receiver == -1);
+
+	switch (m_specialKind) {
+		case kAnd: {
+			auto skipSecondIfFirstFalse = gen.genBranchIfFalse();
+			RegisterID reg = gen.genStar();
+			args[0]->generateOn(gen);
+			gen.patchJumpToHere(skipSecondIfFirstFalse);
+			break;
+		}
+
+		default: abort();
+	}
+
+/*
+	std::vector<RegisterID> argRegs;
+
+	printf("RECEIVER: %d\n", receiver);
+
+	if (args.size()) {
+		if (receiver == -1)
+			receiver = gen.genStar();
+		for (auto a : args) {
+			a->generateOn(gen);
+			argRegs.push_back(gen.genStar());
+		}
+	}
+
+	if (receiver != -1) {
+		gen.genLdar(receiver);
+	}
+
+	//gen.genMessage(isSuper, selector, argRegs);*/
+}
+
 
 void
 CascadeExprNode::generateOn(CodeGen &gen)
@@ -467,8 +506,18 @@ BlockExprNode::generateReturnPreludeOn(CodeGen &gen)
 }
 
 void
+BlockExprNode::generateInlineOn(CodeGen &gen)
+{
+	for (auto & s: stmts)
+		s->generateOn(gen);
+}
+
+void
 BlockExprNode::generateOn(CodeGen &gen)
 {
+	if (m_inlined)
+		return generateInlineOn(gen);
+
 	BlockOop block = BlockOopDesc::new0(gen.omem());
 	CodeGen blockGen(gen.omem(), args.size(), 0, true);
 
@@ -559,13 +608,14 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
-	/*disassemble(gen.bytecode().data(), gen.bytecode().size());
+	std::cout << "DISASSEMBLY OF METHOD " << sel << "\n";
+	disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");
 	for (int i = 0; i < gen.literals().size(); i++)
 	{
 		std::cout << " " << i << "\t";
 		gen.literals()[i].print(2);
-	}*/
+	}
 
 	gen.popCurrentScope();
 

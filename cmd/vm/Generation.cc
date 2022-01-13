@@ -218,6 +218,30 @@ CodeGen::genStoreMyHeapVar(uint8_t index)
 }
 
 void
+i16tou8(int16_t i16, uint8_t out[2])
+{
+	out [0] = ((i16 & 0xFF00) >> 8);
+	out [1] = (i16 & 0x00FF);
+}
+
+size_t
+CodeGen::genBranchIfFalse()
+{
+	gen(Op::kBranchIfFalse, 0, 0);
+	return m_bytecode.size();
+}
+
+void
+CodeGen::patchJumpToHere(size_t jumpInstrLoc)
+{
+	uint8_t relative[2];
+	i16tou8(m_bytecode.size() - jumpInstrLoc, relative);
+	m_bytecode[jumpInstrLoc - 1] = relative[1];
+	m_bytecode[jumpInstrLoc - 2] = relative[0];
+}
+
+
+void
 CodeGen::genMessage(bool isSuper, std::string selector,
     std::vector<RegisterID> args)
 {

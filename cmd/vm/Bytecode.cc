@@ -54,7 +54,7 @@ disassemble(uint8_t *code, int length)
 		/* u8 index*/
 		case Op::kLdaParentHeapVar: {
 			unsigned src = FETCH;
-			std::cout << "LdaParentHeapVar: " << src;
+			std::cout << "LdaParentHeapVar: " << src << "\n";
 			break;
 		}
 
@@ -130,6 +130,22 @@ disassemble(uint8_t *code, int length)
 			std::cout << "Move: r" << src <<
 			    " into: r" << dst << "\n";
 
+			break;
+		}
+
+		/* a value, u8 src-reg */
+		case Op::kAnd: {
+			unsigned src = FETCH;
+			std::cout << "And: r" << src <<"\n";
+			break;
+		}
+
+		/* a value, i16 pc-offset */
+		case Op::kBranchIfFalse: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			std::cout << "BranchIfFalse: " << pc + offs << "\n";
 			break;
 		}
 
