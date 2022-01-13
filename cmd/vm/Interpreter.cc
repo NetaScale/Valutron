@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <unistd.h>
 
 #include "Interpreter.hh"
 #include "Misc.hh"
@@ -17,6 +18,12 @@
 #define REG(x) proc->context()->stack()->basicAt0(x)
 #define RECEIVER proc->context()->receiver()
 #define PC proc->context()->programCounter()
+
+#define METHODCLASS                  					       \
+	(CTX->isBlockContext()) ?    					       \
+	CTX->homeMethodContext()->methodOrBlock().as<MethodOop>()    	       \
+	    ->methodClass() :    					       \
+	CTX->methodOrBlock().as<MethodOop>()->methodClass()
 
 size_t in = 0;
 
@@ -89,10 +96,14 @@ inline uint8_t ContextOopDesc::fetchByte ()
     return bytecode ()->basicAt (pos);
 }
 
+
+/* The PROBLEM: super is only looking up super wrt to receiver
+ * need to lookup super wrt to the current class
+ */
 static inline MethodOop lookupMethodInClass (
-    ProcessOop proc, Oop receiver, ClassOop cls, SymbolOop selector, bool super)
+    ProcessOop proc, Oop receiver, ClassOop cls, SymbolOop selector)
 {
-    ClassOop lookupClass = super ? cls->superClass () : cls;
+    ClassOop lookupClass = cls;
     MethodOop meth;
 
     //printf (" -> Begin search for %s in class %s\n", selector->asCStr(), lookupClass->name ()->asCStr ());
@@ -112,7 +123,7 @@ static inline MethodOop lookupMethodInClass (
             (super == lookupClass))
         {
             ContextOop ctx = proc->context ();
-            /*printf (" -> Failed to find method %s in class %s\n",
+        printf (" -> Failed to find method %s in class %s\n",
                      selector->asCStr (),
                      cls->name ()->asCStr ());
             printf ("          --> %s>>%s\n",
@@ -129,7 +140,7 @@ static inline MethodOop lookupMethodInClass (
                                                 : ctx->methodOrBlock ()
                                                       .as<MethodOop> ()
                                                       ->selector ()
-                                                      ->asCStr ());*/
+                                                      ->asCStr ());
             abort ();
         }
         else
@@ -138,10 +149,13 @@ static inline MethodOop lookupMethodInClass (
                 " -> DID NOT find method %s in class %s, searching super\n",
                 selector->asCStr (),
                 cls->name ()->asCStr ());*/
-            return lookupMethodInClass (proc, receiver, super, selector, false);
-        }
+            return lookupMethodInClass (proc, receiver, super, selector);
+	}
     }
 
+    std::cout << blanks(in) << "=> " << receiver.isa()->name()->asCStr() <<
+    "(" << lookupClass->name()->asString() << ")>>"
+	      << selector->asCStr() << "\n";
     return meth;
 }
 
@@ -154,6 +168,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 	loop:
 	op = FETCH;
 
+	//usleep(1000);
 	//std::cout << blanks(in) << "Execute Op " << (unsigned)op <<"\n";
 
 	switch((Op::Opcode) op) {
@@ -287,13 +302,67 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		/* a value, i16 pc-offset */
+		case Op::kJump: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			std::cout << "Jumping " << offs << "\n";
+			PC = SmiOop(PC.smi() + offs);
+			break;
+		}
+
+		/* a value, i16 pc-offset */
 		case Op::kBranchIfFalse: {
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
+			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
 			if(ac == ObjectMemory::objFalse) {
 				std::cout << "Branching " << offs << "for false\n";
 				PC = SmiOop(PC.smi() + offs);
+			}
+			break;
+		}
+
+		/* a value, i16 pc-offset */
+		case Op::kBranchIfTrue: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
+			if(ac == ObjectMemory::objTrue) {
+				std::cout << "Branching " << offs << "for true\n";
+				PC = SmiOop(PC.smi() + offs);
+			}
+			break;
+		}
+
+		case Op::kBinOp: {
+			uint8_t src = FETCH;
+			uint8_t op = FETCH;
+			ArrayOop args = ArrayOopDesc::newWithSize(omem, 2);
+
+			args->basicAt(1) = ac;
+			args->basicAt(2) = REG(src);
+
+			ac = primVec[60 + op](omem, proc, args);
+			if (ac.isNil()) {
+				ac = args->basicAt(1);
+
+				MethodOop meth = lookupMethodInClass(proc,
+				    ac, ac.isa(),
+			    	    ObjectMemory::symBin[op]);
+
+				assert(!meth.isNil());
+
+				ContextOop ctx = ContextOopDesc::newWithMethod(
+				    omem, ac, meth);
+				ctx->previousContext() = CTX;
+
+				ctx->stack()->basicAt0(1) = args->basicAt(2);
+
+				CTX = ctx;
+				in++;
 			}
 			break;
 		}
@@ -303,9 +372,10 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSend: {
+			printf("MAKING REGULAR SEND\n");
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
-			    LITERAL(selIdx).as<SymbolOop>(), false);
+			    LITERAL(selIdx).as<SymbolOop>());
 
 			assert(!meth.isNil());
 
@@ -316,9 +386,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
 			}
 
-			std::cout << blanks(in) << "=> " <<
-			    ac.isa()->name()->asCStr() << ">>" <<
-			    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
+			//std::cout << blanks(in) << "=> " <<
+			//    ac.isa()->name()->asCStr() << ">>" <<
+			//    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
 			CTX = ctx;
 			in++;
 
@@ -332,9 +402,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSendSuper: {
+			printf("MAKING SUPER SEND\n");
 			unsigned selIdx = FETCH, nArgs = FETCH;
-			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
-			    LITERAL(selIdx).as<SymbolOop>(), true);
+			ClassOop cls = METHODCLASS->superClass();
+			MethodOop meth = lookupMethodInClass(proc, ac, cls,
+			    LITERAL(selIdx).as<SymbolOop>());
 
 			assert(!meth.isNil());
 
@@ -345,9 +417,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
 			}
 
-			std::cout << blanks(in) << "=> " <<
-			    ac.isa()->name()->asCStr() << ">>" <<
-			    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
+			//std::cout << blanks(in) << "=> " <<
+			//    ac.isa()->name()->asCStr() << ">>" <<
+			//    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
 			CTX = ctx;
 			in++;
 
@@ -393,8 +465,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kBlockReturn: {
 			MethodOop meth = lookupMethodInClass(proc,
 			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
-			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"),
-			    false);
+			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"));
 
 			assert(!meth.isNil());
 

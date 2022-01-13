@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "Interpreter.hh"
+#include "ObjectMemory.hh"
 
 void
 disassemble(uint8_t *code, int length)
@@ -140,6 +141,15 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
+		/* i16 pc-offset */
+		case Op::kJump: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			std::cout << "Jump: " << pc + offs << "\n";
+			break;
+		}
+
 		/* a value, i16 pc-offset */
 		case Op::kBranchIfFalse: {
 			uint8_t b1 = FETCH;
@@ -147,6 +157,22 @@ disassemble(uint8_t *code, int length)
 			int16_t offs = (b1 << 8) | b2;
 			std::cout << "BranchIfFalse: " << pc + offs << "\n";
 			break;
+		}
+
+		/* a value, i16 pc-offset */
+		case Op::kBranchIfTrue: {
+			uint8_t b1 = FETCH;
+			uint8_t b2 = FETCH;
+			int16_t offs = (b1 << 8) | b2;
+			std::cout << "BranchIfTrue: " << pc + offs << "\n";
+			break;
+		}
+
+		case Op::kBinOp: {
+			uint8_t src = FETCH;
+			unsigned op = FETCH;
+			std::cout << "BinOp(" << ObjectMemory::binOpStr[op] <<
+			    "): r" << src << "\n";
 		}
 
 		/**

@@ -1,6 +1,7 @@
 #include <cassert>
 
 #include "AST.hh"
+#include "Oops.hh"
 
 Var *
 Scope::lookup(std::string name)
@@ -143,18 +144,55 @@ AssignExprNode::synthInScope(Scope *scope)
 	right->synthInScope(scope);
 }
 
+static int
+isOptimisedBinop(std::string sel)
+{
+	for (int i = 0; i < sizeof(ObjectMemory::binOpStr) / sizeof(*ObjectMemory::binOpStr); i++)
+		if (sel == ObjectMemory::binOpStr[i])
+			return i;
+	return -1;
+}
+
 void
 MessageExprNode::synthInScope(Scope *scope)
 {
 	receiver->synthInScope(scope);
 
+	if (receiver->isSuper())
+		goto plain;
+
 	if (selector == "and:") {
 		m_specialKind = kAnd;
 		args[0]->synthInlineInScope(scope);
-	} else {
-		for (auto arg : args)
-			arg->synthInScope(scope);
-	}
+		return;
+	} else if (selector == "ifTrue:ifFalse:") {
+		m_specialKind = kIfTrueIfFalse;
+		args[0]->synthInlineInScope(scope);
+		args[1]->synthInlineInScope(scope);
+		return;
+	} else if (selector == "ifFalse:ifTrue:") {
+		m_specialKind = kIfFalseIfTrue;
+		args[0]->synthInlineInScope(scope);
+		args[1]->synthInlineInScope(scope);
+		return;
+	} else if (selector == "ifTrue:") {
+		m_specialKind = kIfTrue;
+		args[0]->synthInlineInScope(scope);
+		return;
+	} else if (selector == "ifFalse:") {
+		m_specialKind = kIfFalse;
+		args[0]->synthInlineInScope(scope);
+		return;
+	} /* else {
+		int binOp = isOptimisedBinop(selector);
+
+		if (binOp != -1)
+			m_specialKind = (SpecialKind) (kBinOp + binOp);
+	}*/
+
+plain:
+	for (auto arg : args)
+		arg->synthInScope(scope);
 }
 
 void

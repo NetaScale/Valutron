@@ -237,6 +237,8 @@ class ArrayOopDesc : public OopOopDesc {
 	static ArrayOop fromVector(ObjectMemory &omem, std::vector<Oop> vec);
 	static ArrayOop symbolArrayFromStringVector(ObjectMemory &omem,
 	    std::vector<std::string> vec);
+
+	void print(int in);
 };
 
 class CharOopDesc : public OopOopDesc {

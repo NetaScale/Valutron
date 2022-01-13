@@ -6,6 +6,8 @@
 #include "ObjectMemory.hh"
 #include "Oops.hh"
 
+#define cout cerr
+
 template <class T>
 void OopRef<T>::print(size_t in)
 {
@@ -25,6 +27,7 @@ void OopRef<T>::print(size_t in)
         std::cout << blanks(in) << smi() << "\n";
     else if (isa () == ObjectMemory::clsString)
         as<SymbolOop> ()->print (in);
+    Case (Array);
     Case (Symbol);
     Case (Method);
     Case (Context);
@@ -80,6 +83,15 @@ ArrayOopDesc::symbolArrayFromStringVector(ObjectMemory &omem,
 		symVec.push_back(SymbolOopDesc::fromString(omem, s));
 
 	return fromVector(omem, symVec);
+}
+
+void
+ArrayOopDesc::print (int in)
+{
+    std::cout << blanks (in) << "[\n";
+    for (int i =0; i < m_size; i++)
+	m_oops[i].print(in + 2);
+    std::cout << blanks (in) << "]\n";
 }
 
 ByteArrayOop

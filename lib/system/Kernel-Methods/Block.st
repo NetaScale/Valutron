@@ -115,8 +115,6 @@ Object subclass: Block [
 			].
 
 		"Now escape the method context. "
-		<162 'Testing PRevContext'>.
-		<161 prevContext>.
 		prevContext <- prevContext prevContext.
 		prevContext isNil ifTrue: [ <163 'PrevContext is nil'> ].
 		<162 'Stack unwind completed. Activating return continuation:'>.

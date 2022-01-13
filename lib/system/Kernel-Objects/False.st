@@ -29,15 +29,18 @@ Boolean subclass: False [
 	]
 
 	and: aBlock [
-	^ false
+		^ false
 	]
 
 	"|" orBool: aBool [
-	^ aBool
+		^ aBool
 	]
 
 	& aBool [
-	^ false
+		^ false
 	]
 
+	xor: aBoolean [
+		^ aBoolean not
+	]
 ]

@@ -85,6 +85,9 @@ class ObjectMemory {
 	static ClassOop clsNativeCode;
 	static ClassOop clsNativePointer;
 
+	static const char * binOpStr[13];
+	static SymbolOop symBin[13];
+
 	ObjectMemory(void *stackMarker);
 
 	/**

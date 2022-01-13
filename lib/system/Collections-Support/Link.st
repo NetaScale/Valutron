@@ -1,15 +1,15 @@
 Object subclass: Link [
     | key value nextLink |
 
-	class>>FNkey: aKey value: aValue [
+	class>>key: aKey value: aValue [
 		^ self new key: aKey value: aValue
 	]
 
-	class>>FNvalue: aValue [
+	class>>value: aValue [
 		^ self new value: aValue
 	]
 
-	class>>FNvalue: aValue link: aLink [
+	class>>value: aValue link: aLink [
 		^ self new value: aValue link: aLink
 	]
 

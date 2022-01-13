@@ -446,13 +446,40 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver)
 	switch (m_specialKind) {
 		case kAnd: {
 			auto skipSecondIfFirstFalse = gen.genBranchIfFalse();
-			RegisterID reg = gen.genStar();
 			args[0]->generateOn(gen);
 			gen.patchJumpToHere(skipSecondIfFirstFalse);
 			break;
 		}
 
-		default: abort();
+		case kIfFalseIfTrue:
+		case kIfTrueIfFalse: {
+			size_t skipFirst = m_specialKind == kIfTrueIfFalse ?
+			    gen.genBranchIfFalse() : gen.genBranchIfTrue();
+			args[0]->generateOn(gen);
+			size_t skipSecond = gen.genJump();
+			gen.patchJumpToHere(skipFirst);
+			args[1]->generateOn(gen);
+			gen.patchJumpToHere(skipSecond);
+			break;
+		}
+
+		case kIfFalse:
+		case kIfTrue:{
+			size_t skipFirst = m_specialKind == kIfTrue ?
+			    gen.genBranchIfFalse() : gen.genBranchIfTrue();
+			args[0]->generateOn(gen);
+			gen.patchJumpToHere(skipFirst);
+			break;
+		}
+
+		default:
+			assert(m_specialKind >= kBinOp);
+			receiver = gen.genStar();
+			args[0]->generateOn(gen);
+			RegisterID arg = gen.genStar();
+			gen.genLdar(receiver);
+			gen.genBinOp(arg, m_specialKind - kBinOp);
+			break;
 	}
 
 /*

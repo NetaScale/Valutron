@@ -232,8 +232,8 @@ Called from
 Oop
 primClassOfPut(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	fprintf(stderr, "Setting ClassOf %d to %d\n, ", args->basicAt(1),
-	    args->basicAt(2));
+	//fprintf(stderr, "Setting ClassOf %d to %d\n, ", args->basicAt(1),
+	//    args->basicAt(2));
 	args->basicAt(1).setIsa(args->basicAt(2).as<ClassOop>());
 	return (args->basicAt(1));
 }
@@ -493,8 +493,10 @@ primAdd(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
 	long longresult;
 
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi()) {
+		printf("nonSMI detected\n");
 		return (Oop::nil());
+	}
 	longresult = args->basicAt(1).as<SmiOop>().smi();
 	longresult += args->basicAt(2).as<SmiOop>().smi();
 	if (1) // FIXME: bounds test SMI 1) // FIXME: boundscheck smi
@@ -1190,8 +1192,8 @@ primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
 	    args->basicAt(1).as<BlockOop>());
 	for (int i = 2; i <= args.as<MemOop>()->size(); i++) {
-		printf("add argument %d\n", i - 1);
-		ctx->stack()->basicAtPut(i - 2, args->basicAt(i));
+		printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
+		ctx->stack()->basicAtPut(i, args->basicAt(i));
 	}
 
 	ctx->setPreviousContext(proc->context()->previousContext());

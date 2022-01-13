@@ -51,8 +51,15 @@ class Op {
 		/* a value, u8 src-reg */
 		kAnd,
 
+		/* i16 pc-offset */
+		kJump,
 		/* a value, i16 pc-offset */
 		kBranchIfFalse,
+		/* a value, i16 pc-offset */
+		kBranchIfTrue,
+
+		/* a value, u8 op, u8 src-reg */
+		kBinOp,
 
 		/**
 		 * a receiver, u8 selector-literal-index, u8 num-args,

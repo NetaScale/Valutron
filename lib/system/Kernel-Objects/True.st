@@ -41,4 +41,8 @@ and: aBlock [
   ^ aBool
 ]
 
+xor: aBoolean [
+	^ aBoolean not
+]
+
 ]

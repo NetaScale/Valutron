@@ -11,8 +11,18 @@
 
 Object subclass: INITIAL [
 
-	initial [
-		^ 9999 radix: 16
+	initial [ | fac |
+		"fac <- [:n |
+			n <= 1 
+				ifTrue: [n]
+				ifFalse: [n * (fac value: n - 1)]
+			]."
+		^ (27 asLongInteger factorial printString) "(fac value: (20 asLongInteger)) printString"
+		"^ 2 + 3"
 		"^ false and: [ true ]"
 	]
 ]
+"21: 362395969008173056"
+"20: 127058998962946048 / REAL:  2.432902e+18 "
+"19: 121645100408832000"
+"18: 6402373705728000"

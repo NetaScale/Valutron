@@ -223,11 +223,24 @@ i16tou8(int16_t i16, uint8_t out[2])
 	out [0] = ((i16 & 0xFF00) >> 8);
 	out [1] = (i16 & 0x00FF);
 }
+size_t
+CodeGen::genJump()
+{
+	gen(Op::kJump, 0, 0);
+	return m_bytecode.size();
+}
 
 size_t
 CodeGen::genBranchIfFalse()
 {
 	gen(Op::kBranchIfFalse, 0, 0);
+	return m_bytecode.size();
+}
+
+size_t
+CodeGen::genBranchIfTrue()
+{
+	gen(Op::kBranchIfTrue, 0, 0);
 	return m_bytecode.size();
 }
 
@@ -240,6 +253,11 @@ CodeGen::patchJumpToHere(size_t jumpInstrLoc)
 	m_bytecode[jumpInstrLoc - 2] = relative[0];
 }
 
+void
+CodeGen::genBinOp(uint8_t arg, uint8_t op)
+{
+	gen(Op::kBinOp, arg, op);
+}
 
 void
 CodeGen::genMessage(bool isSuper, std::string selector,

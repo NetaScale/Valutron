@@ -48,6 +48,23 @@ ClassOop ObjectMemory::clsProcessor;
 ClassOop ObjectMemory::clsNativeCode;
 ClassOop ObjectMemory::clsNativePointer;
 
+const char * ObjectMemory::binOpStr[13] = {
+			 "+",
+                         "-",
+                         "<",
+                         ">",
+                         "<=",
+                         ">=",
+                         "=",
+                         "~=",
+                         "*",
+                         "quo:",
+                         "rem:",
+                         "bitAnd:",
+                         "bitXor:",
+};
+SymbolOop ObjectMemory::symBin[13];
+
 #define FIXOOP(oop)                                         \
 	if (MPS_FIX1(ss, &*oop)) {                          \
 		if (oop.isPtr()) {                          \
@@ -309,4 +326,7 @@ ObjectMemory::setupInitialObjects()
 	objFalse.setIsa(clsFalse);
 	objSymbolTable.setIsa(clsDictionary);
 	objGlobals.setIsa(clsSystemDictionary);
+
+	for (int i = 0; i < sizeof(binOpStr) / sizeof(*binOpStr); i++)
+		symBin[i] = SymbolOopDesc::fromString(*this, binOpStr[i]);
 }

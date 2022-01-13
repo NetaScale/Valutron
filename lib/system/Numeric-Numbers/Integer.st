@@ -48,7 +48,7 @@ Number subclass: Integer
 				  b negative
 					ifTrue: [ t <- t negated.
 						  b <- b negated ].
-				  (b = 1) ifTrue: [ <161 'Return T'> . ^ t ].
+				  (b = 1) ifTrue: [ ^ t ].
 				  ^ Fraction top: t bottom: b ]
 			ifFalse: [ ^ super / value ]
 	]
@@ -87,7 +87,6 @@ Number subclass: Integer
 
 	(Character) asDigit [
 		" return as character digit "
-		<161 self>.
 		(self >= 0)
 			ifTrue: [ (self <= 9) ifTrue:
 					[ ^ (self + $0 asInteger) asCharacter ].
@@ -158,7 +157,7 @@ Number subclass: Integer
 	]
 
 	(id) factorial [
-		^ (2 to: self) inject: 1 into: [:x :y | x * y ]
+		^ (2 asLongInteger to: self) inject: 1 asLongInteger into: [:x :y | x * y ]
 	]
 
 	(id) gcd: value [

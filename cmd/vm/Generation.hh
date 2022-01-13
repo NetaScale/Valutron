@@ -94,7 +94,10 @@ class CodeGen {
 
 	size_t genJump();
 	size_t genBranchIfFalse();
+	size_t genBranchIfTrue();
 	void patchJumpToHere(size_t jumpInstrLoc);
+
+	void genBinOp(uint8_t arg, uint8_t op);
 
 	void genMessage(bool isSuper,std::string selector,
 	    std::vector<RegisterID> args);

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <ctime>
 
 #include "AST.hh"
 #include "Compiler.hh"
@@ -22,8 +23,8 @@ main(int argc, char * argv[])
 	SynthContext sctx(omem);
 	node->registerNames(sctx);
 	node->synth(sctx);
-	node->typeReg(sctx.tyChecker());
-	node->typeCheck(sctx.tyChecker());
+	//node->typeReg(sctx.tyChecker());
+	//node->typeCheck(sctx.tyChecker());
 	node->generate(omem);
 
 	initial = ObjectMemory::objGlobals->symbolLookup(
@@ -38,7 +39,10 @@ main(int argc, char * argv[])
 	firstProcess->setContext(ContextOopDesc::newWithMethod(omem, Oop(),
 	    start));
 
+	clock_t begin = clock();
 	execute(omem, firstProcess);
+	clock_t end = clock();
+	std::cout << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
 
 	return 0;
 }

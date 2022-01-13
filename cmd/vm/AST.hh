@@ -403,7 +403,7 @@ struct IdentExprNode : ExprNode {
 	std::string id;
 	Var *var;
 
-	virtual bool isSuper() override { return id == "super"; }
+	bool isSuper() override { return id == "super"; }
 
 	IdentExprNode(Position pos, std::string id)
 	    : ExprNode(pos)
@@ -452,13 +452,16 @@ struct MessageExprNode : ExprNode {
 	std::string selector;
 	std::vector<ExprNode *> args;
 
-	enum {
+
+	enum SpecialKind {
 		kNormal,
 		kIfTrueIfFalse,
+		kIfFalseIfTrue,
 		kIfTrue,
 		kIfFalse,
 		kAnd,
-		kOr
+		kOr,
+		kBinOp
 	} m_specialKind = kNormal;
 
 	MessageExprNode(ExprNode *receiver, std::string selector,
