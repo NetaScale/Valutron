@@ -1,3 +1,4 @@
+#include <sys/types.h>
 #include <cassert>
 #include <stdexcept>
 #include "AST.hh"
@@ -409,16 +410,18 @@ AssignExprNode::generateOn(CodeGen &gen)
 void
 MessageExprNode::generateOn(CodeGen &gen)
 {
+	ssize_t begin = gen.bytecode().size();
 	receiver->generateOn(gen);
-	return generateOn(gen, -1, receiver->isSuper());
+	return generateOn(gen, -1, receiver->isSuper(), begin);
 }
 
 void
-MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
+MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper,
+    ssize_t receiverBegin)
 {
 	if (m_specialKind != kNormal) {
 		assert(!isSuper);
-		return generateSpecialOn(gen, receiver);
+		return generateSpecialOn(gen, receiver, receiverBegin);
 	}
 	std::vector<RegisterID> argRegs;
 
@@ -439,7 +442,8 @@ MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper)
 }
 
 void
-MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver)
+MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
+    ssize_t receiverBegin)
 {
 	assert(receiver == -1);
 
@@ -472,6 +476,41 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver)
 			break;
 		}
 
+		case kWhileTrue:
+		case kWhileFalse: {
+			size_t branch;
+
+			assert(receiverBegin != -1);
+
+			if(m_specialKind == kWhileTrue)
+				branch = gen.genBranchIfFalse();
+			else
+				branch = gen.genBranchIfTrue();
+
+			args[0]->generateOn(gen);
+			size_t pos = gen.genJump();
+			gen.patchJumpTo(pos, receiverBegin);
+			gen.patchJumpToHere(branch);
+			break;
+		}
+
+		case kWhileFalse0:
+		case kWhileTrue0: {
+			size_t branch;
+
+			assert(receiverBegin != -1);
+
+			if(m_specialKind == kWhileTrue0)
+				branch = gen.genBranchIfFalse();
+			else
+				branch = gen.genBranchIfTrue();
+
+			size_t pos = gen.genJump();
+			gen.patchJumpTo(pos, receiverBegin);
+			gen.patchJumpToHere(branch);
+			break;
+		}
+
 		default:
 			assert(m_specialKind >= kBinOp);
 			receiver = gen.genStar();
@@ -481,26 +520,6 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver)
 			gen.genBinOp(arg, m_specialKind - kBinOp);
 			break;
 	}
-
-/*
-	std::vector<RegisterID> argRegs;
-
-	printf("RECEIVER: %d\n", receiver);
-
-	if (args.size()) {
-		if (receiver == -1)
-			receiver = gen.genStar();
-		for (auto a : args) {
-			a->generateOn(gen);
-			argRegs.push_back(gen.genStar());
-		}
-	}
-
-	if (receiver != -1) {
-		gen.genLdar(receiver);
-	}
-
-	//gen.genMessage(isSuper, selector, argRegs);*/
 }
 
 
@@ -510,18 +529,19 @@ CascadeExprNode::generateOn(CodeGen &gen)
 	if (messages.size() == 1) {
 		receiver->generateOn(gen);
 		 messages.front()->generateOn(gen, -1,
-		   receiver->isSuper());
+		   receiver->isSuper(), -1);
 	} else {
 		RegisterID rcvr;
 
 		receiver->generateOn(gen);
 		rcvr = gen.genStar();
 
-		messages.front()->generateOn(gen, rcvr, receiver->isSuper());
+		messages.front()->generateOn(gen, rcvr, receiver->isSuper(),
+		    -1);
 
 		for (auto it = ++std::begin(messages); it != std::end(messages);
 		     it++)
-			(*it)->generateOn(gen, rcvr, receiver->isSuper());
+			(*it)->generateOn(gen, rcvr, receiver->isSuper(), -1);
 	}
 }
 

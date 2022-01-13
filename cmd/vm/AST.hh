@@ -461,6 +461,10 @@ struct MessageExprNode : ExprNode {
 		kIfFalse,
 		kAnd,
 		kOr,
+		kWhileTrue0,
+		kWhileFalse0,
+		kWhileTrue,
+		kWhileFalse,
 		kBinOp
 	} m_specialKind = kNormal;
 
@@ -489,8 +493,10 @@ struct MessageExprNode : ExprNode {
 	    Type *recvType = NULL);
 	std::vector<FlowInference> makeFlowInferences(TyChecker &tyc) override;
 	/* if receiver = -1, then assumed to be in accumulator */
-	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper);
-	void generateSpecialOn(CodeGen &gen, RegisterID receiver);
+	void generateOn(CodeGen &gen, RegisterID receiver, bool isSuper,
+	    ssize_t receiverBegin);
+	void generateSpecialOn(CodeGen &gen, RegisterID receiver,
+	    ssize_t receiverBegin);
 
 	void print(int in) override
 	{

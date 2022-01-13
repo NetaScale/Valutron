@@ -169,10 +169,11 @@ disassemble(uint8_t *code, int length)
 		}
 
 		case Op::kBinOp: {
-			uint8_t src = FETCH;
+			unsigned src = FETCH;
 			unsigned op = FETCH;
 			std::cout << "BinOp(" << ObjectMemory::binOpStr[op] <<
 			    "): r" << src << "\n";
+			break;
 		}
 
 		/**

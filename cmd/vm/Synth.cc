@@ -156,41 +156,65 @@ isOptimisedBinop(std::string sel)
 void
 MessageExprNode::synthInScope(Scope *scope)
 {
-	receiver->synthInScope(scope);
-
 	if (receiver->isSuper())
 		goto plain;
 
 	if (selector == "and:") {
+		receiver->synthInScope(scope);
 		m_specialKind = kAnd;
 		args[0]->synthInlineInScope(scope);
 		return;
 	} else if (selector == "ifTrue:ifFalse:") {
+		receiver->synthInScope(scope);
 		m_specialKind = kIfTrueIfFalse;
 		args[0]->synthInlineInScope(scope);
 		args[1]->synthInlineInScope(scope);
 		return;
 	} else if (selector == "ifFalse:ifTrue:") {
+		receiver->synthInScope(scope);
 		m_specialKind = kIfFalseIfTrue;
 		args[0]->synthInlineInScope(scope);
 		args[1]->synthInlineInScope(scope);
 		return;
 	} else if (selector == "ifTrue:") {
+		receiver->synthInScope(scope);
 		m_specialKind = kIfTrue;
 		args[0]->synthInlineInScope(scope);
 		return;
 	} else if (selector == "ifFalse:") {
+		receiver->synthInScope(scope);
 		m_specialKind = kIfFalse;
 		args[0]->synthInlineInScope(scope);
 		return;
-	} /* else {
+	} else if (selector == "whileTrue") {
+		receiver->synthInlineInScope(scope);
+		m_specialKind = kWhileTrue0;
+		return;
+	} else if (selector == "whileFalse") {
+		receiver->synthInlineInScope(scope);
+		m_specialKind = kWhileFalse0;
+		return;
+	} else if (selector == "whileTrue:") {
+		receiver->synthInlineInScope(scope);
+		m_specialKind = kWhileTrue;
+		args[0]->synthInlineInScope(scope);
+		return;
+	} else if (selector == "whileFalse:") {
+		receiver->synthInlineInScope(scope);
+		m_specialKind = kWhileFalse;
+		args[0]->synthInlineInScope(scope);
+		return;
+	}
+	 else {
 		int binOp = isOptimisedBinop(selector);
 
 		if (binOp != -1)
 			m_specialKind = (SpecialKind) (kBinOp + binOp);
-	}*/
+	}
 
 plain:
+	receiver->synthInScope(scope);
+
 	for (auto arg : args)
 		arg->synthInScope(scope);
 }

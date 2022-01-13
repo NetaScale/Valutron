@@ -254,6 +254,15 @@ CodeGen::patchJumpToHere(size_t jumpInstrLoc)
 }
 
 void
+CodeGen::patchJumpTo(size_t jumpInstrLoc, size_t loc)
+{
+	uint8_t relative[2];
+	i16tou8(loc - jumpInstrLoc, relative);
+	m_bytecode[jumpInstrLoc - 1] = relative[1];
+	m_bytecode[jumpInstrLoc - 2] = relative[0];
+}
+
+void
 CodeGen::genBinOp(uint8_t arg, uint8_t op)
 {
 	gen(Op::kBinOp, arg, op);

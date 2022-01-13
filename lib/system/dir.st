@@ -17,11 +17,17 @@ Object subclass: INITIAL [
 				ifTrue: [n]
 				ifFalse: [n * (fac value: n - 1)]
 			]."
-		^ (27 asLongInteger factorial printString) "(fac value: (20 asLongInteger)) printString"
+	^ (35 asLongInteger factorial printString) "(fac value: (20 asLongInteger)) printString"
 		"^ 2 + 3"
 		"^ false and: [ true ]"
+
+		"fac <- 1.
+		[ fac < 5 ] whileTrue: [ fac <- fac + 1. 42].
+		^ fac"
 	]
 ]
+"real    0m8.311s"
+
 "21: 362395969008173056"
 "20: 127058998962946048 / REAL:  2.432902e+18 "
 "19: 121645100408832000"

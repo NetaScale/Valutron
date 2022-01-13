@@ -97,12 +97,14 @@ Object subclass: Block [
 		tempHomeContext <- homeContext.
 		prevContext <- thisContext.
 
+		<162 'Begin whileTrue.\n'>.
 		[
 		  prevContext <- prevContext prevContext.
 		  i <- i + 1.
 		  (prevContext == homeContext) or: [ prevContext isNil]
 		] whileTrue.
 
+		<162 'Begin whileTrue:.\n'>.
 		[ prevContext isBlockContext ]
 			whileTrue: [
 				homeContext <- prevContext methodOrBlock homeContext.

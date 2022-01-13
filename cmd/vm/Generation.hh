@@ -96,6 +96,7 @@ class CodeGen {
 	size_t genBranchIfFalse();
 	size_t genBranchIfTrue();
 	void patchJumpToHere(size_t jumpInstrLoc);
+	void patchJumpTo(size_t jumpInstrLoc, size_t loc);
 
 	void genBinOp(uint8_t arg, uint8_t op);
 
