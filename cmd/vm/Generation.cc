@@ -50,6 +50,12 @@ CodeGen::addSym(std::string str)
 	return addLit(SymbolOopDesc::fromString(m_omem, str));
 }
 
+RegisterID
+CodeGen::allocReg()
+{
+	return m_reg++;
+}
+
 void
 CodeGen::genMoveParentHeapVarToMyHeapVars(uint8_t index, uint8_t promotedIndex)
 {
@@ -187,6 +193,14 @@ CodeGen::genStar()
 	return reg;
 }
 
+RegisterID
+CodeGen::genStar(RegisterID into)
+{
+	gen(Op::kStar, into);
+	return into;
+}
+
+
 void
 CodeGen::genStoreInstanceVar(uint8_t index)
 {
@@ -291,9 +305,28 @@ CodeGen::genPrimitive(uint8_t primNum, std::vector<RegisterID> args)
 }
 
 void
+CodeGen::genPrimitive1(uint8_t primNum)
+{
+	gen(Op::kPrimitive1, primNum);
+}
+
+void
 CodeGen::genPrimitive2(uint8_t primNum, RegisterID arg1reg)
 {
 	gen(Op::kPrimitive2, primNum, arg1reg);
+}
+
+void
+CodeGen::genPrimitive3(uint8_t primNum, RegisterID arg1reg)
+{
+	gen(Op::kPrimitive3, primNum, arg1reg);
+}
+
+void
+CodeGen::genPrimitiveV(uint8_t primNum, uint8_t nArgs, RegisterID arg1reg)
+{
+	gen(Op::kPrimitiveV, primNum, nArgs);
+	genCode(arg1reg);
 }
 
 

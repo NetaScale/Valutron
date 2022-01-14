@@ -60,6 +60,8 @@ class CodeGen {
 	void pushCurrentScope(Scope *aScope) { m_scope.push(aScope); }
 	void popCurrentScope() { m_scope.pop(); }
 
+	RegisterID allocReg();
+
 	void genMoveParentHeapVarToMyHeapVars(uint8_t index,
 	    uint8_t promotedIndex);
 	void genMoveArgumentToMyHeapVars(uint8_t index, uint8_t promotedIndex);
@@ -86,6 +88,7 @@ class CodeGen {
 	void genLoadBlockCopy(BlockOop block);
 
 	RegisterID genStar();
+	RegisterID genStar(RegisterID into);
 	void genStoreInstanceVar (uint8_t index);
 	void genStoreGlobal (std::string name);
 	void genStoreLocal (uint8_t index);
@@ -103,7 +106,10 @@ class CodeGen {
 	void genMessage(bool isSuper,std::string selector,
 	    std::vector<RegisterID> args);
 	void genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
+	void genPrimitive1(uint8_t primNum);
 	void genPrimitive2(uint8_t primNum, RegisterID arg1reg);
+	void genPrimitive3(uint8_t primNum, RegisterID arg1reg);
+	void genPrimitiveV(uint8_t primNum, uint8_t nArgs, RegisterID arg1reg);
 
 	void genReturn();
 	void genReturnSelf();

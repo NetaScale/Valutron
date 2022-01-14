@@ -240,12 +240,34 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
-		/** a arg1, u8 prim-num, u8 arg2-reg, */
+		/** a arg, u8 prim-num */
+		case Op::kPrimitive1: {
+			unsigned prim = FETCH, arg2 = FETCH;
+			std::cout << "Primitive: " << prim << "\n";
+			break;
+		}
+
+		/** a arg2, u8 prim-num, u8 arg1-reg, */
 		case Op::kPrimitive2: {
 			unsigned prim = FETCH, arg2 = FETCH;
 			std::cout << "Primitive2: " << prim << " r" << arg2 <<
 			    "\n";
-			std::cout << "\n";
+			break;
+		}
+
+		/** a arg2, u8 prim-num, u8 arg1-reg, */
+		case Op::kPrimitive3: {
+			unsigned prim = FETCH, arg2 = FETCH;
+			std::cout << "Primitive3: " << prim <<
+			    " firstArgReg: r" << arg2 << "\n";
+			break;
+		}
+
+		/** u8 prim-num, u8 nArgs, u8 arg1-reg, */
+		case Op::kPrimitiveV: {
+			unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
+			std::cout << "PrimitiveV: " << prim << " nArgs:" <<
+			    nArgs << " firstArgReg: r" << arg1reg << "\n";
 			break;
 		}
 

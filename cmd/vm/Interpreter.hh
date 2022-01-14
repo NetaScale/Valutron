@@ -27,7 +27,8 @@ struct Primitive {
 		Oop (*fn2)(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b);
 		Oop (*fn3)(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b,
 		    Oop c);
-		Oop (*fna)(ObjectMemory &omem, ProcessOop &proc, Oop args[]);
+		Oop (*fnv)(ObjectMemory &omem, ProcessOop &proc, size_t nArgs,
+		    Oop args[]);
 	};
 	char index;
 };
@@ -97,8 +98,14 @@ class Op {
 		kSendSuper,
 		/** u8 prim-num, u8 num-args, (u8 arg-reg)+, -> a result */
 		kPrimitive,
-		/** a arg1, u8 prim-num, u8 arg2-reg */
+		/** a arg, u8 prim-num, -> a result */
+		kPrimitive1,
+		/** a arg2, u8 prim-num, u8 arg1-reg */
 		kPrimitive2,
+		/** a arg3, u8 prim-num, u8 first-arg-reg */
+		kPrimitive3,
+		/* u8 prim-num, u8 nargs, u8 first-arg-reg */
+		kPrimitiveV,
 
 		kReturnSelf,
 

@@ -104,14 +104,12 @@ Returns the field count of the von Neumann space of the receiver.
 Called from Object>>basicSize
 */
 Oop
-primSize(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primSize(ObjectMemory &omem, ProcessOop &proc, Oop arg)
 {
-	int i;
-	if (args->basicAt(1).isSmi())
-		i = 0;
+	if (arg.isSmi())
+		return SmiOop((intptr_t)0);
 	else
-		i = args->basicAt(1).as<MemOop>()->size();
-	return (SmiOop(i));
+		return arg.as<MemOop>()->size();
 }
 
 /*
@@ -231,12 +229,12 @@ Called from
   Class>>new:
 */
 Oop
-primClassOfPut(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primClassOfPut(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop cls)
 {
 	// fprintf(stderr, "Setting ClassOf %d to %d\n, ", args->basicAt(1),
 	//    args->basicAt(2));
-	args->basicAt(1).setIsa(args->basicAt(2).as<ClassOop>());
-	return (args->basicAt(1));
+	obj.setIsa(cls.as<ClassOop>());
+	return (obj);
 }
 
 /*
@@ -268,26 +266,26 @@ Returns the Oop of the receiver denoted by the argument.
 Called from Object>>basicAt:
 */
 Oop
-primBasicAt(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primBasicAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index)
 {
 	int i;
-	if (args->basicAt(1).isSmi()) {
+	if (obj.isSmi()) {
 		printf("integer receiver of basicAt:");
 		return (Oop::nil());
 	}
 	/* if (!args->basicAt (1)->kind == OopsRefObj)
 	    return (Oop::nil ()); */
-	if (!args->basicAt(2).isSmi()) {
+	if (!index.isSmi()) {
 		printf("non-integer argument of basicAt:");
 		return (Oop::nil());
 	}
-	i = args->basicAt(2).as<SmiOop>().smi();
-	if (i < 1 || i > args->basicAt(1).as<MemOop>()->size()) {
+	i = index.as<SmiOop>().smi();
+	if (i < 1 || i > obj.as<MemOop>()->size()) {
 		printf("#basicAt: argument out of bounds (%d)", i);
 		return (Oop::nil());
 	}
 
-	return args->basicAt(1).as<OopOop>()->basicAt(i);
+	return obj.as<OopOop>()->basicAt(i);
 }
 
 /*
@@ -296,13 +294,12 @@ the argument.
 Called from ByteArray>>basicAt:
 */
 Oop
-primByteAt(ObjectMemory &omem, ProcessOop proc, ArrayOop args) /*fix*/
+primByteAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index) /*fix*/
 {
 	int i;
-	if (!args->basicAt(2).isSmi())
+	if (!index.isSmi())
 		perror("non integer index byteAt:");
-	i = args->basicAt(1).as<ByteArrayOop>()->basicAt(
-	    args->basicAt(2).as<SmiOop>().smi());
+	i = obj.as<ByteArrayOop>()->basicAt(index.as<SmiOop>().smi());
 	if (i < 0)
 		i += 256;
 	return (SmiOop(i));
@@ -328,18 +325,19 @@ Returns the receiver.
 Called from Object>>basicAt:put:
 */
 Oop
-primbasicAtPut(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primbasicAtPut(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index,
+    Oop val)
 {
 	int i;
-	if (args->basicAt(1).isSmi())
+	if (obj.isSmi())
 		return (Oop::nil());
-	if (!args->basicAt(2).isSmi())
+	if (!index.isSmi())
 		return (Oop::nil());
-	i = args->basicAt(2).as<SmiOop>().smi();
-	if (i < 1 || i > args->basicAt(1).as<MemOop>()->size())
+	i = index.as<SmiOop>().smi();
+	if (i < 1 || i > obj.as<MemOop>()->size())
 		return (Oop::nil());
-	args->basicAt(1).as<OopOop>()->basicAtPut(i, args->basicAt(3));
-	return args->basicAt(1);
+	obj.as<OopOop>()->basicAtPut(i, val);
+	return obj;
 }
 
 /*
@@ -349,17 +347,17 @@ Returns the receiver.
 Called from ByteArray>>basicAt:put:
 */
 Oop
-primByteAtPut(ObjectMemory &omem, ProcessOop proc, ArrayOop args) /*fix*/
+primByteAtPut(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index,
+    Oop val) /*fix*/
 {
 	int i;
-	if (!args->basicAt(2).isSmi())
+	if (!index.isSmi())
 		perror("#byteAt: non integer index");
-	if (!args->basicAt(3).isSmi())
+	if (!val.isSmi())
 		perror("#byteAt: non integer assignee");
-	args->basicAt(1).as<ByteArrayOop>()->basicAtPut(
-	    args->basicAt(2).as<SmiOop>().smi(),
-	    args->basicAt(3).as<SmiOop>().smi());
-	return (args->basicAt(1));
+	obj.as<ByteArrayOop>()->basicAtPut(index.as<SmiOop>().smi(),
+	    val.as<SmiOop>().smi());
+	return (obj);
 }
 
 inline intptr_t
@@ -461,11 +459,11 @@ Called from
   Class>>new:
 */
 Oop
-primAllocOrefObj(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primAllocOrefObj(ObjectMemory &omem, ProcessOop &proc, Oop size)
 {
-	if (!args->basicAt(1).isSmi())
+	if (!size.isSmi())
 		return (Oop::nil());
-	return (omem.newOopObj<MemOop>(args->basicAt(1).as<SmiOop>().smi()));
+	return (omem.newOopObj<MemOop>(size.as<SmiOop>().smi()));
 }
 
 /*
@@ -476,11 +474,11 @@ Called from
   ByteArray>>size:
 */
 Oop
-primAllocByteObj(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primAllocByteObj(ObjectMemory &omem, ProcessOop &proc, Oop size)
 {
-	if (!args->basicAt(1).isSmi())
+	if (!size.isSmi())
 		return (Oop::nil());
-	return (omem.newByteObj<MemOop>(args->basicAt(1).as<SmiOop>().smi()));
+	return (omem.newByteObj<MemOop>(size.as<SmiOop>().smi()));
 }
 
 /*
@@ -1186,6 +1184,7 @@ primPrintWithNL(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	return (Oop());
 }
 
+#if 0
 Oop
 primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
@@ -1201,6 +1200,22 @@ primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	// printf ("=> Entering block\n");
 	return Oop();
 }
+#else
+Oop
+primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
+{
+	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
+	    args[0].as <BlockOop>());
+
+	for (int i = 1; i < nArgs; i++)
+		ctx->reg0()->basicAtPut(i + 1, args[i]);
+
+	ctx->setPreviousContext(proc->context()->previousContext());
+	proc->setContext(ctx);
+	// printf ("=> Entering block\n");
+	return Oop();
+}
+#endif
 
 Oop
 primDumpVariable(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
@@ -1294,14 +1309,14 @@ Primitive Primitive::primitives[] = {
 	{ true, kDiadic, "smiBitShift", .fnp = primBitShift },
 
 	{ true, kMonadic, "class", .fnp = primClass },
-	{ true, kMonadic, "size", .fnp = primSize },
+	{ false, kMonadic, "size", .fn1 = primSize },
 	{ true, kMonadic, "hash", .fnp = primHash },
 	{ true, kDiadic, "oopEq", .fnp = primIdent },
-	{ true, kDiadic, "classOfPut", .fnp = primClassOfPut },
-	{ true, kDiadic, "basicAt", .fnp = primBasicAt },
-	{ true, kDiadic, "byteAt", .fnp = primByteAt },
-	{ true, kTriadic, "basicAtPut", .fnp = primbasicAtPut },
-	{ true, kTriadic, "byteAtPut", .fnp = primByteAtPut },
+	{ false, kDiadic, "classOfPut", .fn2 = primClassOfPut },
+	{ false, kDiadic, "basicAt", .fn2 = primBasicAt },
+	{ false, kDiadic, "byteAt", .fn2 = primByteAt },
+	{ false, kTriadic, "basicAtPut", .fn3 = primbasicAtPut },
+	{ false, kTriadic, "byteAtPut", .fn3 = primByteAtPut },
 
 	{ true, kMonadic, "stringAsSymbol", .fnp = primAsSymbol },
 	{ true, kMonadic, "stringSize", .fnp = primStringSize },
@@ -1328,11 +1343,11 @@ Primitive Primitive::primitives[] = {
 	{ true, kMonadic, "floatERaisedTo", .fnp = primERaisedTo },
 	{ true, kMonadic, "floatIntegerPart", .fnp = primIntegerPart },
 
-	{ true, kDiadic, "newOops", .fnp = primAllocOrefObj },
-	{ true, kDiadic, "newBytes", .fnp = primAllocByteObj },
+	{ false, kMonadic, "newOops", .fn1 = primAllocOrefObj },
+	{ false, kMonadic, "newBytes", .fn1 = primAllocByteObj },
 
 	{ true, kDiadic, "returnInto", .fnp = primReturnInto },
-	{ true, kVariadic, "execBlock", .fnp = primExecBlock },
+	{ false, kVariadic, "execBlock", .fnv = primExecBlock },
 	{ true, kMonadic, "dumpVariable", .fnp = primDumpVariable },
 	{ true, kMonadic, "debugMsg", .fnp = primMsg },
 	{ true, kMonadic, "fatal", .fnp = primFatal },

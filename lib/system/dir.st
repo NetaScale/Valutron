@@ -18,7 +18,11 @@ Object subclass: INITIAL [
 				ifFalse: [n * (fac value: n - 1)]
 			].
 			^ fac value: 3 asLongInteger."
-	"(fac value: (20 asLongInteger)) printString"
+	"(fac value: (85 asLongInteger)) printString"
 	^ (85 asLongInteger factorial printString)
+	"^ 2 + 3"
 	]
 ]
+
+"Completed in 8.22121"
+"Completed in 8.34563"

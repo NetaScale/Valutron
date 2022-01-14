@@ -425,30 +425,61 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			unsigned prim = FETCH, nArgs = FETCH;
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
-			//std::cout << blanks(in) << "Invoke primitive " <<
-			//    prim << " with " << nArgs << " args\n";
-			for (int i = 0; i < nArgs; i++) {
+			printf("PRIMITIVE %s\n", Primitive::primitives[prim].name);
+
+			for (int i = 0; i < nArgs; i++) 
 				args->basicAt0(i) = regs[FETCH];
-			}
 
 			SPILL();
 			ac = Primitive::primitives[prim].fnp(omem, proc, args);
 			UNSPILL();
 
-			//throw std::runtime_error("Unimplemented kPrimitive");
 			break;
 		}
 
-		/** a arg1, u8 prim-num, u8 arg2-reg */
-		case Op::kPrimitive2: {
-			unsigned prim = FETCH, arg2reg = FETCH;
+		/** a arg, u8 prim-num */
+		case Op::kPrimitive1: {
+			unsigned prim = FETCH;
 
 			SPILL();
-			ac = Primitive::primitives[prim].fn2(omem, proc, ac,
-			    regs[arg2reg]);
+			ac = Primitive::primitives[prim].fn1(omem, proc, ac);
 			UNSPILL();
 
-			//throw std::runtime_error("Unimplemented kPrimitive");
+			break;
+		}
+
+		/** a arg2, u8 prim-num, u8 arg1-reg */
+		case Op::kPrimitive2: {
+			unsigned prim = FETCH, arg1reg = FETCH;
+
+			SPILL();
+			ac = Primitive::primitives[prim].fn2(omem, proc,
+			    regs[arg1reg], ac);
+			UNSPILL();
+
+			break;
+		}
+
+		/** a arg3, u8 prim-num, u8 arg1-reg */
+		case Op::kPrimitive3: {
+			unsigned prim = FETCH, arg1reg = FETCH;
+
+			SPILL();
+			ac = Primitive::primitives[prim].fn3(omem, proc,
+			    regs[arg1reg], regs[arg1reg + 1], ac);
+			UNSPILL();
+
+			break;
+		}
+
+		case Op::kPrimitiveV: {
+			unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
+
+			SPILL();
+			ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
+			    &regs[arg1reg]);
+			UNSPILL();
+
 			break;
 		}
 

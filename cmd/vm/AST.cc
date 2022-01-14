@@ -342,12 +342,46 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 	}
 
 	switch (num->kind) {
+	case Primitive::kMonadic: {
+		assert(args.size() == 1);
+		args[0]->generateOn(gen);
+		return gen.genPrimitive1(num->index);
+	}
+
 	case Primitive::kDiadic: {
 		RegisterID arg1reg;
 		assert(args.size() == 2);
 		args[0]->generateOn(gen);
 		arg1reg = gen.genStar();
+		args[1]->generateOn(gen);
 		return gen.genPrimitive2(num->index, arg1reg);
+	}
+
+	case Primitive::kTriadic: {
+		RegisterID arg1reg, arg2reg;
+		assert(args.size() == 3);
+
+		args[0]->generateOn(gen);
+		arg1reg = gen.genStar();
+		arg2reg = gen.allocReg();
+		args[1]->generateOn(gen);
+		gen.genStar(arg2reg);
+		args[2]->generateOn(gen);
+		return gen.genPrimitive3(num->index, arg1reg);
+	}
+
+	case Primitive::kVariadic: {
+		std::vector<RegisterID> argRegs(args.size());
+
+		for (auto & reg: argRegs)
+			reg = gen.allocReg();
+
+		for (int i = 0; i < args.size(); i++) {
+			args[i]->generateOn(gen);
+			gen.genStar(argRegs[i]);
+		}
+
+		return gen.genPrimitiveV(num->index, args.size(), argRegs[0]);
 	}
 	default:
 		abort();
@@ -633,14 +667,15 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
+#if 0
 	std::cout << "DISASSEMBLY OF METHOD " << sel << "\n";
 	disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");
-	for (int i = 0; i < gen.literals().size(); i++)
-	{
+	for (int i = 0; i < gen.literals().size(); i++) {
 		std::cout << " " << i << "\t";
 		gen.literals()[i].print(2);
 	}
+#endif
 
 	gen.popCurrentScope();
 
