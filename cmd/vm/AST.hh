@@ -11,6 +11,8 @@
 #include "Oops.hh"
 #include "Typecheck.hh"
 
+struct Primitive;
+
 /* Details of the position of some source code. */
 class Position {
 	size_t m_oldLine, m_oldCol, m_oldPos;
@@ -556,7 +558,7 @@ struct CascadeExprNode : ExprNode {
 struct PrimitiveExprNode : ExprNode {
 	std::string name;
 	std::vector<ExprNode *> args;
-	int num;
+	Primitive *num;
 
 	PrimitiveExprNode(std::string name, std::vector<ExprNode *> args)
 	    : name(name)

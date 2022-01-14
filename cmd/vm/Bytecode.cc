@@ -240,6 +240,15 @@ disassemble(uint8_t *code, int length)
 			break;
 		}
 
+		/** a arg1, u8 prim-num, u8 arg2-reg, */
+		case Op::kPrimitive2: {
+			unsigned prim = FETCH, arg2 = FETCH;
+			std::cout << "Primitive2: " << prim << " r" << arg2 <<
+			    "\n";
+			std::cout << "\n";
+			break;
+		}
+
 		case Op::kReturnSelf: {
 			std::cout << "ReturnSelf\n";
 			break;

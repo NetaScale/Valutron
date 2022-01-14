@@ -335,14 +335,12 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kBinOp: {
 			uint8_t src = FETCH;
 			uint8_t op = FETCH;
-			ArrayOop args = ArrayOopDesc::newWithSize(omem, 2);
+			Oop arg1 = ac;
 
-			args->basicAt(1) = ac;
-			args->basicAt(2) = regs[src];
-
-			ac = Primitive::primitives[op].fnp(omem, proc, args);
+			ac = Primitive::primitives[op].fn2(omem, proc, ac,
+			    regs[src]);
 			if (ac.isNil()) {
-				ac = args->basicAt(1);
+				ac = arg1;
 
 				MethodOop meth = lookupMethodInClass(proc,
 				    ac, ac.isa(),
@@ -354,7 +352,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				    omem, ac, meth);
 				ctx->previousContext() = CTX;
 
-				ctx->reg0()->basicAt0(1) = args->basicAt(2);
+				ctx->reg0()->basicAt0(1) = regs[src];
 
 				SPILL();
 				CTX = ctx;
@@ -397,8 +395,6 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSendSuper: {
-
-
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			ClassOop cls = METHODCLASS->superClass();
 			MethodOop meth = lookupMethodInClass(proc, ac, cls,
@@ -437,6 +433,19 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 			SPILL();
 			ac = Primitive::primitives[prim].fnp(omem, proc, args);
+			UNSPILL();
+
+			//throw std::runtime_error("Unimplemented kPrimitive");
+			break;
+		}
+
+		/** a arg1, u8 prim-num, u8 arg2-reg */
+		case Op::kPrimitive2: {
+			unsigned prim = FETCH, arg2reg = FETCH;
+
+			SPILL();
+			ac = Primitive::primitives[prim].fn2(omem, proc, ac,
+			    regs[arg2reg]);
 			UNSPILL();
 
 			//throw std::runtime_error("Unimplemented kPrimitive");

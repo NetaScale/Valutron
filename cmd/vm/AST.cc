@@ -331,49 +331,27 @@ void
 PrimitiveExprNode::generateOn(CodeGen &gen)
 {
 	std::string name;
+	std::vector<RegisterID> argRegs;
 
-	if (num != -1) {
-		std::vector<RegisterID> argRegs;
-		for (auto arg : args)
-		{
+	if (num->oldStyle) {
+		for (auto arg : args) {
 			arg->generateOn(gen);
 			argRegs.push_back(gen.genStar());
 		}
-		return gen.genPrimitive(num, argRegs);
-	} else
+		return gen.genPrimitive(num->index, argRegs);
+	}
+
+	switch (num->kind) {
+	case Primitive::kDiadic: {
+		RegisterID arg1reg;
+		assert(args.size() == 2);
+		args[0]->generateOn(gen);
+		arg1reg = gen.genStar();
+		return gen.genPrimitive2(num->index, arg1reg);
+	}
+	default:
 		abort();
-
-#if 0
-    name = dynamic_cast<IdentExprNode *> (args[0])->id;
-
-    if (name == "C")
-    {
-        std::string code = std::string (jitPrelude) +
-                           dynamic_cast<StringExprNode *> (args[1])->str;
-        TCCState * tcc = atcc_new ();
-        size_t codeSize;
-        NativeCodeOop nativeCode;
-        NativeCodeOopDesc::Fun fun;
-
-        tcc_set_error_func (tcc, NULL, tccErr);
-        tcc_set_output_type (tcc, TCC_OUTPUT_MEMORY);
-        tcc_define_symbol (tcc, "__MultiVIM_JIT", "true");
-        if (tcc_compile_string (tcc, code.c_str ()) == -1)
-            abort ();
-        codeSize = tcc_relocate (tcc, NULL);
-        printf ("Code size: %d\n", codeSize);
-        assert (codeSize != -1);
-
-        nativeCode = NativeCodeOopDesc::newWithSize (codeSize);
-        tcc_relocate (tcc, nativeCode->funCode ());
-        fun = (NativeCodeOopDesc::Fun)tcc_get_symbol (tcc, "main");
-        nativeCode->setFun (fun);
-
-        tcc_delete (tcc);
-
-        gen.genPushLiteralObject (nativeCode);
-    }
-#endif
+	}
 }
 
 void

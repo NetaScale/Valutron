@@ -129,7 +129,7 @@ void
 PrimitiveExprNode::synthInScope(Scope *scope)
 {
 	num = Primitive::named(name.c_str());
-	if (num == -1)
+	if (num == NULL)
 		throw std::runtime_error("Unknown primitive " + name);
 
 	for (auto arg : args)
@@ -152,7 +152,8 @@ AssignExprNode::synthInScope(Scope *scope)
 static int
 isOptimisedBinop(std::string sel)
 {
-	for (int i = 0; i < sizeof(ObjectMemory::binOpStr) / sizeof(*ObjectMemory::binOpStr); i++)
+	for (int i = 0; i < sizeof(ObjectMemory::binOpStr) /
+	    sizeof(*ObjectMemory::binOpStr); i++)
 		if (sel == ObjectMemory::binOpStr[i])
 			return i;
 	return -1;
@@ -209,8 +210,7 @@ MessageExprNode::synthInScope(Scope *scope)
 		m_specialKind = kWhileFalse;
 		args[0]->synthInlineInScope(scope);
 		return;
-	}
-	 else {
+	} else {
 		int binOp = isOptimisedBinop(selector);
 
 		if (binOp != -1)

@@ -291,6 +291,13 @@ CodeGen::genPrimitive(uint8_t primNum, std::vector<RegisterID> args)
 }
 
 void
+CodeGen::genPrimitive2(uint8_t primNum, RegisterID arg1reg)
+{
+	gen(Op::kPrimitive2, primNum, arg1reg);
+}
+
+
+void
 CodeGen::genReturn()
 {
 	gen(Op::kReturn);

@@ -490,15 +490,15 @@ Called from Integer>>+
 Also called for SendBinary bytecodes.
 */
 Oop
-primAdd(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primAdd(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
 
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi()) {
+	if (!a.isSmi() || !b.isSmi()) {
 		return (Oop::nil());
 	}
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult += args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult += b.as<SmiOop>().smi();
 	if (1) // FIXME: bounds test SMI 1) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
@@ -512,13 +512,13 @@ Called from Integer>>-
 Also called for SendBinary bytecodes.
 */
 Oop
-primSubtract(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primSubtract(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult -= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult -= b.as<SmiOop>().smi();
 	if (1) // FIXME: smi boundcheck 1) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
@@ -532,12 +532,12 @@ Called from Integer>><
 Also called for SendBinary bytecodes.
 */
 Oop
-primLessThan(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primLessThan(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() <
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() <
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -550,12 +550,12 @@ Called from Integer>>>
 Also called for SendBinary bytecodes.
 */
 Oop
-primGreaterThan(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primGreaterThan(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() >
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() >
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -567,12 +567,12 @@ argument's value; false otherwise.
 Called for SendBinary bytecodes.
 */
 Oop
-primLessOrEqual(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primLessOrEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() <=
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() <=
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -584,12 +584,12 @@ argument's value; false otherwise.
 Called for SendBinary bytecodes.
 */
 Oop
-primGreaterOrEqual(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primGreaterOrEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() >=
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() >=
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -601,12 +601,12 @@ false otherwise.
 Called for SendBinary bytecodes.
 */
 Oop
-primEqual(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() ==
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() ==
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -618,12 +618,12 @@ value; false otherwise.
 Called for SendBinary bytecodes.
 */
 Oop
-primNotEqual(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primNotEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(1).as<SmiOop>().smi() !=
-	    args->basicAt(2).as<SmiOop>().smi())
+	if (a.as<SmiOop>().smi() !=
+	    b.as<SmiOop>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -636,13 +636,13 @@ Called from Integer>>*
 Also called for SendBinary bytecodes.
 */
 Oop
-primMultiply(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primMultiply(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult *= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult *= b.as<SmiOop>().smi();
 	if (1) // FIXME: boundscheck 1) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
@@ -656,15 +656,15 @@ Called from Integer>>quo:
 Also called for SendBinary bytecodes.
 */
 Oop
-primQuotient(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primQuotient(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (args->basicAt(2).as<SmiOop>().smi() == 0)
+	if (b.as<SmiOop>().smi() == 0)
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult /= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult /= b.as<SmiOop>().smi();
 	if (1) // FIXME: boundscheck 1) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
@@ -677,20 +677,20 @@ the argument's value.
 Called for SendBinary bytecodes.
 */
 Oop
-primRemainder(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primRemainder(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
 
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi()) {
+	if (!a.isSmi() || !b.isSmi()) {
 		printf("#primRem: receiver or arg not integer");
 		return (Oop::nil());
 	}
-	if (args->basicAt(2).as<SmiOop>().smi() == 0) {
+	if (b.as<SmiOop>().smi() == 0) {
 		printf("#primRem: division by zero");
 		return (Oop::nil());
 	}
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult %= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult %= b.as<SmiOop>().smi();
 	if (1) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
@@ -704,13 +704,13 @@ Called from Integer>>bitAnd:
 Also called for SendBinary bytecodes.
 */
 Oop
-primBitAnd(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primBitAnd(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult &= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult &= b.as<SmiOop>().smi();
 	return (SmiOop(longresult));
 }
 
@@ -721,13 +721,13 @@ Called from Integer>>bitXor:
 Also called for SendBinary bytecodes.
 */
 Oop
-primBitXor(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
+primBitXor(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	long longresult;
-	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
+	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	longresult ^= args->basicAt(2).as<SmiOop>().smi();
+	longresult = a.as<SmiOop>().smi();
+	longresult ^= b.as<SmiOop>().smi();
 	return (SmiOop(longresult));
 }
 
@@ -1262,79 +1262,79 @@ Primitive::initialise()
 	} while ((*++prim).name != NULL);
 }
 
-int
+Primitive *
 Primitive::named(std::string name)
 {
 	Primitive *prim = primitives;
 	do {
 		if (prim->name == name)
-			return prim->index;
+			return prim;
 	} while ((*++prim).name != NULL);
-	return -1;
+	return NULL;
 }
 
 #pragma GCC diagnostic ignored "-Wc99-designator"
 
 Primitive Primitive::primitives[] = {
 	/* smi operations */
-	{ 0, kDiadic, "smiAdd", .fnp = primAdd },
-	{ 0, kDiadic, "smiSub", .fnp = primSubtract },
-	{ 0, kDiadic, "smi<", .fnp = primLessThan },
-	{ 0, kDiadic, "smi>", .fnp = primGreaterThan },
-	{ 0, kDiadic, "smi<=", .fnp = primLessOrEqual },
-	{ 0, kDiadic, "smi>=", .fnp = primGreaterOrEqual },
-	{ 0, kDiadic, "smiEq", .fnp = primEqual },
-	{ 0, kDiadic, "smiNeq", .fnp = primNotEqual },
-	{ 0, kDiadic, "smiMul", .fnp = primMultiply },
-	{ 0, kDiadic, "smiQuo", .fnp = primQuotient },
-	{ 0, kDiadic, "smiRem", .fnp = primRemainder },
-	{ 0, kDiadic, "smiBitAnd", .fnp = primBitAnd },
-	{ 0, kDiadic, "smiBitXor", .fnp = primBitXor },
+	{ false, kDiadic, "smiAdd", .fn2 = primAdd },
+	{ false, kDiadic, "smiSub", .fn2 = primSubtract },
+	{ false, kDiadic, "smi<", .fn2 = primLessThan },
+	{ false, kDiadic, "smi>", .fn2 = primGreaterThan },
+	{ false, kDiadic, "smi<=", .fn2 = primLessOrEqual },
+	{ false, kDiadic, "smi>=", .fn2 = primGreaterOrEqual },
+	{ false, kDiadic, "smiEq", .fn2 = primEqual },
+	{ false, kDiadic, "smiNeq", .fn2 = primNotEqual },
+	{ false, kDiadic, "smiMul", .fn2 = primMultiply },
+	{ false, kDiadic, "smiQuo", .fn2 = primQuotient },
+	{ false, kDiadic, "smiRem", .fn2 = primRemainder },
+	{ false, kDiadic, "smiBitAnd", .fn2 = primBitAnd },
+	{ false, kDiadic, "smiBitXor", .fn2 = primBitXor },
 
-	{ 0, kDiadic, "smiBitShift", .fnp = primBitShift },
+	{ true, kDiadic, "smiBitShift", .fnp = primBitShift },
 
-	{ 0, kMonadic, "class", .fnp = primClass },
-	{ 1, kMonadic, "size", .fnp = primSize },
-	{ 2, kMonadic, "hash", .fnp = primHash },
-	{ 3, kDiadic, "oopEq", .fnp = primIdent },
-	{ 4, kDiadic, "classOfPut", .fnp = primClassOfPut },
-	{ 5, kDiadic, "basicAt", .fnp = primBasicAt },
-	{ 6, kDiadic, "byteAt", .fnp = primByteAt },
-	{ 7, kTriadic, "basicAtPut", .fnp = primbasicAtPut },
-	{ 8, kTriadic, "byteAtPut", .fnp = primByteAtPut },
+	{ true, kMonadic, "class", .fnp = primClass },
+	{ true, kMonadic, "size", .fnp = primSize },
+	{ true, kMonadic, "hash", .fnp = primHash },
+	{ true, kDiadic, "oopEq", .fnp = primIdent },
+	{ true, kDiadic, "classOfPut", .fnp = primClassOfPut },
+	{ true, kDiadic, "basicAt", .fnp = primBasicAt },
+	{ true, kDiadic, "byteAt", .fnp = primByteAt },
+	{ true, kTriadic, "basicAtPut", .fnp = primbasicAtPut },
+	{ true, kTriadic, "byteAtPut", .fnp = primByteAtPut },
 
-	{ 0, kMonadic, "stringAsSymbol", .fnp = primAsSymbol },
-	{ 2, kMonadic, "stringSize", .fnp = primStringSize },
-	{ 3, kMonadic, "stringHash", .fnp = primStringHash },
-	{ 2, kDiadic, "stringCat", .fnp = primStringCat },
-	{ 0, kDiadic, "copyFromTo", .fnp = primCopyFromTo },
+	{ true, kMonadic, "stringAsSymbol", .fnp = primAsSymbol },
+	{ true, kMonadic, "stringSize", .fnp = primStringSize },
+	{ true, kMonadic, "stringHash", .fnp = primStringHash },
+	{ true, kDiadic, "stringCat", .fnp = primStringCat },
+	{ true, kDiadic, "copyFromTo", .fnp = primCopyFromTo },
 
-	{ 0, kDiadic, "symbolAssign", .fnp = primSymbolAssign },
+	{ true, kDiadic, "symbolAssign", .fnp = primSymbolAssign },
 
-	{ 0, kMonadic, "asFloat", .fnp = primAsFloat },
+	{ true, kMonadic, "asFloat", .fnp = primAsFloat },
 
-	{ 0, kDiadic, "floatAdd", .fnp = primFloatAdd },
-	{ 0, kDiadic, "floatSubtract", .fnp = primFloatSubtract },
-	{ 0, kDiadic, "floatLessThan", .fnp = primFloatLessThan },
-	{ 0, kDiadic, "floatGreaterThan", .fnp = primFloatGreaterThan },
-	{ 0, kDiadic, "floatLessOrEqual", .fnp = primFloatLessOrEqual },
-	{ 0, kDiadic, "floatGreaterOrEqual", .fnp = primFloatGreaterOrEqual },
-	{ 0, kDiadic, "floatEqual", .fnp = primFloatEqual },
-	{ 0, kDiadic, "floatNotEqual", .fnp = primFloatNotEqual },
-	{ 0, kDiadic, "floatMultiply", .fnp = primFloatMultiply },
-	{ 0, kDiadic, "floatDivide", .fnp = primFloatDivide },
-	{ 0, kMonadic, "floatNaturalLog", .fnp = primNaturalLog },
-	{ 0, kMonadic, "floatAsString", .fnp = primAsString },
-	{ 0, kMonadic, "floatERaisedTo", .fnp = primERaisedTo },
-	{ 0, kMonadic, "floatIntegerPart", .fnp = primIntegerPart },
+	{ true, kDiadic, "floatAdd", .fnp = primFloatAdd },
+	{ true, kDiadic, "floatSubtract", .fnp = primFloatSubtract },
+	{ true, kDiadic, "floatLessThan", .fnp = primFloatLessThan },
+	{ true, kDiadic, "floatGreaterThan", .fnp = primFloatGreaterThan },
+	{ true, kDiadic, "floatLessOrEqual", .fnp = primFloatLessOrEqual },
+	{ true, kDiadic, "floatGreaterOrEqual", .fnp = primFloatGreaterOrEqual },
+	{ true, kDiadic, "floatEqual", .fnp = primFloatEqual },
+	{ true, kDiadic, "floatNotEqual", .fnp = primFloatNotEqual },
+	{ true, kDiadic, "floatMultiply", .fnp = primFloatMultiply },
+	{ true, kDiadic, "floatDivide", .fnp = primFloatDivide },
+	{ true, kMonadic, "floatNaturalLog", .fnp = primNaturalLog },
+	{ true, kMonadic, "floatAsString", .fnp = primAsString },
+	{ true, kMonadic, "floatERaisedTo", .fnp = primERaisedTo },
+	{ true, kMonadic, "floatIntegerPart", .fnp = primIntegerPart },
 
-	{ 0, kDiadic, "newOops", .fnp = primAllocOrefObj },
-	{ 0, kDiadic, "newBytes", .fnp = primAllocByteObj },
+	{ true, kDiadic, "newOops", .fnp = primAllocOrefObj },
+	{ true, kDiadic, "newBytes", .fnp = primAllocByteObj },
 
-	{ 0, kDiadic, "returnInto", .fnp = primReturnInto },
-	{ 0, kVariadic, "execBlock", .fnp = primExecBlock },
-	{ 0, kMonadic, "dumpVariable", .fnp = primDumpVariable },
-	{ 0, kMonadic, "debugMsg", .fnp = primMsg },
-	{ 0, kMonadic, "fatal", .fnp = primFatal },
-	{ 0, kMonadic, NULL, .fnp = NULL },
+	{ true, kDiadic, "returnInto", .fnp = primReturnInto },
+	{ true, kVariadic, "execBlock", .fnp = primExecBlock },
+	{ true, kMonadic, "dumpVariable", .fnp = primDumpVariable },
+	{ true, kMonadic, "debugMsg", .fnp = primMsg },
+	{ true, kMonadic, "fatal", .fnp = primFatal },
+	{ true, kMonadic, NULL, .fnp = NULL },
 };

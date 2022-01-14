@@ -103,6 +103,7 @@ class CodeGen {
 	void genMessage(bool isSuper,std::string selector,
 	    std::vector<RegisterID> args);
 	void genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
+	void genPrimitive2(uint8_t primNum, RegisterID arg1reg);
 
 	void genReturn();
 	void genReturnSelf();

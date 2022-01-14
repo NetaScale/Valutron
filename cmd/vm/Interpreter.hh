@@ -9,9 +9,9 @@ struct Primitive {
 	static Primitive primitives[];
 
 	static void initialise();
-	static int named(std::string name);
+	static Primitive *named(std::string name);
 
-	char index;
+	bool oldStyle;
 	enum Kind {
 		kNiladic,
 		kMonadic,
@@ -29,6 +29,7 @@ struct Primitive {
 		    Oop c);
 		Oop (*fna)(ObjectMemory &omem, ProcessOop &proc, Oop args[]);
 	};
+	char index;
 };
 
 /**
@@ -96,6 +97,8 @@ class Op {
 		kSendSuper,
 		/** u8 prim-num, u8 num-args, (u8 arg-reg)+, -> a result */
 		kPrimitive,
+		/** a arg1, u8 prim-num, u8 arg2-reg */
+		kPrimitive2,
 
 		kReturnSelf,
 
