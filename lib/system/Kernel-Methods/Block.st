@@ -39,14 +39,14 @@ Object subclass: Block [
 	]
 
 	value [
-		^ <160 self>
+		^ <#execBlock self>
 	]
 
 	value: x [
 		"^ (self checkArgumentCount:  1)
 			ifTrue: [ context at: argLoc put: x.
 				  context returnToBlock: bytePointer ]"
-		^ <160 self x>
+		^ <#execBlock self x>
 	]
 
 	value: x value: y [
@@ -54,7 +54,7 @@ Object subclass: Block [
 			ifTrue: [ context at: argLoc put: x.
 				  context at: argLoc + 1 put: y.
 				  context returnToBlock: bytePointer ]"
-		^ <160 self x y>
+		^ <#execBlock self x y>
 	]
 
 	value: x value: y value: z [
@@ -63,7 +63,7 @@ Object subclass: Block [
 				  context at: argLoc + 1 put: y.
 				  context at: argLoc + 2 put: z.
 				  context returnToBlock: bytePointer ]"
-		^ <160 self x y z>
+		^ <#execBlock self x y z>
 	]
 
 	whileFalse [
@@ -91,7 +91,7 @@ Object subclass: Block [
 
 		| i prevContext tempHomeContext |
 
-		"<162 'Begin non local returnage.\n'>."
+		"<#debugMsg 'Begin non local returnage.\n'>."
 
 		i <- 1.
 		tempHomeContext <- homeContext.
@@ -114,13 +114,13 @@ Object subclass: Block [
 
 		"Now escape the method context. "
 		prevContext <- prevContext prevContext.
-		prevContext isNil ifTrue: [ <163 'PrevContext is nil'> ].
-		<4 prevContext returnValue>
+		prevContext isNil ifTrue: [ <#fatal 'PrevContext is nil'> ].
+		<#returnInto prevContext returnValue>
 	]
 
 	testBlock [
 		 [ thisContext methodOrBlock nonLocalReturn: 55
-						  ] ensure: [ <162 'Hello!'> ]
+						  ] ensure: [ <#debugMsg 'Hello!'> ]
 	]
 
 	"category: Kernel-Exceptions"

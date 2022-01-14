@@ -338,7 +338,7 @@ primary_expr ::= block_expr.
 primary_expr ::= literal_expr.
 primary_expr(S) ::= PRIMNUM(n) primary_list_opt(l) RCARET.
 	{
-		S = new PrimitiveExprNode(n.intValue, l);
+		S = new PrimitiveExprNode(n.stringValue, l);
 	}
 
 %type primary_list_opt { std::vector<ExprNode *> }

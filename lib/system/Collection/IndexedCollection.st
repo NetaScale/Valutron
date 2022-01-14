@@ -14,7 +14,7 @@ Collection subclass: IndexedCollection [
 
 	at: aKey [
 		^ self at: aKey
-			ifAbsent: [ <2000>. VM error: 'index to at: illegal' ]
+			ifAbsent: [ "<2000>." VM error: 'index to at: illegal' ]
 	]
 
 	at: index ifAbsent: exceptionBlock [

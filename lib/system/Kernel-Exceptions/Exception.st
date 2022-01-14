@@ -1,6 +1,6 @@
 Object subclass: Exception [
     signal [
-        <163 "Error!">
+        <#fatal "Error!">
     ]
 
 ]

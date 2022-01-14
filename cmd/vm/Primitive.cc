@@ -3,6 +3,7 @@
 
 #include "Interpreter.hh"
 #include "ObjectMemory.hh"
+#include "Oops.hh"
 
 Oop
 unsupportedPrim(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
@@ -68,8 +69,8 @@ primReturnInto(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	ContextOop ctx = args->basicAt(1).as<ContextOop>();
 	Oop rVal = args->basicAt(2);
 	proc->setContext(ctx);
-	//printf("Activating return continuation:\n");
-	//printf("-----------INTO %s>>%s-------------\n",
+	// printf("Activating return continuation:\n");
+	// printf("-----------INTO %s>>%s-------------\n",
 	//    ctx->receiver().isa()->name()->asCStr(),
 	//    ctx->isBlockContext() ?
 	//	      "<block>" :
@@ -232,7 +233,7 @@ Called from
 Oop
 primClassOfPut(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	//fprintf(stderr, "Setting ClassOf %d to %d\n, ", args->basicAt(1),
+	// fprintf(stderr, "Setting ClassOf %d to %d\n, ", args->basicAt(1),
 	//    args->basicAt(2));
 	args->basicAt(1).setIsa(args->basicAt(2).as<ClassOop>());
 	return (args->basicAt(1));
@@ -1191,7 +1192,7 @@ primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
 	    args->basicAt(1).as<BlockOop>());
 	for (int i = 2; i <= args.as<MemOop>()->size(); i++) {
-		//printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
+		// printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
 		ctx->reg0()->basicAtPut(i, args->basicAt(i));
 	}
 
@@ -1250,170 +1251,90 @@ primExecuteNative(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	return Oop();
 }
 
-PrimitiveMethod *primVec[255] = {
-	/*000*/ &unsupportedPrim,
-	/*001*/ &unsupportedPrim,
-	/*002*/ &primAvailCount,
-	/*003*/ &primRandom,
-	/*004*/ &primReturnInto,
-	/*005*/ &primFlipWatching,
-	/*006*/ &unsupportedPrim,
-	/*007*/ &unsupportedPrim,
-	/*008*/ &unsupportedPrim,
-	/*009*/ &primExit,
-	/*010*/ &unsupportedPrim,
-	/*011*/ &primClass,
-	/*012*/ &primSize,
-	/*013*/ &primHash,
-	/*014*/ &unsupportedPrim,
-	/*015*/ &unsupportedPrim,
-	/*016*/ &unsupportedPrim,
-	/*017*/ &unsupportedPrim,
-	/*018*/ &primBlockReturn,
-	/*019*/ &primExecute,
-	/*020*/ &unsupportedPrim,
-	/*021*/ &primIdent,
-	/*022*/ &primClassOfPut,
-	/*023*/ &unsupportedPrim,
-	/*024*/ &primStringCat,
-	/*025*/ &primBasicAt,
-	/*026*/ &primByteAt,
-	/*027*/ &primSymbolAssign,
-	/*028*/ &unsupportedPrim,
-	/*029*/ &unsupportedPrim,
-	/*030*/ &unsupportedPrim,
-	/*031*/ &primbasicAtPut,
-	/*032*/ &primByteAtPut,
-	/*033*/ &primCopyFromTo,
-	/*034*/ &unsupportedPrim,
-	/*035*/ &unsupportedPrim,
-	/*036*/ &unsupportedPrim,
-	/*037*/ &unsupportedPrim,
-	/*038*/ &unsupportedPrim, //&primFlushCache,
-	/*039*/ &primParse,
-	/*040*/ &unsupportedPrim,
-	/*041*/ &unsupportedPrim,
-	/*042*/ &unsupportedPrim,
-	/*043*/ &unsupportedPrim,
-	/*044*/ &unsupportedPrim, //&primSpecial,
-	/*045*/ &unsupportedPrim,
-	/*046*/ &unsupportedPrim,
-	/*047*/ &unsupportedPrim,
-	/*048*/ &unsupportedPrim,
-	/*049*/ &unsupportedPrim,
-	/*050*/ &unsupportedPrim,
-	/*051*/ &primAsFloat,
-	/*052*/ &unsupportedPrim,
-	/*053*/ &primSetTimeSlice,
-	/*054*/ &unsupportedPrim,
-	/*055*/ &unsupportedPrim, //&primSetSeed,
-	/*056*/ &unsupportedPrim,
-	/*057*/ &unsupportedPrim,
-	/*058*/ &primAllocOrefObj,
-	/*059*/ &primAllocByteObj,
-	/*060*/ &primAdd,
-	/*061*/ &primSubtract,
-	/*062*/ &primLessThan,
-	/*063*/ &primGreaterThan,
-	/*064*/ &primLessOrEqual,
-	/*065*/ &primGreaterOrEqual,
-	/*066*/ &primEqual,
-	/*067*/ &primNotEqual,
-	/*068*/ &primMultiply,
-	/*069*/ &primQuotient,
-	/*070*/ &primRemainder,
-	/*071*/ &primBitAnd,
-	/*072*/ &primBitXor,
-	/*073*/ &unsupportedPrim,
-	/*074*/ &unsupportedPrim,
-	/*075*/ &unsupportedPrim,
-	/*076*/ &unsupportedPrim,
-	/*077*/ &unsupportedPrim,
-	/*078*/ &unsupportedPrim,
-	/*079*/ &primBitShift,
-	/*080*/ &unsupportedPrim,
-	/*081*/ &primStringSize,
-	/*082*/ &primStringHash,
-	/*083*/ &primAsSymbol,
-	/*084*/ &unsupportedPrim,
-	/*085*/ &unsupportedPrim,
-	/*086*/ &unsupportedPrim,
-	/*087*/ &unsupportedPrim,
-	/*088*/ &primHostCommand,
-	/*089*/ &unsupportedPrim,
-	/*090*/ &unsupportedPrim,
-	/*091*/ &unsupportedPrim,
-	/*092*/ &unsupportedPrim,
-	/*093*/ &unsupportedPrim,
-	/*094*/ &unsupportedPrim,
-	/*095*/ &unsupportedPrim,
-	/*096*/ &unsupportedPrim,
-	/*097*/ &unsupportedPrim,
-	/*098*/ &unsupportedPrim,
-	/*099*/ &unsupportedPrim,
-	/*100*/ &unsupportedPrim,
-	/*101*/ &primAsString,
-	/*102*/ &primNaturalLog,
-	/*103*/ &primERaisedTo,
-	/*104*/ &unsupportedPrim,
-	/*105*/ &unsupportedPrim,
-	/*106*/ &primIntegerPart,
-	/*107*/ &unsupportedPrim,
-	/*108*/ &unsupportedPrim,
-	/*109*/ &unsupportedPrim,
-	/*110*/ &primFloatAdd,
-	/*111*/ &primFloatSubtract,
-	/*112*/ &primFloatLessThan,
-	/*113*/ &primFloatGreaterThan,
-	/*114*/ &primFloatLessOrEqual,
-	/*115*/ &primFloatGreaterOrEqual,
-	/*116*/ &primFloatEqual,
-	/*117*/ &primFloatNotEqual,
-	/*118*/ &primFloatMultiply,
-	/*119*/ &primFloatDivide,
-	/*120*/ &primFileOpen,
-	/*121*/ &primFileClose,
-	/*122*/ &unsupportedPrim,
-	/*123*/ &primFileIn,
-	/*124*/ &unsupportedPrim,
-	/*125*/ &primGetString,
-	/*126*/ &unsupportedPrim,
-	/*127*/ &unsupportedPrim, //&primImageWrite,
-	/*128*/ &primPrintWithoutNL,
-	/*129*/ &primPrintWithNL,
-	/*130*/ &unsupportedPrim,
-	/*131*/ &unsupportedPrim,
-	/*132*/ &unsupportedPrim,
-	/*133*/ &unsupportedPrim,
-	/*134*/ &unsupportedPrim,
-	/*135*/ &unsupportedPrim,
-	/*136*/ &unsupportedPrim,
-	/*137*/ &unsupportedPrim,
-	/*138*/ &unsupportedPrim,
-	/*139*/ &unsupportedPrim,
-	/*140*/ &unsupportedPrim,
-	/*141*/ &unsupportedPrim,
-	/*142*/ &unsupportedPrim,
-	/*143*/ &unsupportedPrim,
-	/*144*/ &unsupportedPrim,
-	/*145*/ &unsupportedPrim,
-	/*146*/ &unsupportedPrim,
-	/*147*/ &unsupportedPrim,
-	/*148*/ &unsupportedPrim,
-	/*149*/ &unsupportedPrim,
-	/*150*/ &unsupportedPrim,
-	/*151*/ &unsupportedPrim, //&primSetTrace,
-	/*152*/ &unsupportedPrim, //&primError,
-	/*153*/ &unsupportedPrim, //&primReclaim,
-	/*154*/ &unsupportedPrim, //&primLogChunk,
-	/*155*/ &unsupportedPrim,
-	/*156*/ &unsupportedPrim,
-	/*157*/ &unsupportedPrim, //&primGetChunk,
-	/*158*/ &unsupportedPrim, //&primPutChunk,
-	/*159*/ &unsupportedPrim,
-	/*160*/ &primExecBlock,
-	/*161*/ &primDumpVariable,
-	/*162*/ &primMsg,
-	/*163*/ &primFatal,
-	/*164*/ &primExecuteNative,
+void
+Primitive::initialise()
+{
+	Primitive *prim = primitives;
+	int i = 0;
+
+	do {
+		prim->index = i++;
+	} while ((*++prim).name != NULL);
+}
+
+int
+Primitive::named(std::string name)
+{
+	Primitive *prim = primitives;
+	do {
+		if (prim->name == name)
+			return prim->index;
+	} while ((*++prim).name != NULL);
+	return -1;
+}
+
+#pragma GCC diagnostic ignored "-Wc99-designator"
+
+Primitive Primitive::primitives[] = {
+	/* smi operations */
+	{ 0, kDiadic, "smiAdd", .fnp = primAdd },
+	{ 0, kDiadic, "smiSub", .fnp = primSubtract },
+	{ 0, kDiadic, "smi<", .fnp = primLessThan },
+	{ 0, kDiadic, "smi>", .fnp = primGreaterThan },
+	{ 0, kDiadic, "smi<=", .fnp = primLessOrEqual },
+	{ 0, kDiadic, "smi>=", .fnp = primGreaterOrEqual },
+	{ 0, kDiadic, "smiEq", .fnp = primEqual },
+	{ 0, kDiadic, "smiNeq", .fnp = primNotEqual },
+	{ 0, kDiadic, "smiMul", .fnp = primMultiply },
+	{ 0, kDiadic, "smiQuo", .fnp = primQuotient },
+	{ 0, kDiadic, "smiRem", .fnp = primRemainder },
+	{ 0, kDiadic, "smiBitAnd", .fnp = primBitAnd },
+	{ 0, kDiadic, "smiBitXor", .fnp = primBitXor },
+
+	{ 0, kDiadic, "smiBitShift", .fnp = primBitShift },
+
+	{ 0, kMonadic, "class", .fnp = primClass },
+	{ 1, kMonadic, "size", .fnp = primSize },
+	{ 2, kMonadic, "hash", .fnp = primHash },
+	{ 3, kDiadic, "oopEq", .fnp = primIdent },
+	{ 4, kDiadic, "classOfPut", .fnp = primClassOfPut },
+	{ 5, kDiadic, "basicAt", .fnp = primBasicAt },
+	{ 6, kDiadic, "byteAt", .fnp = primByteAt },
+	{ 7, kTriadic, "basicAtPut", .fnp = primbasicAtPut },
+	{ 8, kTriadic, "byteAtPut", .fnp = primByteAtPut },
+
+	{ 0, kMonadic, "stringAsSymbol", .fnp = primAsSymbol },
+	{ 2, kMonadic, "stringSize", .fnp = primStringSize },
+	{ 3, kMonadic, "stringHash", .fnp = primStringHash },
+	{ 2, kDiadic, "stringCat", .fnp = primStringCat },
+	{ 0, kDiadic, "copyFromTo", .fnp = primCopyFromTo },
+
+	{ 0, kDiadic, "symbolAssign", .fnp = primSymbolAssign },
+
+	{ 0, kMonadic, "asFloat", .fnp = primAsFloat },
+
+	{ 0, kDiadic, "floatAdd", .fnp = primFloatAdd },
+	{ 0, kDiadic, "floatSubtract", .fnp = primFloatSubtract },
+	{ 0, kDiadic, "floatLessThan", .fnp = primFloatLessThan },
+	{ 0, kDiadic, "floatGreaterThan", .fnp = primFloatGreaterThan },
+	{ 0, kDiadic, "floatLessOrEqual", .fnp = primFloatLessOrEqual },
+	{ 0, kDiadic, "floatGreaterOrEqual", .fnp = primFloatGreaterOrEqual },
+	{ 0, kDiadic, "floatEqual", .fnp = primFloatEqual },
+	{ 0, kDiadic, "floatNotEqual", .fnp = primFloatNotEqual },
+	{ 0, kDiadic, "floatMultiply", .fnp = primFloatMultiply },
+	{ 0, kDiadic, "floatDivide", .fnp = primFloatDivide },
+	{ 0, kMonadic, "floatNaturalLog", .fnp = primNaturalLog },
+	{ 0, kMonadic, "floatAsString", .fnp = primAsString },
+	{ 0, kMonadic, "floatERaisedTo", .fnp = primERaisedTo },
+	{ 0, kMonadic, "floatIntegerPart", .fnp = primIntegerPart },
+
+	{ 0, kDiadic, "newOops", .fnp = primAllocOrefObj },
+	{ 0, kDiadic, "newBytes", .fnp = primAllocByteObj },
+
+	{ 0, kDiadic, "returnInto", .fnp = primReturnInto },
+	{ 0, kVariadic, "execBlock", .fnp = primExecBlock },
+	{ 0, kMonadic, "dumpVariable", .fnp = primDumpVariable },
+	{ 0, kMonadic, "debugMsg", .fnp = primMsg },
+	{ 0, kMonadic, "fatal", .fnp = primFatal },
+	{ 0, kMonadic, NULL, .fnp = NULL },
 };

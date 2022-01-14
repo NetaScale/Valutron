@@ -5,6 +5,6 @@ Object subclass: NativeCode [
     The remainder is the rest of that code."
 
     value [
-        ^ <164 self>
+        ^ <#fatal self>
     ]
 ]

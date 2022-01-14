@@ -21,21 +21,21 @@ Array subclass: ByteArray [
 	]
 
 	basicAt: index [
-		^ <26 self index>
+		^ <#byteAt self index>
 	]
 
 	basicAt: index put: value [
 		^ ((value isMemberOf: Integer) and: [value between: 0 and: 255])
-			ifTrue: [ <32 self index value > ]
+			ifTrue: [ <#byteAtPut self index value > ]
 			ifFalse: [ value print.
 			    VM error:'assign illegal value to ByteArray']
 	]
 
 	logChunk [
-		^ <154 self>
+		^ "<154 self>" 0
 	]
 
 	size: value [
-		^ <22 <59 value> ByteArray>
+		^ <#classOfPut <#newBytes value> ByteArray>
 	]
 ]

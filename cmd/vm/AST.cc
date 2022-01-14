@@ -332,7 +332,7 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 {
 	std::string name;
 
-	if (num != 0) {
+	if (num != -1) {
 		std::vector<RegisterID> argRegs;
 		for (auto arg : args)
 		{

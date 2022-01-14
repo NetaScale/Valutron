@@ -2,6 +2,7 @@
 
 #include "AST.hh"
 #include "Oops.hh"
+#include "Interpreter.hh"
 
 Var *
 Scope::lookup(std::string name)
@@ -127,6 +128,10 @@ BlockScope::lookupFromBlock(std::string aName)
 void
 PrimitiveExprNode::synthInScope(Scope *scope)
 {
+	num = Primitive::named(name.c_str());
+	if (num == -1)
+		throw std::runtime_error("Unknown primitive " + name);
+
 	for (auto arg : args)
 		arg->synthInScope(scope);
 }

@@ -1,7 +1,7 @@
 Object subclass: VM [
 
 	class>>error: aString [
-		<162 aString>
+		<#debugMsg aString>
 	]
 
 	echo [
@@ -72,11 +72,11 @@ Object subclass: VM [
 	]
 
 	watch [
-		^ <5>
+		^ "<5>" 0
 	]
 
 	exit [
-		^ <9>
+		^ "<9>" 0
 	]
 
 

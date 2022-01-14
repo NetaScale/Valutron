@@ -340,7 +340,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			args->basicAt(1) = ac;
 			args->basicAt(2) = regs[src];
 
-			ac = primVec[60 + op](omem, proc, args);
+			ac = Primitive::primitives[op].fnp(omem, proc, args);
 			if (ac.isNil()) {
 				ac = args->basicAt(1);
 
@@ -436,7 +436,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			}
 
 			SPILL();
-			ac = primVec[prim](omem, proc, args);
+			ac = Primitive::primitives[prim].fnp(omem, proc, args);
 			UNSPILL();
 
 			//throw std::runtime_error("Unimplemented kPrimitive");

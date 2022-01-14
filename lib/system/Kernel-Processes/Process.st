@@ -37,7 +37,7 @@ Object subclass: Process [
 			ifTrue: [
 				overflowed <- true.
 				VM error: 'process stack overflowed'].
-		<19 self> ifTrue: [] ifFalse: [ self terminate ].
+		"<19 self> ifTrue: [] ifFalse: [ self terminate ]."
 	]
 
 	method: x  [

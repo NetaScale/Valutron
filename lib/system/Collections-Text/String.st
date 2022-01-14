@@ -11,7 +11,7 @@ ByteArray subclass: String [
 
 	, value [
 		(value isMemberOf: String)
-			ifTrue: [ ^ <24 self value> ]
+			ifTrue: [ ^ <#stringCat self value> ]
 			ifFalse: [ ^ self , value asString ]
 	]
 
@@ -43,7 +43,7 @@ ByteArray subclass: String [
 	]
 
 	asSymbol [
-		^ <83 self>
+		^ <#stringAsSymbol self>
 	]
 
 	basicAt: index [
@@ -63,7 +63,7 @@ ByteArray subclass: String [
 	]
 
 	copyFrom: position1 to: position2 [
-		^ <33 self position1 position2>
+		^ <#copyFromTo self position1 position2>
 	]
 
 	edit [	| file text |
@@ -90,7 +90,7 @@ ByteArray subclass: String [
 	]
 
 	hash [
-		^ <82 self>
+		^ <#stringHash self>
 	]
 
 	print [
@@ -103,7 +103,7 @@ ByteArray subclass: String [
 	]
 
 	size [
-		^ <81 self>
+		^ <#stringSize self>
 	]
 
 	trimmed [	| dlm ans |
@@ -122,7 +122,7 @@ ByteArray subclass: String [
 	]
 
 	unixCommand [
-		^ <88 self>
+		^ "<88 self>" 'fixme'
 	]
 
 	value [

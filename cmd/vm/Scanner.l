@@ -94,7 +94,7 @@ ${CharacterConstant}				{ ps(CHAR); }
 '''(.*)'''					{ ps(STRING); }
 [']([^']|\\.)*[']			 	{ ps(STRING); }
 
-"<"[0-9]+			{ yyextra->parse(TOK_PRIMNUM, atoi(yytext + 1)); }
+"<#"{RegularChar}+		{ yyextra->parse(TOK_PRIMNUM, yytext + 2); }
 
 "^"				{ p(UP); }
 "."				{ p(DOT); }

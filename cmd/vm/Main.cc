@@ -17,6 +17,7 @@ main(int argc, char * argv[])
 	MethodOop start;
 	ClassOop initial;
 
+	Primitive::initialise();
 	omem.setupInitialObjects();
 
 	ProgramNode *node = MVST_Parser::parseFile(argv[1]);

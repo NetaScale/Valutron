@@ -82,7 +82,7 @@ nil subclass: Object [
 		sel <- aMethod name.
 		old <- self methodNamed: sel.	"avoid GC lossage?"
 		(self basicAt: 3) at: sel put: aMethod.
-		<38 sel self>.	"primFlushCache"
+		"<38 sel self>."	"primFlushCache"
 		self logMethod: aMethod
 	]
 
@@ -140,12 +140,12 @@ nil subclass: Object [
 
 	class>> (id) primBytes: size [
 		"create a new block, set its class"
-		^ <22 <59 size> self>
+		^ <#classOfPut <#newBytes size> self>
 	]
 
 	class>> (id) primOrefs: size [
 		"create a new block, set its class"
-		^ <22 <58 size> self>
+		^ <#classOfPut <#newOops size> self>
 	]
 
 	class>> (String) printString [
@@ -160,8 +160,8 @@ nil subclass: Object [
 	class>>removeMethod: name [	| m |
 		m <- self methodNamed: name.
 		(m notNil and: [m methodClass == self]) ifTrue: [
-			(self basicAt: 3) removeKey: name.
-			<38 name self> ]	"primFlushCache"
+			(self basicAt: 3) removeKey: name
+			"<38 name self>" ]	"primFlushCache"
 		ifFalse: [
 			'no such method' print ]
 	]
@@ -220,19 +220,19 @@ nil subclass: Object [
 	]
 
 	(id) basicAt: index [
-		^ <25 self index>
+		^ <#basicAt self index>
 	]
 
 	(id) basicAt: index put: value [
-		^ <31 self index value>
+		^ <#basicAtPut self index value>
 	]
 
 	(Integer) basicSize [
-		^ <12 self>
+		^ <#size self>
 	]
 
 	(self class) class [
-		^ <11 self>
+		^ <#class self>
 	]
 
 	(self) copy [
@@ -251,7 +251,7 @@ nil subclass: Object [
 	]
 
 	(Integer) hash [
-		^ <13 self>
+		^ <#hash self>
 	]
 
 	(Boolean) isFloat [
@@ -332,7 +332,7 @@ nil subclass: Object [
 	]
 
 	(Boolean) == aValue [
-		^ <21 self aValue>
+		^ <#oopEq self aValue>
 	]
 
 	(Boolean) ~= aValue [

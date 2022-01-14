@@ -17,10 +17,10 @@ Object subclass: Scheduler [
 	critical: aBlock [
 		"set time slice counter high to insure bytecodes are
 		executed before continuing "
-		<53 10000>.
+		"<53 10000>."
 		aBlock value.
 		"then yield processor "
-		<53 0> "."
+		"<53 0>" "."
 	]
 
 	currentProcess [
@@ -29,7 +29,7 @@ Object subclass: Scheduler [
 	]
 
 	initialize [	| string |
-		<2>.
+		"<2>."
 		string <- smalltalk getPrompt: '> '.
 		string isNil ifTrue: [
 			'EOF' logChunk. "FIXME: '''EOF'''"
@@ -66,7 +66,8 @@ Object subclass: Scheduler [
 	yield [
 		" set time slice counter to zero, thereby
 		yielding to next process "
-		<53 0>
+		"<53 0>"
+		0
 	]
 
 

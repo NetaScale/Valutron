@@ -1,17 +1,17 @@
 Number subclass: Float [
 	(id) * (Number)value [
 		^ value isFloat
-			ifTrue: [ <118 self value> ]
+			ifTrue: [ <#floatMultiply self value> ]
 			ifFalse: [ super * value ]
 	]
 	(id) + (Number)value [
 		^ value isFloat
-			ifTrue: [ <110 self value> " floating add " ]
+			ifTrue: [ <#floatAdd self value> " floating add " ]
 			ifFalse: [ super + value ]
 	]
 	(id) - (Number)value [
 		^ value isFloat
-			ifTrue: [ <111 self value> " floating subtract " ]
+			ifTrue: [ <#floatSubtract self value> " floating subtract " ]
 			ifFalse: [ super - value ]
 	]
 	(id) / (Number)value [
@@ -19,17 +19,17 @@ Number subclass: Float [
 			ifTrue: [ (value = 0.0)
 					ifTrue: [ smalltalk error:
 						'float division by zero' ]
-					ifFalse: [ <119 self value> ]]
+					ifFalse: [ <#floatDivide self value> ]]
 			ifFalse: [ super / value ]
 	]
 	(Boolean) < (Number)value [
 		^ value isFloat
-			ifTrue: [ <112 self value> " floating comparison " ]
+			ifTrue: [ <#floatLessThan self value> " floating comparison " ]
 			ifFalse: [ super < value ]
 	]
 	(Boolean) = (id)value [
 		^ value isFloat
-			ifTrue: [ <116 self value> ]
+			ifTrue: [ <#floatEqual self value> ]
 			ifFalse: [ super = value ]
 	]
 	(Float) coerce: (Number)value [
@@ -38,14 +38,14 @@ Number subclass: Float [
 	]
 	(Float) exp [
 		" return e raised to self "
-		^ <103 self>
+		^ <#floatERaisedTo self>
 	]
 	(Integer) generality [
 		" our numerical generality - used for mixed mode arithmetic"
 		^ 7
 	]
 	(Integer) integerPart [	| i j |
-		i <- <106 self>. j <- i basicAt: 2. i <- i basicAt: 1.
+		i <- <#floatIntegerPart self>. j <- i basicAt: 2. i <- i basicAt: 1.
 		j < 0 ifTrue: [ ^ 0 ] ifFalse: [ ^ i * (2 raisedTo: j)]
 	]
 	(Boolean) isFloat [
@@ -53,10 +53,10 @@ Number subclass: Float [
 	]
 	(Float) ln [
 		" natural log of self "
-		^ <102 self>
+		^ <#floatNaturalLog self>
 	]
 	(String) printString [
-		^ <101 self>
+		^ <#floatAsString self>
 	]
 	(id) quo: (Number)value [
 		^ (self / value) truncated

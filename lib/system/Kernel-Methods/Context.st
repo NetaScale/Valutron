@@ -53,12 +53,6 @@ Object subclass: Context [
 		temporaries at: key put: value
 	]"
 
-	blockReturn [
-		<18 self>
-			ifFalse: [ ^ VM error:
-				'incorrect context for block return']
-	]
-
 	copy [
 		^ super copy "temporaries: temporaries copy"
 	]

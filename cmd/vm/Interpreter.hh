@@ -5,8 +5,31 @@
 
 #include "Oops.hh"
 
-typedef Oop PrimitiveMethod (ObjectMemory &omem, ProcessOop proc, ArrayOop args);
-extern PrimitiveMethod * primVec[];
+struct Primitive {
+	static Primitive primitives[];
+
+	static void initialise();
+	static int named(std::string name);
+
+	char index;
+	enum Kind {
+		kNiladic,
+		kMonadic,
+		kDiadic,
+		kTriadic,
+		kVariadic,
+	} kind; /* i.e. number of arguments */
+	const char *name;
+	union {
+		Oop (*fnp)(ObjectMemory &omem, ProcessOop proc, ArrayOop args);
+		Oop (*fn0)(ObjectMemory &omem, ProcessOop &proc);
+		Oop (*fn1)(ObjectMemory &omem, ProcessOop &proc, Oop a);
+		Oop (*fn2)(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b);
+		Oop (*fn3)(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b,
+		    Oop c);
+		Oop (*fna)(ObjectMemory &omem, ProcessOop &proc, Oop args[]);
+	};
+};
 
 /**
  * Layout of context registers:
@@ -82,6 +105,6 @@ class Op {
 	};
 };
 
-int execute(ObjectMemory & omem, ProcessOop proc);
+int execute(ObjectMemory &omem, ProcessOop proc);
 
 #endif /* INTERPRETER_HH_ */

@@ -6,7 +6,7 @@ Number subclass: Integer
 
 	(id) * (Number)value [		| r |
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ r <- <68 self value>.
+			ifTrue: [ r <- <#smiMul self value>.
 				  "primitive will return nil on overflow"
 				  r notNil
 				  	ifTrue: [ r ]
@@ -16,7 +16,7 @@ Number subclass: Integer
 
 	(id) + (Number)value [		| r |
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ r <- <60 self value>.
+			ifTrue: [ r <- <#smiAdd self value>.
 				  "primitive will return nil on overflow"
 				  r notNil
 				  	ifTrue: [ r ]
@@ -31,7 +31,7 @@ Number subclass: Integer
 
 	(id) - (Number)value [		| r |
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ r <- <61 self value>.
+			ifTrue: [ r <- <#smiSub self value>.
 				  "primitive will return nil on overflow"
 				r notNil ifTrue: [ r ]
 				ifFalse: [ self asLongInteger - value asLongInteger ]]
@@ -55,7 +55,7 @@ Number subclass: Integer
 
 	(Boolean) < (Number)value [
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ <62 self value> ]
+			ifTrue: [ <#smi< self value> ]
 			ifFalse: [ super < value ]
 	]
 
@@ -67,7 +67,7 @@ Number subclass: Integer
 
 	(Boolean) > (Number)value [
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ <63 self value> ]
+			ifTrue: [ <#smi> self value> ]
 			ifFalse: [ super > value ]
 	]
 
@@ -97,7 +97,7 @@ Number subclass: Integer
 
 	(Float) asFloat [
 		" should be redefined by any subclasses "
-		self isShortInteger ifTrue: [ ^ <51 self> ]
+		self isShortInteger ifTrue: [ ^ <#asFloat self> ]
 	]
 
 	(Fraction) asFraction [
@@ -120,7 +120,7 @@ Number subclass: Integer
 
 	(Boolean) bitAnd: (Integer)value [
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ <71 self value > ]
+			ifTrue: [ <#smiBitAnd self value > ]
 			ifFalse: [ VM error:
 				'arguments to bit operation must be short integer']
 	]
@@ -140,14 +140,14 @@ Number subclass: Integer
 
 	(Integer) bitShift: (Integer)value [
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ <79 self value > ]
+			ifTrue: [ <#smiBitShift self value > ]
 			ifFalse: [ VM error:
 				'argument to bit operation must be integer']
 	]
 
 	(Integer) bitXor: (Integer)value [
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ <72 self value > ]
+			ifTrue: [ <#smiBitXor self value > ]
 			ifFalse: [ VM error:
 				'argument to bit operation must be integer']
 	]
@@ -191,7 +191,7 @@ Number subclass: Integer
 
 	(id) quo: (Number)value [	| r |
 		^ (self isShortInteger and: [value isShortInteger])
-			ifTrue: [ r <- <69 self value>.
+			ifTrue: [ r <- <#smiQuo self value>.
 				(r isNil)
 					ifTrue: [ VM error:
 						'quo: or rem: with argument 0']

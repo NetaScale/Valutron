@@ -554,11 +554,12 @@ struct CascadeExprNode : ExprNode {
 };
 
 struct PrimitiveExprNode : ExprNode {
-	int num;
+	std::string name;
 	std::vector<ExprNode *> args;
+	int num;
 
-	PrimitiveExprNode(int num, std::vector<ExprNode *> args)
-	    : num(num)
+	PrimitiveExprNode(std::string name, std::vector<ExprNode *> args)
+	    : name(name)
 	    , args(args)
 	{
 	}

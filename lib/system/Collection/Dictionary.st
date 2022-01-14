@@ -99,7 +99,7 @@ Dictionary subclass: SymbolTable [
 
 SymbolTable subclass: SystemDictionary [
 	at: key [
-		<161 key>.
-		^ super at: key ifAbsent: [ <163 key> ]
+		<#dumpVariable key>.
+		^ super at: key ifAbsent: [ <#fatal key> ]
 	]
 ]

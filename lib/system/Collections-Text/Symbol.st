@@ -9,7 +9,7 @@ Object subclass: Symbol [
 
 	asString [
 		" catenation makes string and copy automatically "
-		^ <24 self ''>
+		^ <#stringCat self ''>
 	]
 
 	asSymbol [
@@ -17,7 +17,7 @@ Object subclass: Symbol [
 	]
 
 	assign: value [
-		<27 self value>. ^ value
+		<#symbolAssign self value>. ^ value
 	]
 
 	copy [
@@ -35,10 +35,10 @@ Object subclass: Symbol [
 	]
 
 	stringHash [
-		^ <82 self>
+		^ <#stringHash self>
 	]
 
 	value [
-		^ <87 self>
+		^ "<87 self>" 'fixme'
 	]
 ]
