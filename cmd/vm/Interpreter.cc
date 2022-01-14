@@ -8,23 +8,6 @@
 #include "Oops.hh"
 #include "Generation.hh"
 
-#define FETCH proc->context()->fetchByte()
-#define CTX proc->context()
-#define HEAPVAR(x) proc->context()->heapVars()->basicAt(x)
-#define PARENTHEAPVAR(x) proc->context()->parentHeapVars()->basicAt(x)
-#define LITERAL(x) \
-	proc->context()->methodOrBlock().as<MethodOop>()->literals()->basicAt0(x)
-#define NSTVAR(x) proc->context()->receiver().as<OopOop>()->basicAt(x)
-#define REG(x) proc->context()->stack()->basicAt0(x)
-#define RECEIVER proc->context()->receiver()
-#define PC proc->context()->programCounter()
-
-#define METHODCLASS                  					       \
-	((CTX->isBlockContext()) ?    					       \
-	CTX->homeMethodContext()->methodOrBlock().as<MethodOop>()    	       \
-	    ->methodClass() :    					       \
-	CTX->methodOrBlock().as<MethodOop>()->methodClass())
-
 size_t in = 0;
 
 ContextOop
@@ -48,9 +31,8 @@ ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
 	ctx->setStack(ArrayOopDesc::newWithSize(omem,
 	    aMethod->stackSize().smi() + 1 /* nil pushed */));
 	ctx->setProgramCounter(SmiOop((intptr_t)0));
-	ctx->setStackPointer(SmiOop((intptr_t)0));
 
-	ctx->stack()->basicAt0(0) = receiver;
+	ctx->reg0()->basicAt0(0) = receiver;
 
 	return ctx;
 }
@@ -76,10 +58,9 @@ ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	ctx->setStack(ArrayOopDesc::newWithSize(omem,
 	    aMethod->stackSize().smi() + 1 /* nil pushed */));
 	ctx->setProgramCounter(SmiOop((intptr_t)0));
-	ctx->setStackPointer(SmiOop((intptr_t)0));
 	ctx->setHomeMethodContext(aMethod->homeMethodContext());
 
-	ctx->stack()->basicAt0(0) = aMethod->receiver();
+	ctx->reg0()->basicAt0(0) = aMethod->receiver();
 
 	return ctx;
 }
@@ -88,15 +69,6 @@ bool ContextOopDesc::isBlockContext()
 {
 	return methodOrBlock().isa() == ObjectMemory::clsBlock;
 }
-
-inline uint8_t ContextOopDesc::fetchByte ()
-{
-    int64_t pos = programCounter().smi() + 1;
-    programCounter() = SmiOop(pos);
-    //std::cout << blanks(in) << "Fetching from pos " << pos <<"\n";
-    return bytecode ()->basicAt (pos);
-}
-
 
 /* The PROBLEM: super is only looking up super wrt to receiver
  * need to lookup super wrt to the current class
@@ -154,25 +126,48 @@ static inline MethodOop lookupMethodInClass (
 	}
     }
 
-    std::cout << blanks(in) << "=> " << receiver.isa()->name()->asCStr() <<
-    "(" << lookupClass->name()->asString() << ")>>"
-	      << selector->asCStr() << "\n";
+    //std::cout << blanks(in) << "=> " << receiver.isa()->name()->asCStr() <<
+    //"(" << lookupClass->name()->asString() << ")>>"
+    //	      << selector->asCStr() << "\n";
     return meth;
+}
+
+#define CTX proc->context()
+#define HEAPVAR(x) proc->context()->heapVars()->basicAt(x)
+#define PARENTHEAPVAR(x) proc->context()->parentHeapVars()->basicAt(x)
+#define NSTVAR(x) proc->context()->receiver().as<OopOop>()->basicAt(x)
+#define RECEIVER proc->context()->receiver()
+#define PC proc->context()->programCounter()
+#define METHODCLASS                  					       \
+	((CTX->isBlockContext()) ?    					       \
+	CTX->homeMethodContext()->methodOrBlock().as<MethodOop>()    	       \
+	    ->methodClass() :    					       \
+	CTX->methodOrBlock().as<MethodOop>()->methodClass())
+
+#define FETCH (*pc++)
+#define SPILL() {								\
+	CTX->programCounter() = pc - &CTX->bytecode()->basicAt0(0);		\
+	CTX->accumulator() = SmiOop(ac);					\
+}
+#define UNSPILL() {								\
+	pc = &CTX->bytecode()->basicAt0(0)+ CTX->programCounter().smi();	\
+	regs = &proc->context()->reg0()->basicAt0(0);				\
+	lits = &proc->context()->methodOrBlock().as<MethodOop>()->literals()->	\
+	    basicAt0(0);							\
 }
 
 int
 execute(ObjectMemory &omem, ProcessOop proc)
 {
-	uint8_t op;
 	Oop ac;
+	uint8_t * pc = &CTX->bytecode()->basicAt0(0);
+	Oop * regs;
+	Oop * lits;
+
+	UNSPILL();
 
 	loop:
-	op = FETCH;
-
-	//usleep(1000);
-	//std::cout << blanks(in) << "Execute Op " << (unsigned)op <<"\n";
-
-	switch((Op::Opcode) op) {
+	switch((Op::Opcode) FETCH) {
 		/* u8 index/reg, u8 dest */
 		case Op::kMoveParentHeapVarToMyHeapVars: {
 			unsigned src = FETCH, dst = FETCH;
@@ -221,7 +216,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kLdaGlobal: {
 			unsigned src = FETCH;
-			ac = omem.objGlobals->symbolLookup(LITERAL(src).as<SymbolOop>());
+			ac = omem.objGlobals->symbolLookup(lits[src].as<SymbolOop>());
 			break;
 		}
 
@@ -233,13 +228,13 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kLdaLiteral: {
 			unsigned src = FETCH;
-			ac = LITERAL(src);
+			ac = lits[src];
 			break;
 		}
 
 		case Op::kLdaBlockCopy: {
 			unsigned src = FETCH;
-			BlockOop block = omem.copyObj <BlockOop> (LITERAL(src).
+			BlockOop block = omem.copyObj <BlockOop> (lits[src].
 			    as<MemOop>());
 			block->parentHeapVars() = proc->context()->heapVars();
 			block->receiver() = RECEIVER;
@@ -250,8 +245,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kLdar: {
 			unsigned src = FETCH;
-			//std::cout << blanks(in) << "LDAR " << src << "\n";
-			ac = REG(src);
+			ac = regs[src];
 			break;
 		}
 
@@ -282,22 +276,22 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kStar: {
 			unsigned dst = FETCH;
-			REG(dst) = ac;
+			regs[dst] = ac;
 			break;
 		}
 
 		case Op::kMove: {
 			unsigned dst = FETCH, src = FETCH;
-			REG(dst) = REG(src);
+			regs[dst] = regs[src];
 			break;
 		}
 
 		/* a value, u8 src-reg */
 		case Op::kAnd: {
 			unsigned src = FETCH;
-			if (ac == ObjectMemory::objTrue && REG(src) == ObjectMemory::objTrue)
+			if (ac == ObjectMemory::objTrue && regs[src] == ObjectMemory::objTrue)
 			{
-				printf("TRUE\n");
+				//printf("TRUE\n");
 			}
 			break;
 		}
@@ -307,8 +301,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
-			std::cout << "Jumping " << offs << "\n";
-			PC = SmiOop(PC.smi() + offs);
+			//std::cout << "Jumping " << offs << "\n";
+			pc = pc + offs;
 			break;
 		}
 
@@ -319,8 +313,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			int16_t offs = (b1 << 8) | b2;
 			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
 			if(ac == ObjectMemory::objFalse) {
-				std::cout << "Branching " << offs << "for false\n";
-				PC = SmiOop(PC.smi() + offs);
+				//std::cout << "Branching " << offs << "for false\n";
+				pc = pc + offs;
 			}
 			break;
 		}
@@ -332,8 +326,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			int16_t offs = (b1 << 8) | b2;
 			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
 			if(ac == ObjectMemory::objTrue) {
-				std::cout << "Branching " << offs << "for true\n";
-				PC = SmiOop(PC.smi() + offs);
+				//std::cout << "Branching " << offs << "for true\n";
+				pc = pc + offs;
 			}
 			break;
 		}
@@ -344,7 +338,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, 2);
 
 			args->basicAt(1) = ac;
-			args->basicAt(2) = REG(src);
+			args->basicAt(2) = regs[src];
 
 			ac = primVec[60 + op](omem, proc, args);
 			if (ac.isNil()) {
@@ -360,9 +354,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				    omem, ac, meth);
 				ctx->previousContext() = CTX;
 
-				ctx->stack()->basicAt0(1) = args->basicAt(2);
+				ctx->reg0()->basicAt0(1) = args->basicAt(2);
 
+				SPILL();
 				CTX = ctx;
+				UNSPILL();
 				in++;
 			}
 			break;
@@ -375,7 +371,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kSend: {
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
-			    LITERAL(selIdx).as<SymbolOop>());
+			    lits[selIdx].as<SymbolOop>());
 
 			assert(!meth.isNil());
 
@@ -383,11 +379,13 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			ctx->previousContext() = CTX;
 
 			for (int i = 0; i < nArgs; i++) {
-				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
+				ctx->reg0()->basicAt0(i + 1) = regs[FETCH];
 			}
 
+			SPILL();
 			CTX = ctx;
 			in++;
+			UNSPILL();
 
 			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 
@@ -404,7 +402,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			ClassOop cls = METHODCLASS->superClass();
 			MethodOop meth = lookupMethodInClass(proc, ac, cls,
-			    LITERAL(selIdx).as<SymbolOop>());
+			    lits[selIdx].as<SymbolOop>());
 
 			assert(!meth.isNil());
 
@@ -412,14 +410,16 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			ctx->previousContext() = CTX;
 
 			for (int i = 0; i < nArgs; i++) {
-				ctx->stack()->basicAt0(i + 1) = REG(FETCH);
+				ctx->reg0()->basicAt0(i + 1) = regs[FETCH];
 			}
 
 			//std::cout << blanks(in) << "=> " <<
 			//    ac.isa()->name()->asCStr() << ">>" <<
-			//    LITERAL(selIdx).as<SymbolOop>()->asCStr() << "\n";
+			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
+			SPILL();
 			CTX = ctx;
 			in++;
+			UNSPILL();
 
 			break;
 		}
@@ -432,10 +432,12 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			//std::cout << blanks(in) << "Invoke primitive " <<
 			//    prim << " with " << nArgs << " args\n";
 			for (int i = 0; i < nArgs; i++) {
-				args->basicAt0(i) = REG(FETCH);
+				args->basicAt0(i) = regs[FETCH];
 			}
 
+			SPILL();
 			ac = primVec[prim](omem, proc, args);
+			UNSPILL();
 
 			//throw std::runtime_error("Unimplemented kPrimitive");
 			break;
@@ -444,6 +446,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kReturnSelf: {
 			Oop rval = RECEIVER;
 			proc->context() = proc->context()->previousContext();
+			UNSPILL();
 			ac = rval;
 			break;
 		}
@@ -451,12 +454,13 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		/* u8 source-register */
 		case Op::kReturn: {
 			CTX = CTX->previousContext();
-			std::cout << blanks(in--) << "Returning\n";
+			//std::cout << blanks(in--) << "Returning\n";
 			if (CTX.isNil()) {
 				std::cout << "Completed evaluation with result:\n";
 				ac.print(5);
 				return 0;
 			}
+			UNSPILL();
 			break;
 		}
 
@@ -467,14 +471,16 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 			assert(!meth.isNil());
 
+			SPILL();
 			ContextOop ctx = ContextOopDesc::newWithMethod(omem,
 			    CTX->methodOrBlock(), meth);
 			ctx->previousContext() = CTX;
 
-			ctx->stack()->basicAt0(1) = ac;
+			ctx->reg0()->basicAt0(1) = ac;
 
-			std::cout << blanks(in) <<"Beginning block return.\n";
+			//std::cout << blanks(in) <<"Beginning block return.\n";
 			CTX = ctx;
+			UNSPILL();
 			break;
 		}
 	} /* switch (op) */

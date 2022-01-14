@@ -1,6 +1,6 @@
 Object subclass: Context [
-	| prevContext programCounter stackPointer receiver heapVars
-	  parentHeapVars stack bytecode methodOrBlock homeMethodContext |
+	| prevContext methodOrBlock homeMethodContext bytecode receiver heapVars
+	  parentHeapVars programCounter accumulator reg0 |
 
 	"class>>method: aMeth arguments: aVec temporaries: tVec [
 		^ self new method: aMeth arguments: aVec temporaries: tVec
@@ -32,8 +32,8 @@ Object subclass: Context [
 		 ^ heapVars
 	]
 
-	stack [
-		 ^ stack
+	reg0 [
+		 ^ reg0
 	]
 
 	bytecode [

@@ -91,26 +91,22 @@ Object subclass: Block [
 
 		| i prevContext tempHomeContext |
 
-		<162 'Begin non local returnage.\n'>.
+		"<162 'Begin non local returnage.\n'>."
 
 		i <- 1.
 		tempHomeContext <- homeContext.
 		prevContext <- thisContext.
 
-		<162 'Begin whileTrue.\n'>.
-		[
-		  prevContext <- prevContext prevContext.
+		[ prevContext <- prevContext prevContext.
 		  i <- i + 1.
 		  (prevContext == homeContext) or: [ prevContext isNil]
 		] whileTrue.
 
-		<162 'Begin whileTrue:.\n'>.
 		[ prevContext isBlockContext ]
 			whileTrue: [
 				homeContext <- prevContext methodOrBlock homeContext.
 
-				[
-				  i <- i + 1.
+				[ i <- i + 1.
 				  (prevContext <- prevContext prevContext) == homeContext
 					or: [ homeContext isNil ]
 				] whileFalse
@@ -119,7 +115,6 @@ Object subclass: Block [
 		"Now escape the method context. "
 		prevContext <- prevContext prevContext.
 		prevContext isNil ifTrue: [ <163 'PrevContext is nil'> ].
-		<162 'Stack unwind completed. Activating return continuation:'>.
 		<4 prevContext returnValue>
 	]
 

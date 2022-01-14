@@ -102,7 +102,7 @@ template <class T> class OopRef {
 
 	void print(size_t in);
 
-	uint32_t hashCode()
+	inline uint32_t hashCode()
 	{
 		return isSmi() ? smi() : as<MemOop>()->hashCode();
 	}
@@ -473,22 +473,18 @@ class ContextOopDesc : public OopOopDesc {
 
     public:
 	AccessorPair(ContextOop, previousContext, setPreviousContext, 0);
-	AccessorPair(SmiOop, programCounter, setProgramCounter, 1);
-	AccessorPair(SmiOop, stackPointer, setStackPointer, 2);
-	AccessorPair(Oop, receiver, setReceiver, 3);
-	/*AccessorPair(ArrayOop, arguments, setArguments, 4);
-	AccessorPair(ArrayOop, temporaries, setTemporaries, 5);*/
-	AccessorPair(ArrayOop, heapVars, setHeapVars, 4);
-	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 5);
-	AccessorPair(ArrayOop, stack, setStack, 6);
-	AccessorPair(ByteArrayOop, bytecode, setBytecode, 7);
-	AccessorPair(OopOop, methodOrBlock, setMethodOrBlock, 8);
-	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 9);
+	AccessorPair(OopOop, methodOrBlock, setMethodOrBlock, 1);
+	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 2);
+	AccessorPair(ByteArrayOop, bytecode, setBytecode, 3);
+	AccessorPair(Oop, receiver, setReceiver, 4);
+	AccessorPair(ArrayOop, heapVars, setHeapVars, 5);
+	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 6);
+	AccessorPair(SmiOop, programCounter, setProgramCounter, 7);
+	AccessorPair(Oop, accumulator, setAccumulator, 8);
+	AccessorPair(ArrayOop, reg0, setStack, 9);
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
-	/* Fetch the next byte of bytecode, incrementing the program counter. */
-	uint8_t fetchByte();
 
 #if 0
 	/**

@@ -32,6 +32,8 @@ class ObjectMemory {
 	mps_ap_t m_leafAp;
 	/** Root for this thread's stack */
 	mps_root_t m_threadRoot;
+	/** Root for globals */
+	mps_root_t m_globalRoot;
 	/** MPS thread representation. */
 	mps_thr_t m_mpsThread;
 

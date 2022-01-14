@@ -68,12 +68,12 @@ primReturnInto(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	ContextOop ctx = args->basicAt(1).as<ContextOop>();
 	Oop rVal = args->basicAt(2);
 	proc->setContext(ctx);
-	printf("Activating return continuation:\n");
-	printf("-----------INTO %s>>%s-------------\n",
-	    ctx->receiver().isa()->name()->asCStr(),
-	    ctx->isBlockContext() ?
-		      "<block>" :
-		      ctx->methodOrBlock().as<MethodOop>()->selector()->asCStr());
+	//printf("Activating return continuation:\n");
+	//printf("-----------INTO %s>>%s-------------\n",
+	//    ctx->receiver().isa()->name()->asCStr(),
+	//    ctx->isBlockContext() ?
+	//	      "<block>" :
+	//	      ctx->methodOrBlock().as<MethodOop>()->selector()->asCStr());
 	return rVal;
 }
 
@@ -494,7 +494,6 @@ primAdd(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	long longresult;
 
 	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi()) {
-		printf("nonSMI detected\n");
 		return (Oop::nil());
 	}
 	longresult = args->basicAt(1).as<SmiOop>().smi();
@@ -1192,8 +1191,8 @@ primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
 	    args->basicAt(1).as<BlockOop>());
 	for (int i = 2; i <= args.as<MemOop>()->size(); i++) {
-		printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
-		ctx->stack()->basicAtPut(i, args->basicAt(i));
+		//printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
+		ctx->reg0()->basicAtPut(i, args->basicAt(i));
 	}
 
 	ctx->setPreviousContext(proc->context()->previousContext());

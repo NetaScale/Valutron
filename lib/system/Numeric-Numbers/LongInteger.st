@@ -24,7 +24,6 @@ Integer subclass: LongInteger [
 	]
 
 	(id) + (Number)n [		| newDigits z carry |
-		<162 'Hello, Hello'>.
 		n isLongInteger
 			ifFalse: [ ^ super + n ].
 		negative ifTrue: [ ^ n - self negated ].
