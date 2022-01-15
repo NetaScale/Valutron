@@ -527,9 +527,9 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 			assert(m_specialKind >= kBinOp);
 			receiver = gen.genStar();
 			args[0]->generateOn(gen);
-			RegisterID arg = gen.genStar();
-			gen.genLdar(receiver);
-			gen.genBinOp(arg, m_specialKind - kBinOp);
+			//RegisterID arg = gen.genStar();
+			//gen.genLdar(receiver);
+			gen.genBinOp(receiver, m_specialKind - kBinOp);
 			break;
 	}
 }

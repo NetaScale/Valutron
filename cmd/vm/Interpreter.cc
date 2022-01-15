@@ -335,24 +335,22 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kBinOp: {
 			uint8_t src = FETCH;
 			uint8_t op = FETCH;
-			Oop arg1 = ac;
+			Oop arg1 = regs[src];
+			Oop arg2 = ac;
 
-			ac = Primitive::primitives[op].fn2(omem, proc, ac,
-			    regs[src]);
+			ac = Primitive::primitives[op].fn2(omem, proc,arg1,
+			    arg2);
 			if (ac.isNil()) {
-				ac = arg1;
-
 				MethodOop meth = lookupMethodInClass(proc,
-				    ac, ac.isa(),
-			    	    ObjectMemory::symBin[op]);
+				    arg1, arg1.isa(), ObjectMemory::symBin[op]);
 
 				assert(!meth.isNil());
 
 				ContextOop ctx = ContextOopDesc::newWithMethod(
-				    omem, ac, meth);
-				ctx->previousContext() = CTX;
+				    omem, arg1, meth);
 
-				ctx->reg0()->basicAt0(1) = regs[src];
+				ctx->previousContext() = CTX;
+				ctx->reg0()->basicAt0(1) = arg2;
 
 				SPILL();
 				CTX = ctx;
@@ -425,7 +423,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			unsigned prim = FETCH, nArgs = FETCH;
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
-			printf("PRIMITIVE %s\n", Primitive::primitives[prim].name);
+			//printf("PRIMITIVE %s\n", Primitive::primitives[prim].name);
 
 			for (int i = 0; i < nArgs; i++) 
 				args->basicAt0(i) = regs[FETCH];
