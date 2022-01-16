@@ -1,5 +1,13 @@
 Object subclass: Process [
-	| stack stackTop linkPointer overflowed |
+	| "Points to the current context, which may be within i:stack or heap."
+	  (Context)context
+	 "Stack consisting of a sequence of inlined Context objects."
+	 (Array<Oop>)stack
+	 "Top of stack - 1-based index to i:stack."
+	 (Integer)stackPointer
+	  (Process)linkPointer (Boolean)overflowed |
+
+	"below is old code"
 
 	class>>context: cObj startAt: sInt [
 		^ self new context: cObj startAt: sInt

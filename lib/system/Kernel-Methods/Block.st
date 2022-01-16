@@ -91,7 +91,7 @@ Object subclass: Block [
 
 		| i prevContext tempHomeContext |
 
-		"<#debugMsg 'Begin non local returnage.\n'>."
+		<#debugMsg 'Begin non local returnage.\n'>.
 
 		i <- 1.
 		tempHomeContext <- homeContext.

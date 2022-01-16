@@ -24,5 +24,8 @@ Object subclass: INITIAL [
 	]
 ]
 
-"Completed in 8.22121"
-"Completed in 8.34563"
+"9.90"
+"9.07"
+"10.06"
+"9.65"
+"9.18"

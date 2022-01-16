@@ -481,29 +481,12 @@ class ContextOopDesc : public OopOopDesc {
 	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 6);
 	AccessorPair(SmiOop, programCounter, setProgramCounter, 7);
 	AccessorPair(Oop, accumulator, setAccumulator, 8);
-	AccessorPair(ArrayOop, reg0, setStack, 9);
+	AccessorPair(Oop, reg0, setStack, 9);
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
 
-#if 0
-	/**
-	 * Duplicate the top of the stack
-	 */
-	void dup();
-	/**
-	 * Push a value to the stack
-	 */
-	void push(Oop obj);
-	/**
-	 * Pop a value from the stack
-	 */
-	Oop pop();
-	/**
-	 * Fetch the value at the top of the stack
-	 */
-	Oop top();
-#endif
+	Oop &regAt0(size_t num) { return m_oops[9 + num]; }
 
 	bool isBlockContext();
 
@@ -519,6 +502,8 @@ class ProcessOopDesc : public OopOopDesc {
 
     public:
 	AccessorPair(ContextOop, context, setContext, 0);
+	AccessorPair(ArrayOop, stack, setStack, 1);
+	AccessorPair(SmiOop, stackPointer, setStackPointer, 2);
 
 	static ProcessOop allocate(ObjectMemory &omem);
 };

@@ -1208,7 +1208,7 @@ primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 	    args[0].as <BlockOop>());
 
 	for (int i = 1; i < nArgs; i++)
-		ctx->reg0()->basicAtPut(i + 1, args[i]);
+		ctx->regAt0(i) =  args[i];
 
 	ctx->setPreviousContext(proc->context()->previousContext());
 	proc->setContext(ctx);
