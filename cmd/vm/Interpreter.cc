@@ -9,6 +9,7 @@
 #include "Generation.hh"
 
 size_t in = 0;
+uint64_t nsends = 0;
 
 ContextOop
 ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
@@ -96,8 +97,9 @@ static inline MethodOop lookupMethodInClass (
             (super == lookupClass))
         {
             ContextOop ctx = proc->context ();
-        printf (" -> Failed to find method %s in class %s\n",
+        printf (" -> Failed to find method %s in class %s(%s)\n",
                      selector->asCStr (),
+		     receiver.isa()->name()->asCStr(),
                      cls->name ()->asCStr ());
             printf ("          --> %s>>%s\n",
                      ctx->receiver ().isa ()->name ()->asCStr (),
@@ -378,10 +380,13 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->reg0()->basicAt0(i + 1) = regs[FETCH];
 			}
 
+			nsends++;
+
 			SPILL();
 			CTX = ctx;
 			in++;
 			UNSPILL();
+	//omem.poll();
 
 			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 
@@ -415,6 +420,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			in++;
 			UNSPILL();
 
+			nsends++;
 			break;
 		}
 
@@ -494,6 +500,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			CTX = CTX->previousContext();
 			//std::cout << blanks(in--) << "Returning\n";
 			if (CTX.isNil()) {
+				std::cout << "Made " << nsends << " message sends.\n";
 				std::cout << "Completed evaluation with result:\n";
 				ac.print(5);
 				return 0;

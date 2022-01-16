@@ -87,6 +87,8 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			MemOopDesc *obj = (MemOopDesc *)base;
 			char *addr = (char *)base;
 
+			//printf("scan %p\n", addr);
+
 			switch (obj->m_kind)
 			case kFwd: {
 				base = addr + obj->m_size;
@@ -102,6 +104,7 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 				break;
 
 			case kOops: {
+				FIXOOP(obj->isa());
 				for (int i = 0; i < obj->m_size; i++)
 					FIXOOP(obj->m_oops[i]);
 				base = addr + ALIGN(sizeof(MemOopDesc) +
@@ -111,7 +114,7 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			}
 
 			default: {
-				FATAL("Bad object");
+				FATAL("mpsScan: Bad object!!\n");
 			}
 			}
 		}
@@ -144,7 +147,7 @@ MemOopDesc::mpsSkip(mps_addr_t base)
 		    obj->m_size);
 
 	default:
-		FATAL("Bad object");
+		FATAL("mpsSkip: Bad object!!");
 	}
 }
 
@@ -152,8 +155,8 @@ void
 MemOopDesc::mpsFwd(mps_addr_t old, mps_addr_t newAddr)
 {
 	MemOopDesc *obj = (MemOopDesc *)old;
-	obj->m_fwd = (OopDesc *)newAddr;
 	obj->m_size = (char *)mpsSkip(old) - (char *)old;
+	obj->m_fwd = (OopDesc *)newAddr;
 	obj->m_kind = kFwd;
 }
 
@@ -194,6 +197,18 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 			FATAL("Couldn't create arena");
 	}
 
+#if 1
+	mps_gen_param_s gen_params[] = {
+	{ 16838, 0.9 },
+	{ 16838, 0.4 },
+	};
+
+	res = mps_chain_create(&m_chain, m_arena,
+                       sizeof(gen_params) / sizeof(gen_params[0]),
+                       gen_params);
+	if (res != MPS_RES_OK) FATAL("Couldn't create chain");
+#endif
+
 	mps_message_type_enable(m_arena, mps_message_type_gc());
 	mps_message_type_enable(m_arena, mps_message_type_gc_start());
 
@@ -213,8 +228,8 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 
 	/** Create AMCZ pool for primitives. */
 	MPS_ARGS_BEGIN (args) {
-#if 0
-		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_mpsChain);
+#if 1
+		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_chain);
 #endif
 		MPS_ARGS_ADD(args, MPS_KEY_FORMAT, m_objFmt);
 		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGNMENT);
@@ -228,8 +243,8 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 
 	/** Create AMC pool for objects. */
 	MPS_ARGS_BEGIN (args) {
-#if 0
-		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_mpsChain);
+#if 1
+		MPS_ARGS_ADD(args, MPS_KEY_CHAIN, m_chain);
 #endif
 		MPS_ARGS_ADD(args, MPS_KEY_FORMAT, m_objFmt);
 		MPS_ARGS_ADD(args, MPS_KEY_ALIGN, ALIGNMENT);
@@ -257,6 +272,10 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 	    stackMarker);
 	if (res != MPS_RES_OK)
 		FATAL("Couldn't create root");
+
+	res = mps_root_create_area(&m_globalRoot, m_arena, mps_rank_ambig(), 0, &ObjectMemory::objNil, &ObjectMemory::clsNativePointer + 1, mps_scan_area, NULL);
+	if (res != MPS_RES_OK)
+		FATAL("Couldn't create globals root");
 }
 
 void
@@ -329,4 +348,53 @@ ObjectMemory::setupInitialObjects()
 
 	for (int i = 0; i < sizeof(binOpStr) / sizeof(*binOpStr); i++)
 		symBin[i] = SymbolOopDesc::fromString(*this, binOpStr[i]);
+}
+
+void
+ObjectMemory::poll()
+{
+	mps_message_type_t type;
+
+	while (mps_message_queue_type(&type, m_arena)) {
+		mps_message_t message;
+		mps_bool_t b;
+		b = mps_message_get(&message, m_arena, type);
+		assert(b); /* we just checked there was one */
+
+		if (type == mps_message_type_gc_start()) {
+			printf("Collection started.\n");
+			printf("  Why: %s\n",
+			    mps_message_gc_start_why(m_arena, message));
+			printf("  Clock: %lu\n",
+			    (unsigned long)mps_message_clock(m_arena, message));
+
+		} else if (type == mps_message_type_gc()) {
+			size_t live = mps_message_gc_live_size(m_arena, message);
+			size_t condemned = mps_message_gc_condemned_size(m_arena,
+			    message);
+			size_t not_condemned =
+			    mps_message_gc_not_condemned_size(m_arena, message);
+			printf("Collection finished.\n");
+			printf("    live %lu\n", (unsigned long)live);
+			printf("    condemned %lu\n", (unsigned long)condemned);
+			printf("    not_condemned %lu\n",
+			    (unsigned long)not_condemned);
+			printf("    clock: %lu\n",
+			    (unsigned long)mps_message_clock(m_arena, message));
+
+		} else if (type == mps_message_type_finalization()) {
+#if 0
+			mps_addr_t port_ref;
+			obj_t port;
+			mps_message_finalization_ref(&port_ref, arena, message);
+			port = port_ref;
+#endif
+
+		} else {
+			printf("Unknown message from MPS!\n");
+			abort();
+		}
+
+		mps_message_discard(m_arena, message);
+	}
 }

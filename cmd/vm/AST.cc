@@ -685,7 +685,7 @@ MethodNode::generate(ObjectMemory &omem)
 void
 ClassNode::generate(ObjectMemory &omem)
 {
-	printf("CLASS %s\n", name.c_str());
+	printf("CLASS %s/%p/%p\n", name.c_str(), cls.m_ptr, cls.isa().m_ptr);
 	for (auto m : cMethods)
 		cls->addClassMethod(omem, m->generate(omem));
 

@@ -11,7 +11,7 @@ extern "C" {
 #include "Oops.hh"
 
 #define FATAL(...) { fprintf(stderr, __VA_ARGS__); abort(); }
-#define ALIGNMENT 8
+#define ALIGNMENT 16
 #define ALIGN(size) (((size) + ALIGNMENT - 1) & ~(ALIGNMENT - 1))
 
 class ObjectMemory {
@@ -19,6 +19,8 @@ class ObjectMemory {
 
 	/** Shared global arena. */
 	static mps_arena_t m_arena;
+	/** Chain */
+	mps_chain_t m_chain;
 	/** Object format. */
 	mps_fmt_t m_objFmt;
 	/** AMC pool for MemOopDescs. */
@@ -115,7 +117,18 @@ class ObjectMemory {
 	 * define classes.
 	 */
 	void setupInitialObjects();
+
+	void poll();
 };
+
+static inline uint32_t
+hash(uint32_t x)
+{
+	x = ((x >> 16) ^ x) * 0x119de1f3;
+	x = ((x >> 16) ^ x) * 0x119de1f3;
+	x = (x >> 16) ^ x;
+	return x >> 8;
+}
 
 template <class T>
 inline ClassOop &
@@ -132,15 +145,6 @@ OopRef<T>::setIsa(ClassOop oop)
 {
 	return isSmi() ? throw std::runtime_error("Can't set SMI hashcode") :
 	    as<MemOop>()->setIsa(oop);
-}
-
-static inline uint32_t
-hash(uint32_t x)
-{
-	x = ((x >> 16) ^ x) * 0x119de1f3;
-	x = ((x >> 16) ^ x) * 0x119de1f3;
-	x = (x >> 16) ^ x;
-	return x >> 8;
 }
 
 inline uint32_t
@@ -160,18 +164,18 @@ ObjectMemory::newOopObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
 
-#if 0
+#if 1
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
 			FATAL("out of memory in newOopObj");
+		obj->m_isa = Oop::nil().as<ClassOop>();
 		obj->m_kind = MemOopDesc::kOops;
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
+		memset(obj->m_oops, 0, len * sizeof(Oop));
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
-#endif
-
-#if 1
+#else
 	obj = (typename T::PtrType*)calloc(1, size);
 		obj->m_kind = MemOopDesc::kOops;
 		obj->m_hash = getHashCode();
@@ -188,17 +192,18 @@ ObjectMemory::newByteObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(uint8_t) * len);
 
-#if 0
+#if 1
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
 			FATAL("out of memory in newByteObj");
+		obj->m_isa = Oop::nil().as<ClassOop>();
 		obj->m_kind = MemOopDesc::kBytes;
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
+		memset(obj->m_bytes, 0, len);
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
-#endif
-#if 1
+#else
 	obj = (typename T::PtrType*)calloc(1, size);
 		obj->m_kind = MemOopDesc::kBytes;
 		obj->m_hash = getHashCode();
@@ -219,21 +224,19 @@ ObjectMemory::copyObj(MemOop oldObj)
 	    sizeof(uint8_t) :
 	    sizeof (Oop)) * oldObj->size());
 
-#if 0
+#if 1
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
-			FATAL("out of memory in newByteObj");
-		obj->m_kind = oldObj->m_kind;
-		obj->m_size = oldObj->size;
+			FATAL("out of memory in copyObj");
+		memcpy(obj, &*oldObj, size);
+		obj->m_hash = getHashCode();
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
-#endif
-#if 1
+#else
 	obj = (typename T::PtrType*)calloc(1, size);
-#endif
-
 	memcpy(obj, &*oldObj, size);
 	obj->m_hash = getHashCode();
+#endif
 
 	return obj;
 }
