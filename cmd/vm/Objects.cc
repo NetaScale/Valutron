@@ -227,7 +227,7 @@ ClassPair::allocateRaw(ObjectMemory &omem)
 
 void ClassOopDesc::print (int in)
 {
-    std::cout << blanks (in) + "C;ass\n" << blanks (in) << "{\n";
+    std::cout << blanks (in) + "Class: " << name()->asCStr() << " " << blanks (in) << "{\n";
     in += 1;
     in -= 1;
     std::cout << blanks (in) << "}\n";

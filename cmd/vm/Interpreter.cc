@@ -11,6 +11,7 @@
 size_t in = 0;
 uint64_t nsends = 0;
 
+
 ContextOop
 ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
     MethodOop aMethod)
@@ -376,17 +377,16 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			ContextOop ctx = ContextOopDesc::newWithMethod(omem, ac, meth);
 			ctx->previousContext() = CTX;
 
-			for (int i = 0; i < nArgs; i++) {
+			for (int i = 0; i < nArgs; i++)
 				ctx->reg0()->basicAt0(i + 1) = regs[FETCH];
-			}
 
 			nsends++;
 
 			SPILL();
 			CTX = ctx;
-			in++;
 			UNSPILL();
-	//omem.poll();
+			in++;
+			//omem.poll();
 
 			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 
@@ -417,10 +417,10 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
 			CTX = ctx;
-			in++;
 			UNSPILL();
-
+			in++;
 			nsends++;
+
 			break;
 		}
 
@@ -437,53 +437,44 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			SPILL();
 			ac = Primitive::primitives[prim].fnp(omem, proc, args);
 			UNSPILL();
-
 			break;
 		}
 
 		/** a arg, u8 prim-num */
 		case Op::kPrimitive1: {
 			unsigned prim = FETCH;
-
 			SPILL();
 			ac = Primitive::primitives[prim].fn1(omem, proc, ac);
 			UNSPILL();
-
 			break;
 		}
 
 		/** a arg2, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive2: {
 			unsigned prim = FETCH, arg1reg = FETCH;
-
 			SPILL();
 			ac = Primitive::primitives[prim].fn2(omem, proc,
 			    regs[arg1reg], ac);
 			UNSPILL();
-
 			break;
 		}
 
 		/** a arg3, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive3: {
 			unsigned prim = FETCH, arg1reg = FETCH;
-
 			SPILL();
 			ac = Primitive::primitives[prim].fn3(omem, proc,
 			    regs[arg1reg], regs[arg1reg + 1], ac);
 			UNSPILL();
-
 			break;
 		}
 
 		case Op::kPrimitiveV: {
 			unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
-
 			SPILL();
 			ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
 			    &regs[arg1reg]);
 			UNSPILL();
-
 			break;
 		}
 

@@ -17,6 +17,9 @@ main(int argc, char * argv[])
 	MethodOop start;
 	ClassOop initial;
 
+	printf("Valutron\n");
+	printf("GC: " VT_GCNAME "\n");
+
 	Primitive::initialise();
 	omem.setupInitialObjects();
 

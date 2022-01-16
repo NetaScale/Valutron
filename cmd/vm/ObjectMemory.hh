@@ -3,12 +3,22 @@
 
 #include <stdexcept>
 
-extern "C" {
-#include "mps.h"
-#include "mpstd.h"
-}
-
 #include "Oops.hh"
+#include "Config.hh"
+
+#if VT_GC == VT_GC_BOEHM
+# include "gc.h"
+#define VT_GCNAME "Boehm LibGC"
+# define calloc(x, y) GC_malloc(x * y)
+#elif VT_GC == VT_GC_MPS
+# define VT_GCNAME "Ravenbrook MPS"
+extern "C" {
+# include "mps.h"
+# include "mpstd.h"
+}
+#else
+# define VT_GCNAME "None (System Malloc)"
+#endif
 
 #define FATAL(...) { fprintf(stderr, __VA_ARGS__); abort(); }
 #define ALIGNMENT 16
@@ -164,7 +174,7 @@ ObjectMemory::newOopObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
 
-#if 1
+#if VT_GC == VT_GC_MPS
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
@@ -192,7 +202,7 @@ ObjectMemory::newByteObj(size_t len)
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(uint8_t) * len);
 
-#if 1
+#if VT_GC == VT_GC_MPS
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
@@ -224,7 +234,7 @@ ObjectMemory::copyObj(MemOop oldObj)
 	    sizeof(uint8_t) :
 	    sizeof (Oop)) * oldObj->size());
 
-#if 1
+#if VT_GC == VT_GC_MPS
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
