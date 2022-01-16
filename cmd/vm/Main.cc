@@ -27,8 +27,8 @@ main(int argc, char * argv[])
 	SynthContext sctx(omem);
 	node->registerNames(sctx);
 	node->synth(sctx);
-	node->typeReg(sctx.tyChecker());
-	node->typeCheck(sctx.tyChecker());
+	//node->typeReg(sctx.tyChecker());
+	//node->typeCheck(sctx.tyChecker());
 	node->generate(omem);
 
 	initial = ObjectMemory::objGlobals->symbolLookup(
@@ -40,8 +40,9 @@ main(int argc, char * argv[])
 	assert(!start.isNil());
 
 	firstProcess = ProcessOopDesc::allocate(omem);
-	firstProcess->setContext(ContextOopDesc::newWithMethod(omem, Oop(),
-	    start));
+	ContextOop ctx = (void*)&firstProcess->stack()->basicAt0(0);
+	ctx->initWithMethod(omem, Oop(),start);
+	firstProcess->context() = ctx;
 
 	clock_t begin = clock();
 	execute(omem, firstProcess);

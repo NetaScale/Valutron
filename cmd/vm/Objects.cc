@@ -587,7 +587,9 @@ void BlockOopDesc::print (int in)
 ProcessOop
 ProcessOopDesc::allocate(ObjectMemory &omem)
 {
-	ProcessOop proc = omem.newOopObj<ProcessOop>(4);
+	ProcessOop proc = omem.newOopObj<ProcessOop>(ProcessOopDesc::clsNstLength);
 	proc->setIsa(ObjectMemory::clsProcess);
+	proc->setStack(ArrayOopDesc::newWithSize(omem, 8192));
+	proc->setStackIndex((intptr_t)0);
 	return proc;
 }

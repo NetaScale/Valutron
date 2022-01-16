@@ -667,7 +667,7 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
-#if 0
+#if 1
 	std::cout << "DISASSEMBLY OF METHOD " << sel << "\n";
 	disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");

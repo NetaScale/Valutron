@@ -2,10 +2,10 @@ Object subclass: Process [
 	| "Points to the current context, which may be within i:stack or heap."
 	  (Context)context
 	 "Stack consisting of a sequence of inlined Context objects."
-	 (Array<Oop>)stack
-	 "Top of stack - 1-based index to i:stack."
-	 (Integer)stackPointer
-	  (Process)linkPointer (Boolean)overflowed |
+	 (Array)stack
+	 "Index beginning topmost stack frame - 1-based index to i:stack."
+	 (Integer)stackIndex
+	 (Process)linkPointer (Boolean)overflowed |
 
 	"below is old code"
 
@@ -21,7 +21,7 @@ Object subclass: Process [
 		sArray at: 6 put: 1. "bytecode counter"
 		^ self basicNew
 			stack: sArray
-			stackTop: 10
+			stackIndex: 10
 			linkPointer: 2
 	]
 
@@ -57,9 +57,9 @@ Object subclass: Process [
 		scheduler addProcess: self
 	]
 
-	stack: sArray stackTop: sInt linkPointer: lInt [
+	stack: sArray stackIndex: sInt linkPointer: lInt [
 		stack <- sArray.
-		stackTop <- sInt.
+		stackIndex <- sInt.
 		linkPointer <- lInt
 	]
 

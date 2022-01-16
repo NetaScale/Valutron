@@ -15,24 +15,50 @@ uint64_t nsends = 0;
 #define OUT in--
 
 
+void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop receiver,
+    MethodOop aMethod)
+{
+	size_t heapVarsSize = aMethod->heapVarsSize().smi();
+
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() + 1;
+	setIsa(ObjectMemory::clsContext);
+	setBytecode(aMethod->bytecode());
+	setReceiver(receiver);
+	setMethodOrBlock(aMethod.as<OopOop>());
+	setHeapVars(heapVarsSize ?
+		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
+		      Oop().as<ArrayOop>());
+	setProgramCounter(SmiOop((intptr_t)0));
+
+	reg0() = receiver;
+}
+
+void
+ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
+{
+	size_t heapVarsSize = aMethod->heapVarsSize().smi();
+
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() + 1;
+	setIsa(ObjectMemory::clsContext);
+	setBytecode(aMethod->bytecode());
+	setReceiver(aMethod->receiver());
+	setMethodOrBlock(aMethod.as<OopOop>());
+	setHeapVars(heapVarsSize ?
+		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
+		      Oop().as<ArrayOop>());
+	setParentHeapVars(aMethod->parentHeapVars());
+	setProgramCounter(SmiOop((intptr_t)0));
+	setHomeMethodContext(aMethod->homeMethodContext());
+	reg0() = aMethod->receiver();
+
+}
+
 ContextOop
 ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
     MethodOop aMethod)
 {
 	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi() + 1);
-	size_t heapVarsSize = aMethod->heapVarsSize().smi();
-
-	ctx.setIsa(ObjectMemory::clsContext);
-	ctx->setBytecode(aMethod->bytecode());
-	ctx->setReceiver(receiver);
-	ctx->setMethodOrBlock(aMethod.as<OopOop>());
-	ctx->setHeapVars(heapVarsSize ?
-		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
-		      Oop().as<ArrayOop>());
-	ctx->setProgramCounter(SmiOop((intptr_t)0));
-
-	ctx->reg0() = receiver;
-
+	ctx->initWithMethod(omem, receiver, aMethod);
 	return ctx;
 }
 
@@ -40,21 +66,7 @@ ContextOop
 ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 {
 	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi() + 1);
-	size_t heapVarsSize = aMethod->heapVarsSize().smi();
-
-	ctx.setIsa(ObjectMemory::clsContext);
-	ctx->setBytecode(aMethod->bytecode());
-	ctx->setReceiver(aMethod->receiver());
-	ctx->setMethodOrBlock(aMethod.as<OopOop>());
-	ctx->setHeapVars(heapVarsSize ?
-		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
-		      Oop().as<ArrayOop>());
-	ctx->setParentHeapVars(aMethod->parentHeapVars());
-	ctx->setProgramCounter(SmiOop((intptr_t)0));
-	ctx->setHomeMethodContext(aMethod->homeMethodContext());
-
-	ctx->reg0() = aMethod->receiver();
-
+	ctx->initWithBlock(omem, aMethod);
 	return ctx;
 }
 
@@ -150,6 +162,12 @@ static inline MethodOop lookupMethodInClass (
 	    basicAt0(0);							\
 }
 
+#define NEWCTX() size_t newSI = proc->stackIndex().smi() + CTX->size();		\
+	ContextOop ctx = (void*)&proc->stack()->basicAt(newSI);			\
+	proc->stackIndex() = SmiOop(newSI + 2);					\
+	ctx->previousContext() = CTX;						\
+	//printf("%d/NEW STACKINDEX IS %ld\n", in, proc->stackIndex().smi());
+
 int
 execute(ObjectMemory &omem, ProcessOop proc)
 {
@@ -157,6 +175,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 	uint8_t * pc = &CTX->bytecode()->basicAt0(0);
 	Oop * regs;
 	Oop * lits;
+
+	disassemble(CTX->bytecode()->vns(), CTX->methodOrBlock().as<MethodOop>()->bytecode()->size());
 
 	UNSPILL();
 
@@ -340,10 +360,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 				assert(!meth.isNil());
 
-				ContextOop ctx = ContextOopDesc::newWithMethod(
-				    omem, arg1, meth);
-
-				ctx->previousContext() = CTX;
+				NEWCTX();
+				ctx->initWithMethod(omem, arg1, meth);
 				ctx->regAt0(1) = arg2;
 
 				SPILL();
@@ -365,14 +383,17 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 			assert(!meth.isNil());
 
-			ContextOop ctx = ContextOopDesc::newWithMethod(omem, ac, meth);
-			ctx->previousContext() = CTX;
+			NEWCTX();
+			ctx->initWithMethod(omem, ac, meth);
 
 			for (int i = 0; i < nArgs; i++)
 				ctx->regAt0(i + 1) = regs[FETCH];
 
 			nsends++;
 
+			//std::cout << blanks(in) << "=> " <<
+			//    ac.isa()->name()->asCStr() << ">>" <<
+			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
 			CTX = ctx;
 			UNSPILL();
@@ -395,16 +416,16 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 			assert(!meth.isNil());
 
-			ContextOop ctx = ContextOopDesc::newWithMethod(omem, ac, meth);
-			ctx->previousContext() = CTX;
+			NEWCTX();
+			ctx->initWithMethod(omem, ac, meth);
 
 			for (int i = 0; i < nArgs; i++) {
 				ctx->regAt0(i + 1) = regs[FETCH];
 			}
 
-			//std::cout << blanks(in) << "=> " <<
-			//    ac.isa()->name()->asCStr() << ">>" <<
-			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
+			std::cout << blanks(in) << "=> " <<
+			    ac.isa()->name()->asCStr() << ">>" <<
+			    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
 			CTX = ctx;
 			UNSPILL();
@@ -478,8 +499,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/* u8 source-register */
 		case Op::kReturn: {
+			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
+			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
 			CTX = CTX->previousContext();
-			//std::cout << blanks(in--) << "Returning\n";
+
+			//std::cout << blanks(in) << "Returning\n";
 			if (CTX.isNil()) {
 				std::cout << "Made " << nsends << " message sends.\n";
 				std::cout << "Maximum context depth " << maxin <<"\n";
@@ -497,6 +521,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
 			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"));
 
+#if 0
 			assert(!meth.isNil());
 
 			SPILL();
@@ -509,6 +534,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			//std::cout << blanks(in) <<"Beginning block return.\n";
 			CTX = ctx;
 			UNSPILL();
+#else
+			abort();
+#endif
 			break;
 		}
 	} /* switch (op) */

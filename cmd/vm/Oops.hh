@@ -129,6 +129,8 @@ class MemOopDesc : public OopDesc {
 	friend class ObjectMemory;
 	friend class OopRef<OopDesc>;
 
+	friend int execute(ObjectMemory &omem, ProcessOop proc);
+
 	enum Kind {
 		kOops,
 		kBytes,
@@ -469,6 +471,8 @@ class BlockOopDesc : public OopOopDesc {
 };
 
 class ContextOopDesc : public OopOopDesc {
+	friend int execute(ObjectMemory &omem, ProcessOop proc);
+
 	static const int clsNstLength = 10;
 
     public:
@@ -485,6 +489,9 @@ class ContextOopDesc : public OopOopDesc {
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
+	void initWithBlock(ObjectMemory &omem, BlockOop aMethod);
+	void initWithMethod(ObjectMemory &omem, Oop receiver,
+	    MethodOop aMethod);
 
 	Oop &regAt0(size_t num) { return m_oops[9 + num]; }
 
@@ -503,7 +510,7 @@ class ProcessOopDesc : public OopOopDesc {
     public:
 	AccessorPair(ContextOop, context, setContext, 0);
 	AccessorPair(ArrayOop, stack, setStack, 1);
-	AccessorPair(SmiOop, stackPointer, setStackPointer, 2);
+	AccessorPair(SmiOop, stackIndex, setStackIndex, 2); /* 1-based */
 
 	static ProcessOop allocate(ObjectMemory &omem);
 };
