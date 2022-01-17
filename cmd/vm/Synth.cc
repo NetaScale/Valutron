@@ -255,6 +255,17 @@ BlockExprNode::synthInlineInScope(Scope *parentScope)
 		stmt->synthInScope(parentScope);
 }
 
+bool
+BlockExprNode::isSelf()
+{
+	if(!m_inlined || stmts.size() != 1)
+		return false;
+	else {
+		ExprStmtNode * es = dynamic_cast<ExprStmtNode*>(stmts[0]);
+		return es && es->expr->isSelf();
+	}
+}
+
 #pragma statements
 
 void

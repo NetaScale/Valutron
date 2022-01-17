@@ -181,6 +181,19 @@ Var::generateOn(CodeGen &gen)
 	}
 }
 
+RegisterID
+Var::generateIntoReg(CodeGen &gen)
+{
+	if (kind == kArgument)
+		return getIndex();
+	else if (kind == kLocal)
+		return gen.localIndex(getIndex());
+	else {
+		generateOn(gen);
+		return gen.genStar();
+	}
+}
+
 void
 Var::generateAssignOn(CodeGen &gen, ExprNode *expr)
 {
@@ -407,6 +420,28 @@ IdentExprNode::generateOn(CodeGen &gen)
 		return var->generateOn(gen);
 }
 
+RegisterID
+IdentExprNode::generateIntoReg(CodeGen & gen)
+{
+	if (isSuper() || id == "self") {
+		return 0;
+	}
+	else if (id == "nil")
+		gen.genLoadNil();
+	else if (id == "true")
+		gen.genLoadTrue();
+	else if (id == "false")
+		gen.genLoadFalse();
+	else if (id == "Smalltalk")
+		gen.genLoadSmalltalk();
+	else if (id == "thisContext")
+		gen.genLoadThisContext();
+	else
+		return var->generateIntoReg(gen);
+	return gen.genStar();
+}
+
+
 void
 IdentExprNode::generateAssignOn(CodeGen &gen, ExprNode *rValue)
 {
@@ -422,45 +457,47 @@ AssignExprNode::generateOn(CodeGen &gen)
 void
 MessageExprNode::generateOn(CodeGen &gen)
 {
-	ssize_t begin = gen.bytecode().size();
-	receiver->generateOn(gen);
-	return generateOn(gen, -1, receiver->isSuper(), begin);
+	return generateOn(gen, -1, receiver->isSuper(), 0);
 }
 
 void
-MessageExprNode::generateOn(CodeGen &gen, RegisterID receiver, bool isSuper,
+MessageExprNode::generateOn(CodeGen &gen, RegisterID recvReg, bool isSuper,
     ssize_t receiverBegin)
 {
 	if (m_specialKind != kNormal) {
 		assert(!isSuper);
-		return generateSpecialOn(gen, receiver, receiverBegin);
+		return generateSpecialOn(gen, recvReg, receiverBegin);
 	}
 	std::vector<RegisterID> argRegs;
 
 	if (args.size()) {
-		if (receiver == -1)
-			receiver = gen.genStar();
+		if (recvReg == -1)
+			recvReg = receiver->generateIntoReg(gen);
 		for (auto a : args) {
-			a->generateOn(gen);
-			argRegs.push_back(gen.genStar());
+			argRegs.push_back(a->generateIntoReg(gen));
 		}
 	}
+	else if (recvReg == -1)
+		receiver->generateOn(gen);
 
-	if (receiver != -1) {
-		gen.genLdar(receiver);
+	if (!args.empty() && recvReg != -1) {
+		gen.genLdar(recvReg);
 	}
 
 	gen.genMessage(isSuper, selector, argRegs);
 }
 
 void
-MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
+MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID recvReg,
     ssize_t receiverBegin)
 {
-	assert(receiver == -1);
+	assert(recvReg == -1);
+
+	receiverBegin = gen.bytecode().size();
 
 	switch (m_specialKind) {
 		case kAnd: {
+			receiver->generateOn(gen);
 			auto skipSecondIfFirstFalse = gen.genBranchIfFalse();
 			args[0]->generateOn(gen);
 			gen.patchJumpToHere(skipSecondIfFirstFalse);
@@ -469,6 +506,7 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 
 		case kIfFalseIfTrue:
 		case kIfTrueIfFalse: {
+			receiver->generateOn(gen);
 			size_t skipFirst = m_specialKind == kIfTrueIfFalse ?
 			    gen.genBranchIfFalse() : gen.genBranchIfTrue();
 			args[0]->generateOn(gen);
@@ -481,6 +519,7 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 
 		case kIfFalse:
 		case kIfTrue:{
+			receiver->generateOn(gen);
 			size_t skipFirst = m_specialKind == kIfTrue ?
 			    gen.genBranchIfFalse() : gen.genBranchIfTrue();
 			args[0]->generateOn(gen);
@@ -493,6 +532,8 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 			size_t branch;
 
 			assert(receiverBegin != -1);
+
+			receiver->generateOn(gen);
 
 			if(m_specialKind == kWhileTrue)
 				branch = gen.genBranchIfFalse();
@@ -512,6 +553,8 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 
 			assert(receiverBegin != -1);
 
+			receiver->generateOn(gen);
+
 			if(m_specialKind == kWhileTrue0)
 				branch = gen.genBranchIfFalse();
 			else
@@ -525,11 +568,11 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID receiver,
 
 		default:
 			assert(m_specialKind >= kBinOp);
-			receiver = gen.genStar();
+			recvReg = receiver->generateIntoReg(gen);
 			args[0]->generateOn(gen);
 			//RegisterID arg = gen.genStar();
 			//gen.genLdar(receiver);
-			gen.genBinOp(receiver, m_specialKind - kBinOp);
+			gen.genBinOp(recvReg, m_specialKind - kBinOp);
 			break;
 	}
 }
@@ -627,15 +670,19 @@ ExprStmtNode::generateOn(CodeGen &gen)
 void
 ReturnStmtNode::generateOn(CodeGen &gen)
 {
-	expr->generateOn(gen);
 	if (gen.isBlock()) {
 		/*RegisterID ret = gen.genStar();
 		gen.genLoadSelf();
 		gen.genMessage(false, "nonLocalReturn", {ret});*/
+		expr->generateOn(gen);
 		gen.genBlockReturn();
+	} else if (expr->isSelf()) {
+		gen.genReturnSelf();
 	}
-	else
+	else {
+		expr->generateOn(gen);
 		gen.genReturn();
+	}
 }
 
 #pragma mark decls
@@ -667,7 +714,7 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
-#if 1
+#if 0
 	std::cout << "DISASSEMBLY OF METHOD " << sel << "\n";
 	disassemble(gen.bytecode().data(), gen.bytecode().size());
 	printf("Literals:\n");

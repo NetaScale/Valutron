@@ -3,15 +3,11 @@
 
 #include <stack>
 
-#include "AST.hh"
 #include "Interpreter.hh"
 
-/**
- * Some optimisations that may be made:
- * 1. Pre-allocate registers for each of a message send's arguments. By adding
- *    an optional "output register" parameter to the other calls here, thereby
- *    allow contiguous message send parameters.
- */
+struct Scope;
+
+typedef int RegisterID;
 
 class CodeGen {
 	ObjectMemory &m_omem;
@@ -25,8 +21,6 @@ class CodeGen {
 	RegisterID m_reg;
 	int m_nArgs;
 	int m_nLocals;
-
-	int localIndex(int idx) { return m_nArgs + idx; }
 
 	void genCode(uint8_t code);
 	void gen (Op::Opcode code);
@@ -47,6 +41,8 @@ class CodeGen {
 	    , m_reg (nArgs + nLocals + 1)
 	{
 	}
+
+	int localIndex(int idx) { return m_nArgs + idx; }
 
 	ObjectMemory & omem() { return m_omem; }
 	std::vector<uint8_t> bytecode() { return m_bytecode; }

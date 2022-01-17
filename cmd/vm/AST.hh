@@ -10,6 +10,7 @@
 #include "ObjectMemory.hh"
 #include "Oops.hh"
 #include "Typecheck.hh"
+#include "Generation.hh"
 
 struct Primitive;
 
@@ -54,8 +55,6 @@ struct MethodScope;
 struct ClassScope;
 struct ClassNode;
 
-typedef int RegisterID;
-
 class SynthContext {
 	ObjectMemory &m_omem;
 	TyChecker m_tyChecker;
@@ -95,6 +94,7 @@ struct Var {
 	}
 
 	void generateOn(CodeGen &gen);
+	RegisterID generateIntoReg(CodeGen &gen);
 	void generateAssignOn(CodeGen &gen, ExprNode *expr);
 
 	/*
@@ -296,6 +296,11 @@ struct ExprNode : Node {
 		std::cout << "Unimplemented typecheck for "
 			  << typeid(*this).name() << "\n";
 	}
+	virtual RegisterID generateIntoReg(CodeGen & gen)
+	{
+		generateOn(gen);
+		return gen.genStar();
+	}
 	virtual void generateOn(CodeGen &gen) = 0;
 
 	virtual Type *type(TyChecker &tyc)
@@ -310,6 +315,7 @@ struct ExprNode : Node {
 
 	virtual bool isIdent() { return false; }
 	virtual bool isSuper() { return false; }
+	virtual bool isSelf() { return false; }
 };
 
 struct LiteralExprNode : public ExprNode {
@@ -406,6 +412,7 @@ struct IdentExprNode : ExprNode {
 	Var *var;
 
 	bool isSuper() override { return id == "super"; }
+	bool isSelf() override { return id == "self"; }
 
 	IdentExprNode(Position pos, std::string id)
 	    : ExprNode(pos)
@@ -417,6 +424,7 @@ struct IdentExprNode : ExprNode {
 	void synthInScope(Scope *scope) override;
 	Type *type(TyChecker &tyc) override;
 	void generateOn(CodeGen &gen) override;
+	RegisterID generateIntoReg(CodeGen & gen) override;
 	void generateAssignOn(CodeGen &gen, ExprNode *rValue);
 
 	void print(int in) override;
@@ -595,6 +603,8 @@ struct BlockExprNode : public ExprNode {
 	    , stmts(stmts)
 	{
 	}
+
+	bool isSelf() override; /**< in case inlined */
 
 	void synthInScope(Scope *parentScope) override;
 	void synthInlineInScope(Scope *scope) override;

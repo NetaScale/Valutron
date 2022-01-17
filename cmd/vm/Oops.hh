@@ -26,6 +26,7 @@ class ArrayOopDesc;
 class ByteOopDesc;
 class ByteArrayOopDesc;
 class BlockOopDesc;
+class CacheOopDesc;
 class CharOopDesc;
 class ClassOopDesc;
 class ContextOopDesc;
@@ -52,6 +53,7 @@ typedef OopRef  <MemOopDesc> 		MemOop;
 typedef OopRef   <OopOopDesc> 		OopOop;
 typedef OopRef    <ArrayOopDesc>	ArrayOop;
 typedef OopRef    <BlockOopDesc>	BlockOop;
+typedef OopRef    <CacheOopDesc>	CacheOop;
 typedef OopRef    <CharOopDesc>		CharOop;
 typedef OopRef    <ClassOopDesc>	ClassOop;
 typedef OopRef    <NativeCodeOopDesc>	NativeCodeOop;
@@ -241,6 +243,17 @@ class ArrayOopDesc : public OopOopDesc {
 	    std::vector<std::string> vec);
 
 	void print(int in);
+};
+
+class CacheOopDesc : public OopOopDesc {
+	public:
+	AccessorPair(SymbolOop, selector, setValue, 0);
+	AccessorPair(ClassOop, cls, setCls, 0);
+	AccessorPair(SmiOop, version, setVersion, 0);
+	AccessorPair(SmiOop, method, setMethod, 0);
+	AccessorPair(CacheOop, next, setNext, 0);
+
+	static CharOop newWith(ObjectMemory &omem, intptr_t value);
 };
 
 class CharOopDesc : public OopOopDesc {

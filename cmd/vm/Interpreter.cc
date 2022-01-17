@@ -400,6 +400,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			IN;
 
 			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
+			//sleep(1);
 
 			break;
 		}
@@ -489,15 +490,6 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			break;
 		}
 
-		case Op::kReturnSelf: {
-			Oop rval = RECEIVER;
-			proc->context() = proc->context()->previousContext();
-			UNSPILL();
-			ac = rval;
-			break;
-		}
-
-		/* u8 source-register */
 		case Op::kReturn: {
 			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
 			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
@@ -509,6 +501,25 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				std::cout << "Maximum context depth " << maxin <<"\n";
 				std::cout << "Completed evaluation with result:\n";
 				ac.print(5);
+				return 0;
+			}
+			UNSPILL();
+			OUT;
+			break;
+		}
+
+		case Op::kReturnSelf:{
+			ac = RECEIVER;
+			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
+			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
+			CTX = CTX->previousContext();
+
+			//std::cout << blanks(in) << "Returning\n";
+			if (CTX.isNil()) {
+				std::cout << "Did " << nsends << " message sends.\n";
+				std::cout << "Maximum context depth " << maxin <<"\n";
+				std::cout << "Completed evaluation with result:\n";
+				ac.print(2);
 				return 0;
 			}
 			UNSPILL();

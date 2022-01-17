@@ -20,7 +20,7 @@ Object subclass: INITIAL [
 			^ fac value: 3 asLongInteger."
 	"^ 85 asLongInteger factorial printString"
 	"^ 5852689 radix: 16"
-	^ (32 fib)
+	^ (34 fib)
 	]
 ]
 
