@@ -247,13 +247,15 @@ class ArrayOopDesc : public OopOopDesc {
 
 class CacheOopDesc : public OopOopDesc {
 	public:
-	AccessorPair(SymbolOop, selector, setValue, 0);
-	AccessorPair(ClassOop, cls, setCls, 0);
-	AccessorPair(SmiOop, version, setVersion, 0);
-	AccessorPair(SmiOop, method, setMethod, 0);
-	AccessorPair(CacheOop, next, setNext, 0);
+	static const int clsInstLength = 5;
 
-	static CharOop newWith(ObjectMemory &omem, intptr_t value);
+	AccessorPair(SymbolOop, selector, setSelector, 0);
+	AccessorPair(ClassOop, cls, setCls, 1);
+	AccessorPair(SmiOop, version, setVersion, 2);
+	AccessorPair(MethodOop, method, setMethod, 3);
+	AccessorPair(CacheOop, next, setNext, 4);
+
+	static CacheOop newWithSelector(ObjectMemory &omem, SymbolOop value);
 };
 
 class CharOopDesc : public OopOopDesc {

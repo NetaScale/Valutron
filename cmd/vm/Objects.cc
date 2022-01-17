@@ -110,6 +110,15 @@ ByteArrayOopDesc::fromVector(ObjectMemory &omem, std::vector<uint8_t> vec)
 	return newArr;
 }
 
+CacheOop
+CacheOopDesc::newWithSelector(ObjectMemory &omem, SymbolOop value)
+{
+	CacheOop obj = omem.newOopObj<CacheOop>(clsInstLength);
+	obj.setIsa(ObjectMemory::clsCharacter);
+	obj->setSelector(value);
+	return obj;
+}
+
 CharOop
 CharOopDesc::newWith(ObjectMemory &omem, intptr_t value)
 {

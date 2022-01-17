@@ -286,10 +286,13 @@ void
 CodeGen::genMessage(bool isSuper, std::string selector,
     std::vector<RegisterID> args)
 {
+	CacheOop cache = CacheOopDesc::newWithSelector(m_omem,
+	    SymbolOopDesc::fromString(m_omem, selector));
+
 	if (isSuper)
-		gen(Op::kSendSuper, addSym(selector), args.size());
+		gen(Op::kSendSuper, addLit(cache), args.size());
 	else
-	 	gen(Op::kSend, addSym(selector), args.size());
+		gen(Op::kSend, addLit(cache), args.size());
 
 	for (auto arg: args)
 		genCode(arg);

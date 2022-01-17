@@ -75,67 +75,24 @@ bool ContextOopDesc::isBlockContext()
 	return methodOrBlock().isa() == ObjectMemory::clsBlock;
 }
 
-/* The PROBLEM: super is only looking up super wrt to receiver
- * need to lookup super wrt to the current class
- */
-static inline MethodOop lookupMethodInClass (
-    ProcessOop proc, Oop receiver, ClassOop cls, SymbolOop selector)
+static inline MethodOop
+lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
+    SymbolOop selector)
 {
-    ClassOop lookupClass = cls;
-    MethodOop meth;
+	MethodOop meth;
 
-    //printf (" -> Begin search for %s in class %s\n", selector->asCStr(), lookupClass->name ()->asCStr ());
+	if (!cls->methods().isNil())
+		meth = cls->methods()->symbolLookup(selector).as<MethodOop>();
 
-    if (!lookupClass->methods ().isNil ())
-    {
-        meth = lookupClass->methods ()->symbolLookup (selector).as<MethodOop> ();
-    }
-   // else
-   //     printf (" -> Class %s has blank methods table\n ",
-   //              lookupClass->name ()->asCStr ());
-
-    if (meth.isNil ())
-    {
-        ClassOop super;
-        if (((super = lookupClass->superClass ()) == Oop ()) ||
-            (super == lookupClass))
-        {
-            ContextOop ctx = proc->context ();
-        printf (" -> Failed to find method %s in class %s(%s)\n",
-                     selector->asCStr (),
-		     receiver.isa()->name()->asCStr(),
-                     cls->name ()->asCStr ());
-            printf ("          --> %s>>%s\n",
-                     ctx->receiver ().isa ()->name ()->asCStr (),
-                     ctx->isBlockContext () ? "<block>"
-                                            : ctx->methodOrBlock ()
-                                                  .as<MethodOop> ()
-                                                  ->selector ()
-                                                  ->asCStr ());
-            while ((ctx = ctx->previousContext ()) != Oop ())
-                printf ("          --> %s>>%s\n",
-                         ctx->receiver ().isa ()->name ()->asCStr (),
-                         ctx->isBlockContext () ? "<block>"
-                                                : ctx->methodOrBlock ()
-                                                      .as<MethodOop> ()
-                                                      ->selector ()
-                                                      ->asCStr ());
-            abort ();
-        }
-        else
-        {
-            /*printf (
-                " -> DID NOT find method %s in class %s, searching super\n",
-                selector->asCStr (),
-                cls->name ()->asCStr ());*/
-            return lookupMethodInClass (proc, receiver, super, selector);
+	if (meth.isNil()) {
+		ClassOop super = cls->superClass();
+		if (super.isNil() || super == cls)
+			return MethodOop();
+		else
+			return lookupMethod(proc, receiver, super, selector);
 	}
-    }
 
-    //std::cout << blanks(in) << "=> " << receiver.isa()->name()->asCStr() <<
-    //"(" << lookupClass->name()->asString() << ")>>"
-    //	      << selector->asCStr() << "\n";
-    return meth;
+	return meth;
 }
 
 #define CTX proc->context()
@@ -157,7 +114,7 @@ static inline MethodOop lookupMethodInClass (
 }
 #define UNSPILL() {								\
 	pc = &CTX->bytecode()->basicAt0(0)+ CTX->programCounter().smi();	\
-	regs = &proc->context()->reg0();				\
+	regs = &proc->context()->reg0();					\
 	lits = &proc->context()->methodOrBlock().as<MethodOop>()->literals()->	\
 	    basicAt0(0);							\
 }
@@ -167,6 +124,18 @@ static inline MethodOop lookupMethodInClass (
 	proc->stackIndex() = SmiOop(newSI + 2);					\
 	ctx->previousContext() = CTX;						\
 	//printf("%d/NEW STACKINDEX IS %ld\n", in, proc->stackIndex().smi());
+
+#define LOOKUPCACHED(RCVR, CLS, CACHE, METH_OUT) {				\
+	if (!CACHE->method().isNil() && CACHE->cls() == CLS &&			\
+	    CACHE->version().smi() == 5) {					\
+		METH_OUT = CACHE->method();					\
+	} else {								\
+		METH_OUT = lookupMethod(proc, RCVR, CLS, CACHE->selector());	\
+		CACHE->method() = METH_OUT;					\
+		CACHE->cls() = CLS;						\
+		CACHE->version() = 5;						\
+	}									\
+}
 
 int
 execute(ObjectMemory &omem, ProcessOop proc)
@@ -355,8 +324,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			ac = Primitive::primitives[op].fn2(omem, proc,arg1,
 			    arg2);
 			if (ac.isNil()) {
-				MethodOop meth = lookupMethodInClass(proc,
-				    arg1, arg1.isa(), ObjectMemory::symBin[op]);
+				MethodOop meth = lookupMethod(proc, arg1,
+				    arg1.isa(), ObjectMemory::symBin[op]);
 
 				assert(!meth.isNil());
 
@@ -378,8 +347,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 */
 		case Op::kSend: {
 			unsigned selIdx = FETCH, nArgs = FETCH;
-			MethodOop meth = lookupMethodInClass(proc, ac, ac.isa(),
-			    lits[selIdx].as<SymbolOop>());
+			CacheOop cache = lits[selIdx].as<CacheOop>();
+			ClassOop cls = ac.isa();
+			MethodOop meth;
+
+			LOOKUPCACHED(ac, cls, cache, meth);
 
 			assert(!meth.isNil());
 
@@ -392,8 +364,8 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			nsends++;
 
 			//std::cout << blanks(in) << "=> " <<
-			//    ac.isa()->name()->asCStr() << ">>" <<
-			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
+			//cls->name()->asCStr() << ">>" <<
+			//    cache->selector()->asCStr() << "\n";
 			SPILL();
 			CTX = ctx;
 			UNSPILL();
@@ -412,9 +384,10 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kSendSuper: {
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			ClassOop cls = METHODCLASS->superClass();
-			MethodOop meth = lookupMethodInClass(proc, ac, cls,
-			    lits[selIdx].as<SymbolOop>());
+			CacheOop cache = lits[selIdx].as<CacheOop>();
+			MethodOop meth;
 
+			LOOKUPCACHED(ac, cls, cache, meth);
 			assert(!meth.isNil());
 
 			NEWCTX();
@@ -424,9 +397,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				ctx->regAt0(i + 1) = regs[FETCH];
 			}
 
-			std::cout << blanks(in) << "=> " <<
-			    ac.isa()->name()->asCStr() << ">>" <<
-			    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
+			//std::cout << blanks(in) << "=> " <<
+			//    cls->name()->asCStr() << ">>" <<
+			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
 			CTX = ctx;
 			UNSPILL();
@@ -528,7 +501,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kBlockReturn: {
-			MethodOop meth = lookupMethodInClass(proc,
+			MethodOop meth = lookupMethod(proc,
 			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
 			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"));
 
