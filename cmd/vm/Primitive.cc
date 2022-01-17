@@ -1,5 +1,6 @@
 #include <cmath>
 #include <csetjmp>
+#include <cstdint>
 
 #include "Interpreter.hh"
 #include "ObjectMemory.hh"
@@ -497,7 +498,7 @@ primAdd(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	}
 	longresult = a.as<SmiOop>().smi();
 	longresult += b.as<SmiOop>().smi();
-	if (1) // FIXME: bounds test SMI 1) // FIXME: boundscheck smi
+	if (longresult < INT64_MAX / 2) // FIXME: bounds test SMI
 		return (SmiOop(longresult));
 	else
 		return (Oop::nil());
@@ -517,7 +518,7 @@ primSubtract(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 		return (Oop::nil());
 	longresult = a.as<SmiOop>().smi();
 	longresult -= b.as<SmiOop>().smi();
-	if (1) // FIXME: smi boundcheck 1) // FIXME: boundscheck smi
+	if (longresult < INT64_MAX / 2) // FIXME: smi boundcheck 
 		return (SmiOop(longresult));
 	else
 		return (Oop::nil());
@@ -641,7 +642,7 @@ primMultiply(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 		return (Oop::nil());
 	longresult = a.as<SmiOop>().smi();
 	longresult *= b.as<SmiOop>().smi();
-	if (1) // FIXME: boundscheck 1) // FIXME: boundscheck smi
+	if (longresult < INT64_MAX / 2) // FIXME: boundscheck smi
 		return (SmiOop(longresult));
 	else
 		return (Oop::nil());

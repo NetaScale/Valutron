@@ -90,9 +90,8 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
 			return MethodOop();
 		else
 			return lookupMethod(proc, receiver, super, selector);
-	}
-
-	return meth;
+	} else
+		return meth;
 }
 
 #define CTX proc->context()
@@ -119,6 +118,8 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
 	    basicAt0(0);							\
 }
 
+#define TESTCOUNTER() if (counter > 10000) return 0;
+
 #define NEWCTX() size_t newSI = proc->stackIndex().smi() + CTX->size();		\
 	ContextOop ctx = (void*)&proc->stack()->basicAt(newSI);			\
 	proc->stackIndex() = SmiOop(newSI + 2);					\
@@ -144,6 +145,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 	uint8_t * pc = &CTX->bytecode()->basicAt0(0);
 	Oop * regs;
 	Oop * lits;
+	volatile int counter = 0;
 
 	disassemble(CTX->bytecode()->vns(), CTX->methodOrBlock().as<MethodOop>()->bytecode()->size());
 
@@ -291,6 +293,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/* a value, i16 pc-offset */
 		case Op::kBranchIfFalse: {
+			TESTCOUNTER();
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
@@ -304,6 +307,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/* a value, i16 pc-offset */
 		case Op::kBranchIfTrue: {
+			TESTCOUNTER();
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
@@ -316,6 +320,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kBinOp: {
+			TESTCOUNTER();
 			uint8_t src = FETCH;
 			uint8_t op = FETCH;
 			Oop arg1 = regs[src];
@@ -346,6 +351,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSend: {
+			TESTCOUNTER();
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			CacheOop cache = lits[selIdx].as<CacheOop>();
 			ClassOop cls = ac.isa();
@@ -382,6 +388,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		 *     (u8 arg-register)+, ->a result
 		 */
 		case Op::kSendSuper: {
+			TESTCOUNTER();
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			ClassOop cls = METHODCLASS->superClass();
 			CacheOop cache = lits[selIdx].as<CacheOop>();
@@ -411,6 +418,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
 		case Op::kPrimitive: {
+			TESTCOUNTER();
 			unsigned prim = FETCH, nArgs = FETCH;
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
@@ -427,6 +435,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/** a arg, u8 prim-num */
 		case Op::kPrimitive1: {
+			TESTCOUNTER();
 			unsigned prim = FETCH;
 			SPILL();
 			ac = Primitive::primitives[prim].fn1(omem, proc, ac);
@@ -436,6 +445,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/** a arg2, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive2: {
+			TESTCOUNTER();
 			unsigned prim = FETCH, arg1reg = FETCH;
 			SPILL();
 			ac = Primitive::primitives[prim].fn2(omem, proc,
@@ -446,6 +456,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		/** a arg3, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive3: {
+			TESTCOUNTER();
 			unsigned prim = FETCH, arg1reg = FETCH;
 			SPILL();
 			ac = Primitive::primitives[prim].fn3(omem, proc,
@@ -455,6 +466,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kPrimitiveV: {
+			TESTCOUNTER();
 			unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
 			SPILL();
 			ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
@@ -464,6 +476,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kReturn: {
+			TESTCOUNTER();
 			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
 			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
 			CTX = CTX->previousContext();
@@ -482,6 +495,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kReturnSelf:{
+			TESTCOUNTER();
 			ac = RECEIVER;
 			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
 			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
@@ -501,6 +515,7 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		}
 
 		case Op::kBlockReturn: {
+			TESTCOUNTER();
 			MethodOop meth = lookupMethod(proc,
 			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
 			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"));
