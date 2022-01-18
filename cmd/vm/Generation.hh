@@ -110,10 +110,8 @@ class CodeGen {
 	void genReturn();
 	void genReturnSelf();
 	void genBlockReturn();
-
-
 };
 
-void disassemble(uint8_t * code, int length);
+void disassemble(uint8_t * code, int length) noexcept;
 
 #endif /* GENERATION_HH_ */

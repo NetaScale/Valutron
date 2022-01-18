@@ -539,6 +539,5 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			break;
 		}
 	} /* switch (op) */
-
 	goto loop;
 }
