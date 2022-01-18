@@ -20,7 +20,8 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop receiver,
 {
 	size_t heapVarsSize = aMethod->heapVarsSize().smi();
 
-	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() + 1;
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() +
+	    sizeof(MemOopDesc) / sizeof(Oop);
 	setIsa(ObjectMemory::clsContext);
 	setBytecode(aMethod->bytecode());
 	setReceiver(receiver);
@@ -31,6 +32,8 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop receiver,
 	setProgramCounter(SmiOop((intptr_t)0));
 
 	reg0() = receiver;
+	for (int i = 1; i < aMethod->stackSize().smi(); i++)
+		regAt0(i) = Oop::nil();
 }
 
 void
@@ -38,7 +41,8 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 {
 	size_t heapVarsSize = aMethod->heapVarsSize().smi();
 
-	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() + 1;
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() +
+	    sizeof(MemOopDesc) / sizeof(Oop);
 	setIsa(ObjectMemory::clsContext);
 	setBytecode(aMethod->bytecode());
 	setReceiver(aMethod->receiver());
@@ -50,14 +54,15 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	setProgramCounter(SmiOop((intptr_t)0));
 	setHomeMethodContext(aMethod->homeMethodContext());
 	reg0() = aMethod->receiver();
-
+	for (int i = 1; i < aMethod->stackSize().smi(); i++) 
+		regAt0(i) = Oop::nil();
 }
 
 ContextOop
 ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
     MethodOop aMethod)
 {
-	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi() + 1);
+	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi());
 	ctx->initWithMethod(omem, receiver, aMethod);
 	return ctx;
 }
@@ -65,10 +70,14 @@ ContextOopDesc::newWithMethod(ObjectMemory &omem, Oop receiver,
 ContextOop
 ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 {
-	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi() + 1);
+	ContextOop ctx = omem.newOopObj<ContextOop>(clsNstLength + aMethod->stackSize().smi());
 	ctx->initWithBlock(omem, aMethod);
 	return ctx;
 }
+
+//#define CALLTRACE
+//#define STACKDEPTHTRACE
+//#define TRACEDISPATCH
 
 bool ContextOopDesc::isBlockContext()
 {
@@ -76,22 +85,36 @@ bool ContextOopDesc::isBlockContext()
 }
 
 static inline MethodOop
-lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
+lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
     SymbolOop selector)
 {
+	ClassOop cls = startCls;
 	MethodOop meth;
 
 	if (!cls->methods().isNil())
 		meth = cls->methods()->symbolLookup(selector).as<MethodOop>();
 
 	if (meth.isNil()) {
-		ClassOop super = cls->superClass();
-		if (super.isNil() || super == cls)
+		cls = cls->superClass();
+		if (cls.isNil() || cls == startCls) {
+#ifdef CALLTRACE
+			std::cout << "Failed to find method " <<
+			    selector->asCStr() << "in class " <<
+			    receiver.isa()->name()->asCStr() << "\n";
+#endif
 			return MethodOop();
+		}
 		else
-			return lookupMethod(proc, receiver, super, selector);
-	} else
+			return lookupMethod(proc, receiver, cls, selector);
+	} else {
+#ifdef CALLTRACE
+		std::cout << receiver.isa()->name()->asCStr() << "(" <<
+		    cls->name()->asCStr() << ")>>" << selector->asCStr() <<
+		    "\n";
+		disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
+#endif
 		return meth;
+	}
 }
 
 #define CTX proc->context()
@@ -112,7 +135,7 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
 	CTX->accumulator() = SmiOop(ac);					\
 }
 #define UNSPILL() {								\
-	pc = &CTX->bytecode()->basicAt0(0)+ CTX->programCounter().smi();	\
+	pc = &CTX->bytecode()->basicAt0(0) + CTX->programCounter().smi();	\
 	regs = &proc->context()->reg0();					\
 	lits = &proc->context()->methodOrBlock().as<MethodOop>()->literals()->	\
 	    basicAt0(0);							\
@@ -120,11 +143,12 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
 
 #define TESTCOUNTER() if (counter > 10000) return 0;
 
-#define NEWCTX() size_t newSI = proc->stackIndex().smi() + CTX->size();		\
+#define NEWCTX() \
+	size_t newSI = proc->stackIndex().smi() + CTX->fullSize();		\
 	ContextOop ctx = (void*)&proc->stack()->basicAt(newSI);			\
-	proc->stackIndex() = SmiOop(newSI + 2);					\
+	proc->stackIndex() = SmiOop(newSI);					\
 	ctx->previousContext() = CTX;						\
-	//printf("%d/NEW STACKINDEX IS %ld\n", in, proc->stackIndex().smi());
+
 
 #define LOOKUPCACHED(RCVR, CLS, CACHE, METH_OUT) {				\
 	if (!CACHE->method().isNil() && CACHE->cls() == CLS &&			\
@@ -138,6 +162,25 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop cls,
 	}									\
 }
 
+void blockReturn(ProcessOop proc)
+{
+	ContextOop home = CTX->methodOrBlock().as<BlockOop>()->
+	    homeMethodContext();
+	/* TODO: execute ifCurtailed: blocks */
+	proc->context() = home->previousContext();
+	if (proc->context().isNil()) {
+		return;
+	} else {
+
+	proc->stackIndex() = ((uintptr_t)&*home -
+			    (uintptr_t)&proc->stack()->basicAt0(0)) /
+			    sizeof(Oop) + 1;;
+#ifdef STACKDEPTHTRACE
+	printf("BLK SI %ld\n", proc->stackIndex().smi());
+#endif
+	}
+}
+
 int
 execute(ObjectMemory &omem, ProcessOop proc)
 {
@@ -147,12 +190,18 @@ execute(ObjectMemory &omem, ProcessOop proc)
 	Oop * lits;
 	volatile int counter = 0;
 
+	std::cout <<"\n\nInterpreter will now run:\n";
 	disassemble(CTX->bytecode()->vns(), CTX->methodOrBlock().as<MethodOop>()->bytecode()->size());
+	std::cout << "\n\n";
 
 	UNSPILL();
 
 	loop:
-	switch((Op::Opcode) FETCH) {
+	Op::Opcode op = (Op::Opcode)FETCH;
+#ifdef TRACEDISPATCH
+	printf("DISPATCH %d\n", op);
+#endif
+	switch((Op::Opcode) op) {
 		/* u8 index/reg, u8 dest */
 		case Op::kMoveParentHeapVarToMyHeapVars: {
 			unsigned src = FETCH, dst = FETCH;
@@ -364,8 +413,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			NEWCTX();
 			ctx->initWithMethod(omem, ac, meth);
 
-			for (int i = 0; i < nArgs; i++)
-				ctx->regAt0(i + 1) = regs[FETCH];
+			for (int i = 0; i < nArgs; i++) {
+				Oop obj = regs[FETCH];
+				//obj.print(16); FIXME:
+				ctx->regAt0(i + 1) = obj;
+			}
 
 			nsends++;
 
@@ -376,7 +428,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			CTX = ctx;
 			UNSPILL();
 			IN;
-
+#ifdef STACKDEPTHTRACE
+			std::cout << "SI=" << newSI << " after send\n";
+#endif
 			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 			//sleep(1);
 
@@ -412,6 +466,9 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			UNSPILL();
 			IN;
 			nsends++;
+#ifdef STACKDEPTHTRACE
+			std::cout << "SI=" << newSI << " after send\n";
+#endif
 
 			break;
 		}
@@ -477,17 +534,31 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kReturn: {
 			TESTCOUNTER();
-			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
-			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
+			size_t newSI = ((uintptr_t)&*CTX->previousContext() -
+			    (uintptr_t)&proc->stack()->basicAt0(0)) /
+			    sizeof(Oop) + 1;
+			proc->stackIndex() = newSI;
 			CTX = CTX->previousContext();
 
-			//std::cout << blanks(in) << "Returning\n";
 			if (CTX.isNil()) {
 				std::cout << "Made " << nsends << " message sends.\n";
 				std::cout << "Maximum context depth " << maxin <<"\n";
 				std::cout << "Completed evaluation with result:\n";
 				ac.print(5);
 				return 0;
+			} else {
+#ifdef CALLTRACE
+				std::cout <<"RETURN TO: ";
+				std::cout << CTX->receiver().isa()->name()->asCStr() << ">>";
+				if (proc->context()->isBlockContext())
+		 		std::cout << proc->context()->homeMethodContext()->methodOrBlock().as<MethodOop>()->selector()->asCStr() << "(Block)\n";
+				else
+		 		std::cout << proc->context()->methodOrBlock().as<MethodOop>()->selector()->asCStr() << "\n";
+
+#endif
+#ifdef STACKDEPTHTRACE
+				std::cout << "SI=" << newSI << " after ret \n";
+#endif
 			}
 			UNSPILL();
 			OUT;
@@ -497,8 +568,11 @@ execute(ObjectMemory &omem, ProcessOop proc)
 		case Op::kReturnSelf:{
 			TESTCOUNTER();
 			ac = RECEIVER;
-			proc->stackIndex() = proc->stackIndex().smi() - (CTX->size() + 2);
-			//printf("%lu/RET STACKINDEX IS %ld\n", in - 1, proc->stackIndex().smi());
+			size_t newSI = ((uintptr_t)&*CTX->previousContext() -
+			    (uintptr_t)&proc->stack()->basicAt0(0)) /
+			    sizeof(Oop) + 1;
+			proc->stackIndex() = newSI;
+			
 			CTX = CTX->previousContext();
 
 			//std::cout << blanks(in) << "Returning\n";
@@ -508,6 +582,13 @@ execute(ObjectMemory &omem, ProcessOop proc)
 				std::cout << "Completed evaluation with result:\n";
 				ac.print(2);
 				return 0;
+			} else {
+#ifdef CALLTRACE
+				std::cout <<"RETURN TO: " << proc->context()->methodOrBlock().as<MethodOop>()->selector()->asCStr() << "\n";
+#endif
+#ifdef STACKDEPTHTRACE
+				std::cout << "SI=" << newSI << "after ret \n";
+#endif
 			}
 			UNSPILL();
 			OUT;
@@ -516,11 +597,18 @@ execute(ObjectMemory &omem, ProcessOop proc)
 
 		case Op::kBlockReturn: {
 			TESTCOUNTER();
+			SPILL();
+			blockReturn(proc);
+			if (CTX.isNil()) {
+				ac.print(2);
+				return 0;
+			}
+			UNSPILL();
+#if 0
 			MethodOop meth = lookupMethod(proc,
 			    CTX->methodOrBlock(), CTX->methodOrBlock().isa(),
 			    SymbolOopDesc::fromString(omem, "nonLocalReturn:"));
 
-#if 0
 			assert(!meth.isNil());
 
 			SPILL();
@@ -533,8 +621,6 @@ execute(ObjectMemory &omem, ProcessOop proc)
 			//std::cout << blanks(in) <<"Beginning block return.\n";
 			CTX = ctx;
 			UNSPILL();
-#else
-			abort();
 #endif
 			break;
 		}

@@ -184,9 +184,9 @@ Var::generateOn(CodeGen &gen)
 RegisterID
 Var::generateIntoReg(CodeGen &gen)
 {
-	if (kind == kArgument)
+	if (kind == kArgument && !promoted)
 		return getIndex();
-	else if (kind == kLocal)
+	else if (kind == kLocal && !promoted)
 		return gen.localIndex(getIndex());
 	else {
 		generateOn(gen);

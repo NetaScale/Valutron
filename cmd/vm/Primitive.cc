@@ -1205,8 +1205,12 @@ primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 Oop
 primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 {
-	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
-	    args[0].as <BlockOop>());
+	size_t newSI = proc->stackIndex().smi() + proc->context()->fullSize();
+	ContextOop ctx = (void*)&proc->stack()->basicAt(newSI);
+	proc->stackIndex() = SmiOop(newSI);
+	ctx->previousContext() = proc->context();
+
+	ctx->initWithBlock(omem, args[0].as <BlockOop>());
 
 	for (int i = 1; i < nArgs; i++)
 		ctx->regAt0(i) =  args[i];
@@ -1214,6 +1218,7 @@ primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 	ctx->setPreviousContext(proc->context()->previousContext());
 	proc->setContext(ctx);
 	// printf ("=> Entering block\n");
+	//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 	return Oop();
 }
 #endif

@@ -312,6 +312,7 @@ ObjectMemory::setupInitialObjects()
 	CreateClass(ObjectClass);
 	CreateClass(Object);
 	clsObject.setIsa(clsObjectClass);
+	clsObjectClass.setIsa(clsObjectClass);
 	CreateClass(Integer);
 	CreateClass(ByteArray);
 	CreateClass(String);

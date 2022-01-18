@@ -512,6 +512,11 @@ class ContextOopDesc : public OopOopDesc {
 
 	bool isBlockContext();
 
+	size_t fullSize()
+	{
+		return m_size + (sizeof(MemOopDesc) / sizeof(Oop));
+	}
+
 	void print(int in);
 
 	static ContextOop newWithBlock(ObjectMemory &omem, BlockOop aMethod);

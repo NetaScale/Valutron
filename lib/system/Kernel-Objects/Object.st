@@ -98,8 +98,9 @@ nil subclass: Object [
 	]
 
 	class>>methodNamed: name [
+		(self basicAt: 3) notNil ifTrue: [
 		((self basicAt: 3) includesKey: name)
-			ifTrue: [ ^ (self basicAt: 3) at: name ].
+			ifTrue: [ ^ (self basicAt: 3) at: name ] ].
 		((self basicAt: 2) notNil)
 			ifTrue: [ ^ (self basicAt: 2) methodNamed: name ].
 		^ nil

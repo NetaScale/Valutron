@@ -9,6 +9,21 @@
 @include 'Kernel-Processes/dir.st'
 @include 'Numeric-Numbers/dir.st'
 
+Object subclass: Tester [
+	class>>doNothing [
+		| athing |
+		^ 40
+	]
+	class>>blockRetWith: a and: b and: c [
+		| no |
+		no <- self doNothing.
+		"<#dumpVariable a>.
+		<#dumpVariable b>.
+		<#dumpVariable c>."
+		^ 55
+	]
+]
+
 Object subclass: INITIAL [
 
 	initial [ | fac |
@@ -18,9 +33,11 @@ Object subclass: INITIAL [
 				ifFalse: [n * (fac value: n - 1)]
 			].
 			^ fac value: 3 asLongInteger."
-	"^ 85 asLongInteger factorial printString"
-	"^ 5852689 radix: 16"
-	^ (34 fib)
+	^ 105 asLongInteger factorial printString
+	"^ Tester blockRetWith: 1 and: 2 and: 3"
+	"^ Tester blockRetWith: 1 and: 2 and: 3"
+	"^ (20 fib)"
+	"^ (10 asLongInteger + 2) printString"
 	]
 ]
 

@@ -134,8 +134,9 @@ Position MVST_Parser::pos()
 	std::cerr << "+ " << eLine << "\n";
 	std::cerr << "+ ";
 
-	for (i = 0; i < m_oldCol; i++)
-		std::cerr << " ";
+	for (i = 0; i < m_oldCol; i++) {
+		std::cerr << ((char)eLine[i] == '\t' ? "\t" : " ");
+	}
 	for (; i < m_col; i++)
 		std::cerr << "^";
 
