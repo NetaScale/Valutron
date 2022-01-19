@@ -40,9 +40,9 @@ main(int argc, char * argv[])
 	assert(!start.isNil());
 
 	firstProcess = ProcessOopDesc::allocate(omem);
-	ContextOop ctx = (void*)&firstProcess->stack()->basicAt0(0);
+	ContextOop ctx = (void*)&firstProcess->stack->basicAt0(0);
 	ctx->initWithMethod(omem, Oop(),start);
-	firstProcess->context() = ctx;
+	firstProcess->context = ctx;
 
 	clock_t begin = clock();
 	execute(omem, firstProcess);

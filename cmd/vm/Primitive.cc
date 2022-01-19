@@ -69,13 +69,13 @@ primReturnInto(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	/* FIXME: this is ugly */
 	ContextOop ctx = args->basicAt(1).as<ContextOop>();
 	Oop rVal = args->basicAt(2);
-	proc->setContext(ctx);
+	proc->context = ctx;
 	// printf("Activating return continuation:\n");
 	// printf("-----------INTO %s>>%s-------------\n",
-	//    ctx->receiver().isa()->name()->asCStr(),
+	//    ctx->receiver.isa()->name()->asCStr(),
 	//    ctx->isBlockContext() ?
 	//	      "<block>" :
-	//	      ctx->methodOrBlock().as<MethodOop>()->selector()->asCStr());
+	//	      ctx->methodOrBlock.as<MethodOop>()->selector()->asCStr());
 	return rVal;
 }
 
@@ -1185,63 +1185,45 @@ primPrintWithNL(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	return (Oop());
 }
 
-#if 0
-Oop
-primExecBlock(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
-{
-	ContextOop ctx = ContextOopDesc::newWithBlock(omem,
-	    args->basicAt(1).as<BlockOop>());
-	for (int i = 2; i <= args.as<MemOop>()->size(); i++) {
-		// printf("add argument %d/stack basicAt %d\n", i - 1, i - 2);
-		ctx->reg0()->basicAtPut(i, args->basicAt(i));
-	}
-
-	ctx->setPreviousContext(proc->context()->previousContext());
-	proc->setContext(ctx);
-	// printf ("=> Entering block\n");
-	return Oop();
-}
-#else
 Oop
 primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 {
-	size_t newSI = proc->stackIndex().smi() + proc->context()->fullSize();
-	ContextOop ctx = (void*)&proc->stack()->basicAt(newSI);
-	proc->stackIndex() = SmiOop(newSI);
-	ctx->previousContext() = proc->context();
+	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
+	ContextOop ctx = (void*)&proc->stack->basicAt(newSI);
+	proc->stackIndex = SmiOop(newSI);
+	ctx->previousContext = proc->context;
 
 	ctx->initWithBlock(omem, args[0].as <BlockOop>());
 
 	for (int i = 1; i < nArgs; i++)
 		ctx->regAt0(i) =  args[i];
 
-	ctx->setPreviousContext(proc->context()->previousContext());
-	proc->setContext(ctx);
+	ctx->previousContext = proc->context->previousContext;
+	proc->context = ctx;
 	// printf ("=> Entering block\n");
 	//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 	return Oop();
 }
-#endif
 
 Oop
 primDumpVariable(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	ContextOop ctx = proc->context();
+	ContextOop ctx = proc->context;
 
 	printf("Dump variable:\n");
 
 	args->basicAt(1).print(20);
 	args->basicAt(1).isa()->print(20);
 	printf("          --> %s>>%s\n",
-	    ctx->receiver().isa()->name()->asCStr(),
+	    ctx->receiver.isa()->name()->asCStr(),
 	    ctx->isBlockContext() ?
 		      "<block>" :
-		      ctx->methodOrBlock().as<MethodOop>()->selector()->asCStr());
-	while ((ctx = ctx->previousContext()) != Oop::nil())
+		      ctx->methodOrBlock.as<MethodOop>()->selector()->asCStr());
+	while ((ctx = ctx->previousContext) != Oop::nil())
 		printf("          --> %s>>%s\n",
-		    ctx->receiver().isa()->name()->asCStr(),
+		    ctx->receiver.isa()->name()->asCStr(),
 		    ctx->isBlockContext() ? "<block>" :
-						  ctx->methodOrBlock()
+						  ctx->methodOrBlock
 						.as<MethodOop>()
 						->selector()
 						->asCStr());

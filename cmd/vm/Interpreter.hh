@@ -115,6 +115,6 @@ class Op {
 	};
 };
 
-int execute(ObjectMemory &omem, ProcessOop proc);
+extern "C" int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
 
 #endif /* INTERPRETER_HH_ */

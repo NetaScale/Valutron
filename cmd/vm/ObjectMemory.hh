@@ -153,8 +153,11 @@ template <class T>
 inline ClassOop &
 OopRef<T>::setIsa(ClassOop oop)
 {
-	return isSmi() ? throw std::runtime_error("Can't set SMI hashcode") :
-	    as<MemOop>()->setIsa(oop);
+	if (isSmi()) {
+		printf("Can't set SMI hashcode\n");
+		abort();
+	} else
+		return as<MemOop>()->setIsa(oop);
 }
 
 inline uint32_t

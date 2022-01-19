@@ -126,12 +126,14 @@ class OopDesc {
 
 };
 
+extern "C" int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
+
 class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
 	friend class OopRef<OopDesc>;
 
-	friend int execute(ObjectMemory &omem, ProcessOop proc);
+	friend int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
 
 	enum Kind {
 		kOops,
@@ -486,21 +488,40 @@ class BlockOopDesc : public OopOopDesc {
 };
 
 class ContextOopDesc : public OopOopDesc {
-	friend int execute(ObjectMemory &omem, ProcessOop proc);
+	friend int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
 
 	static const int clsNstLength = 10;
 
     public:
-	AccessorPair(ContextOop, previousContext, setPreviousContext, 0);
-	AccessorPair(OopOop, methodOrBlock, setMethodOrBlock, 1);
-	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 2);
-	AccessorPair(ByteArrayOop, bytecode, setBytecode, 3);
-	AccessorPair(Oop, receiver, setReceiver, 4);
-	AccessorPair(ArrayOop, heapVars, setHeapVars, 5);
-	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 6);
-	AccessorPair(SmiOop, programCounter, setProgramCounter, 7);
-	AccessorPair(Oop, accumulator, setAccumulator, 8);
-	AccessorPair(Oop, reg0, setStack, 9);
+	/**
+	 * The previous context, usually the one in which a message send invoked
+	 * this context.
+	 *
+	 * n.b. in the case of a Block, as an optimisation, the (value[:])*
+	 * method that used #blockInvoke is *not* the previous context; that
+	 * context is effectively abolished, as it's of no real interest to
+	 * anyone.
+	 */
+	ContextOop previousContext;
+	/**
+	 * The Method or Block this Context is running.
+	 */
+	OopOop methodOrBlock;
+	/**
+	 * If isBlockContext() true: The Context in which this block was
+	 * instantiated; otherwise nil.
+	 */
+	ContextOop homeMethodContext;
+	/**
+	 * Convenience pointer to #methodOrBlock's bytecode array.
+	 */
+	ByteArrayOop bytecode;
+	Oop receiver;
+	ArrayOop heapVars;
+	ArrayOop parentHeapVars;
+	SmiOop programCounter;
+	Oop accumulator;
+	Oop reg0;
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
@@ -508,6 +529,7 @@ class ContextOopDesc : public OopOopDesc {
 	void initWithMethod(ObjectMemory &omem, Oop receiver,
 	    MethodOop aMethod);
 
+	inline MethodOop &method() { return methodOrBlock.as<MethodOop>(); }
 	Oop &regAt0(size_t num) { return m_oops[9 + num]; }
 
 	bool isBlockContext();
@@ -528,9 +550,9 @@ class ProcessOopDesc : public OopOopDesc {
 	static const int clsNstLength = 4;
 
     public:
-	AccessorPair(ContextOop, context, setContext, 0);
-	AccessorPair(ArrayOop, stack, setStack, 1);
-	AccessorPair(SmiOop, stackIndex, setStackIndex, 2); /* 1-based */
+	ContextOop context;
+	ArrayOop stack;
+	SmiOop stackIndex; /* 1-based */
 
 	static ProcessOop allocate(ObjectMemory &omem);
 };

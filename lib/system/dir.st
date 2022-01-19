@@ -20,7 +20,7 @@ Object subclass: Tester [
 		"<#dumpVariable a>.
 		<#dumpVariable b>.
 		<#dumpVariable c>."
-		^ 55
+		^ a + c - b
 	]
 ]
 
@@ -33,11 +33,14 @@ Object subclass: INITIAL [
 				ifFalse: [n * (fac value: n - 1)]
 			].
 			^ fac value: 3 asLongInteger."
-	^ 105 asLongInteger factorial printString
+	<#debugMsg (9164713 radix:16)>.
+	<#debugMsg (20 fib printString)>.
+	<#debugMsg ((10 asLongInteger + 2) printString)>.
+	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>.
+	^ 53 asLongInteger factorial printString
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ (20 fib)"
-	"^ (10 asLongInteger + 2) printString"
 	]
 ]
 

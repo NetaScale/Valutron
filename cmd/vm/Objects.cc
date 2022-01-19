@@ -250,7 +250,7 @@ void ContextOopDesc::print (int in)
 {
     std::cout << blanks (in) << "Context " << this << "{\n";
     std::cout << blanks (in) << "BlockOrMethod:\n";
-    methodOrBlock().print(in + 2);
+    methodOrBlock.print(in + 2);
     std::cout << blanks (in) << "}\n";
 }
 
@@ -390,7 +390,8 @@ DictionaryOopDesc::subNamespaceNamed(ObjectMemory &omem, std::string name)
 		}
 		return ns;
 	} else {
-		throw std::runtime_error("Subnamespace problem");
+		printf("Subnamespace problem\n");
+		abort();
 	}
 }
 
@@ -598,7 +599,7 @@ ProcessOopDesc::allocate(ObjectMemory &omem)
 {
 	ProcessOop proc = omem.newOopObj<ProcessOop>(ProcessOopDesc::clsNstLength);
 	proc->setIsa(ObjectMemory::clsProcess);
-	proc->setStack(ArrayOopDesc::newWithSize(omem, 2000000));
-	proc->setStackIndex((intptr_t)1);
+	proc->stack = ArrayOopDesc::newWithSize(omem, 2000000);
+	proc->stackIndex = (intptr_t)1;
 	return proc;
 }
