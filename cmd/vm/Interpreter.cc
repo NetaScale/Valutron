@@ -83,8 +83,7 @@ bool ContextOopDesc::isBlockContext()
 }
 
 static inline MethodOop
-lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
-    SymbolOop selector)
+lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 {
 	ClassOop cls = startCls;
 	MethodOop meth;
@@ -103,7 +102,7 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
 			return MethodOop();
 		}
 		else
-			return lookupMethod(proc, receiver, cls, selector);
+			return lookupMethod(receiver, cls, selector);
 	} else {
 #ifdef CALLTRACE
 		std::cout << receiver.isa()->name()->asCStr() << "(" <<
@@ -138,6 +137,10 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
 	lits = &proc->context->method()->literals()->basicAt0(0);		\
 }
 
+/**
+ * Test if the major operations counter (sends, primitives, branches, etc)
+ * exceeds the given timeslice; if so, spills registers and returns 1.
+ */
 #define TESTCOUNTER() if (counter++ > timeslice) { pc--; SPILL(); proc->accumulator = ac; return 1; }
 
 #define NEWCTX() \
@@ -147,16 +150,24 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
 	ctx->previousContext = CTX;						\
 
 
-#define LOOKUPCACHED(RCVR, CLS, CACHE, METH_OUT) {				\
-	if (!CACHE->method().isNil() && CACHE->cls() == CLS &&			\
-	    CACHE->version().smi() == 5) {					\
-		METH_OUT = CACHE->method();					\
-	} else {								\
-		METH_OUT = lookupMethod(proc, RCVR, CLS, CACHE->selector());	\
-		CACHE->method() = METH_OUT;					\
-		CACHE->cls() = CLS;						\
-		CACHE->version() = 5;						\
-	}									\
+/**
+ * Given an Oop receiver to look up within, a Class to begin lookup in, and a
+ * Cache, looks up a method. Cache is checked and appropriately updated if
+ * necessary.
+ */
+static inline MethodOop
+lookupCached(Oop obj, ClassOop cls, CacheOop cache)
+{
+	if (!cache->method.isNil() && cache->cls == cls &&
+	    cache->version.smi() == 5) {
+		return cache->method;
+	} else {
+		MethodOop meth = lookupMethod(obj, cls, cache->selector);
+		cache->method = meth;
+		cache->cls = cls;
+		cache->version = 5;
+		return meth;
+	}
 }
 
 void blockReturn(ProcessOop proc)
@@ -187,9 +198,9 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	Oop * lits;
 	volatile int counter = 0;
 
-	//std::cout <<"\n\nInterpreter will now run:\n";
+	std::cout <<"\n\nInterpreter will now run:\n";
 	disassemble(CTX->bytecode->vns(), CTX->bytecode->size());
-	//std::cout << "\n\n";
+	std::cout << "\n\n";
 
 	UNSPILL();
 	ac = proc->accumulator;
@@ -377,8 +388,8 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			ac = Primitive::primitives[op].fn2(omem, proc,arg1,
 			    arg2);
 			if (ac.isNil()) {
-				MethodOop meth = lookupMethod(proc, arg1,
-				    arg1.isa(), ObjectMemory::symBin[op]);
+				MethodOop meth = lookupMethod(arg1, arg1.isa(),
+				    ObjectMemory::symBin[op]);
 
 				assert(!meth.isNil());
 
@@ -403,9 +414,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			unsigned selIdx = FETCH, nArgs = FETCH;
 			CacheOop cache = lits[selIdx].as<CacheOop>();
 			ClassOop cls = ac.isa();
-			MethodOop meth;
-
-			LOOKUPCACHED(ac, cls, cache, meth);
+			MethodOop meth = lookupCached(ac, cls, cache);
 
 			assert(!meth.isNil());
 
@@ -447,7 +456,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			CacheOop cache = lits[selIdx].as<CacheOop>();
 			MethodOop meth;
 
-			LOOKUPCACHED(ac, cls, cache, meth);
+			meth = lookupCached(ac, cls, cache);
 			assert(!meth.isNil());
 
 			NEWCTX();

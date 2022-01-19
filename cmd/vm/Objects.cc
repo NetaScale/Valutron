@@ -115,7 +115,7 @@ CacheOopDesc::newWithSelector(ObjectMemory &omem, SymbolOop value)
 {
 	CacheOop obj = omem.newOopObj<CacheOop>(clsInstLength);
 	obj.setIsa(ObjectMemory::clsCharacter);
-	obj->setSelector(value);
+	obj->selector = value;
 	return obj;
 }
 

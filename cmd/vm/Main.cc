@@ -45,7 +45,7 @@ main(int argc, char * argv[])
 	firstProcess->context = ctx;
 
 	clock_t begin = clock();
-	while(execute(omem, firstProcess, 500000));
+	while(execute(omem, firstProcess, 10000000));
 	clock_t end = clock();
 	std::cerr << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
 

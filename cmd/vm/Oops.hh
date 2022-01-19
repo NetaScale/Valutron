@@ -253,11 +253,11 @@ class CacheOopDesc : public OopOopDesc {
 	public:
 	static const int clsInstLength = 5;
 
-	AccessorPair(SymbolOop, selector, setSelector, 0);
-	AccessorPair(ClassOop, cls, setCls, 1);
-	AccessorPair(SmiOop, version, setVersion, 2);
-	AccessorPair(MethodOop, method, setMethod, 3);
-	AccessorPair(CacheOop, next, setNext, 4);
+	SymbolOop selector;
+	ClassOop cls;
+	SmiOop version;
+	MethodOop method;
+	CacheOop next;
 
 	static CacheOop newWithSelector(ObjectMemory &omem, SymbolOop value);
 };
