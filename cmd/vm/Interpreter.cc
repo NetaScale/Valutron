@@ -140,15 +140,28 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 /**
  * Test if the major operations counter (sends, primitives, branches, etc)
  * exceeds the given timeslice; if so, spills registers and returns 1.
+ *
+ * n.b. extraneous setting of ac in proc object seems to enhance performance.
  */
-#define TESTCOUNTER() if (counter++ > timeslice) { pc--; SPILL(); proc->accumulator = ac; return 1; }
+#define TESTCOUNTER() if (counter++ > timeslice) {				\
+	pc--; SPILL(); proc->accumulator = ac; return 1; 			\
+}
 
-#define NEWCTX() \
-	size_t newSI = proc->stackIndex.smi() + CTX->fullSize();		\
-	ContextOop ctx = (void*)&proc->stack->basicAt(newSI);			\
-	proc->stackIndex = SmiOop(newSI);					\
-	ctx->previousContext = CTX;						\
-
+/**
+ * Returns a pointer to a new context within a process stack, and sets the
+ * process' stackIndex to the appropriate new value.
+ *
+ * n.b. does NOT set process' context pointer to the new context!
+ */
+static inline ContextOop
+newContext(ProcessOop &proc)
+{
+	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
+	ContextOop newCtx = (void *)&proc->stack->basicAt(newSI);
+	proc->stackIndex = SmiOop(newSI);
+	newCtx->previousContext = proc->context;
+	return newCtx;
+}
 
 /**
  * Given an Oop receiver to look up within, a Class to begin lookup in, and a
@@ -390,15 +403,16 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			if (ac.isNil()) {
 				MethodOop meth = lookupMethod(arg1, arg1.isa(),
 				    ObjectMemory::symBin[op]);
+				ContextOop newCtx;
 
 				assert(!meth.isNil());
 
-				NEWCTX();
-				ctx->initWithMethod(omem, arg1, meth);
-				ctx->regAt0(1) = arg2;
+				newCtx = newContext(proc);
+				newCtx->initWithMethod(omem, arg1, meth);
+				newCtx->regAt0(1) = arg2;
 
 				SPILL();
-				CTX = ctx;
+				CTX = newCtx;
 				UNSPILL();
 				IN;
 			}
@@ -415,16 +429,17 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			CacheOop cache = lits[selIdx].as<CacheOop>();
 			ClassOop cls = ac.isa();
 			MethodOop meth = lookupCached(ac, cls, cache);
+			ContextOop newCtx;
 
 			assert(!meth.isNil());
 
-			NEWCTX();
-			ctx->initWithMethod(omem, ac, meth);
+			newCtx = newContext(proc);
+			newCtx->initWithMethod(omem, ac, meth);
 
 			for (int i = 0; i < nArgs; i++) {
 				Oop obj = regs[FETCH];
 				//obj.print(16); FIXME:
-				ctx->regAt0(i + 1) = obj;
+				newCtx->regAt0(i + 1) = obj;
 			}
 
 			nsends++;
@@ -433,7 +448,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			//cls->name()->asCStr() << ">>" <<
 			//    cache->selector()->asCStr() << "\n";
 			SPILL();
-			CTX = ctx;
+			CTX = newCtx;
 			UNSPILL();
 			IN;
 #ifdef STACKDEPTHTRACE
@@ -455,22 +470,23 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			ClassOop cls = METHODCLASS->superClass();
 			CacheOop cache = lits[selIdx].as<CacheOop>();
 			MethodOop meth;
+			ContextOop newCtx;
 
 			meth = lookupCached(ac, cls, cache);
 			assert(!meth.isNil());
 
-			NEWCTX();
-			ctx->initWithMethod(omem, ac, meth);
+			newCtx = newContext(proc);
+			newCtx->initWithMethod(omem, ac, meth);
 
 			for (int i = 0; i < nArgs; i++) {
-				ctx->regAt0(i + 1) = regs[FETCH];
+				newCtx->regAt0(i + 1) = regs[FETCH];
 			}
 
 			//std::cout << blanks(in) << "=> " <<
 			//    cls->name()->asCStr() << ">>" <<
 			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
-			CTX = ctx;
+			CTX = newCtx;
 			UNSPILL();
 			IN;
 			nsends++;

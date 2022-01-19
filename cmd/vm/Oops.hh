@@ -535,6 +535,7 @@ class ContextOopDesc : public OopOopDesc {
 
 	bool isBlockContext();
 
+	/** Full size of this context object in memory, in Oops. */
 	size_t fullSize()
 	{
 		return m_size + (sizeof(MemOopDesc) / sizeof(Oop));
