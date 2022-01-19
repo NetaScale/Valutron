@@ -3,7 +3,6 @@ Object subclass: Context [
 	  (Method | Block)methodOrBlock
 	  (Context) homeMethodContext
 	  (ByteArray)bytecode
-	  (id)receiver
 	  (Array)heapVars
 	  (Array)parentHeapVars
 	  (Integer)programCounter

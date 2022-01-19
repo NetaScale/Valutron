@@ -24,14 +24,13 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
 	    sizeof(MemOopDesc) / sizeof(Oop);
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
-	receiver = aReceiver;
 	methodOrBlock = aMethod.as<OopOop>();
 	heapVars = heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
 		      Oop().as<ArrayOop>();
 	programCounter = (intptr_t)0;
 
-	reg0 = receiver;
+	reg0 = aReceiver;
 	for (int i = 1; i < aMethod->stackSize().smi(); i++)
 		regAt0(i) = Oop::nil();
 }
@@ -45,7 +44,6 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	    sizeof(MemOopDesc) / sizeof(Oop);
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
-	receiver = aMethod->receiver();
 	methodOrBlock = aMethod.as<OopOop>();
 	heapVars = heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
@@ -120,8 +118,8 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
 #define CTX proc->context
 #define HEAPVAR(x) proc->context->heapVars->basicAt(x)
 #define PARENTHEAPVAR(x) proc->context->parentHeapVars->basicAt(x)
-#define NSTVAR(x) proc->context->receiver.as<OopOop>()->basicAt(x)
-#define RECEIVER proc->context->receiver
+#define NSTVAR(x) proc->context->reg0.as<OopOop>()->basicAt(x)
+#define RECEIVER proc->context->reg0
 #define PC proc->context->programCounter
 #define METHODCLASS                  					       \
 	((CTX->isBlockContext()) ?    					       \
@@ -550,7 +548,7 @@ execute(ObjectMemory &omem, ProcessOop proc) noexcept
 			} else {
 #ifdef CALLTRACE
 				std::cout <<"RETURN TO: ";
-				std::cout << CTX->receiver.isa()->name()->asCStr() << ">>";
+				std::cout << RECEIVER.isa()->name()->asCStr() << ">>";
 				if (proc->context->isBlockContext())
 		 		std::cout << proc->context->homeMethodContext->methodOrBlock.as<MethodOop>()->selector()->asCStr() << "(Block)\n";
 				else

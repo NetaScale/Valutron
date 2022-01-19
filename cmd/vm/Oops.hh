@@ -490,7 +490,7 @@ class BlockOopDesc : public OopOopDesc {
 class ContextOopDesc : public OopOopDesc {
 	friend int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
 
-	static const int clsNstLength = 10;
+	static const int clsNstLength = 9;
 
     public:
 	/**
@@ -516,7 +516,6 @@ class ContextOopDesc : public OopOopDesc {
 	 * Convenience pointer to #methodOrBlock's bytecode array.
 	 */
 	ByteArrayOop bytecode;
-	Oop receiver;
 	ArrayOop heapVars;
 	ArrayOop parentHeapVars;
 	SmiOop programCounter;
@@ -530,7 +529,7 @@ class ContextOopDesc : public OopOopDesc {
 	    MethodOop aMethod);
 
 	inline MethodOop &method() { return methodOrBlock.as<MethodOop>(); }
-	Oop &regAt0(size_t num) { return m_oops[9 + num]; }
+	Oop &regAt0(size_t num) { return m_oops[8 + num]; }
 
 	bool isBlockContext();
 
