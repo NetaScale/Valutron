@@ -126,14 +126,16 @@ class OopDesc {
 
 };
 
-extern "C" int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
+extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
+    uintptr_t timeslice) noexcept;
 
 class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
 	friend class OopRef<OopDesc>;
 
-	friend int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
+	friend int execute(ObjectMemory &omem, ProcessOop proc,
+	    uintptr_t timeslice) noexcept;
 
 	enum Kind {
 		kOops,
@@ -488,7 +490,8 @@ class BlockOopDesc : public OopOopDesc {
 };
 
 class ContextOopDesc : public OopOopDesc {
-	friend int execute(ObjectMemory &omem, ProcessOop proc) noexcept;
+	friend int execute(ObjectMemory &omem, ProcessOop proc,
+	    uintptr_t timeslice) noexcept;
 
 	static const int clsNstLength = 9;
 
@@ -519,7 +522,6 @@ class ContextOopDesc : public OopOopDesc {
 	ArrayOop heapVars;
 	ArrayOop parentHeapVars;
 	SmiOop programCounter;
-	Oop accumulator;
 	Oop reg0;
 
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
@@ -529,7 +531,7 @@ class ContextOopDesc : public OopOopDesc {
 	    MethodOop aMethod);
 
 	inline MethodOop &method() { return methodOrBlock.as<MethodOop>(); }
-	Oop &regAt0(size_t num) { return m_oops[8 + num]; }
+	Oop &regAt0(size_t num) { return m_oops[7 + num]; }
 
 	bool isBlockContext();
 
@@ -552,6 +554,7 @@ class ProcessOopDesc : public OopOopDesc {
 	ContextOop context;
 	ArrayOop stack;
 	SmiOop stackIndex; /* 1-based */
+	Oop accumulator;
 
 	static ProcessOop allocate(ObjectMemory &omem);
 };

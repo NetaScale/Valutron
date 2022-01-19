@@ -130,16 +130,15 @@ lookupMethod(ProcessOop proc, Oop receiver, ClassOop startCls,
 #define FETCH (*pc++)
 #define SPILL() {								\
 	CTX->programCounter = pc - &CTX->bytecode->basicAt0(0);			\
-	CTX->accumulator = ac;							\
+	proc->accumulator = ac;							\
 }
 #define UNSPILL() {								\
 	pc = &CTX->bytecode->basicAt0(0) + CTX->programCounter.smi();		\
 	regs = &proc->context->reg0;						\
-	lits = &proc->context->method()->literals()->	\
-	    basicAt0(0);							\
+	lits = &proc->context->method()->literals()->basicAt0(0);		\
 }
 
-#define TESTCOUNTER() if (counter > 10000) return 0;
+#define TESTCOUNTER() if (counter++ > timeslice) { pc--; SPILL(); proc->accumulator = ac; return 1; }
 
 #define NEWCTX() \
 	size_t newSI = proc->stackIndex.smi() + CTX->fullSize();		\
@@ -180,7 +179,7 @@ void blockReturn(ProcessOop proc)
 }
 
 extern "C" int
-execute(ObjectMemory &omem, ProcessOop proc) noexcept
+execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 {
 	Oop ac;
 	uint8_t * pc = &CTX->bytecode->basicAt0(0);
@@ -193,6 +192,7 @@ execute(ObjectMemory &omem, ProcessOop proc) noexcept
 	//std::cout << "\n\n";
 
 	UNSPILL();
+	ac = proc->accumulator;
 
 	loop:
 	Op::Opcode op = (Op::Opcode)FETCH;

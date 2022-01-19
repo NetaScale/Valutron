@@ -5,6 +5,7 @@ Object subclass: Process [
 	 (Array)stack
 	 "Index beginning topmost stack frame - 1-based index to i:stack."
 	 (Integer)stackIndex
+	 (id)accumulator
 	 (Process)linkPointer (Boolean)overflowed |
 
 	"below is old code"
