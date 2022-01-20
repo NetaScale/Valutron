@@ -302,14 +302,14 @@ MethodNode::synthInClassScope(ClassScope *clsScope)
 static void
 classOopAddIvarsToScopeStartingFrom(ClassOop aClass, ClassScope *scope)
 {
-	ClassOop superClass = aClass->superClass();
+	ClassOop superClass = aClass->superClass;
 
 	if (!superClass.isNil())
 		classOopAddIvarsToScopeStartingFrom(superClass, scope);
 
-	for (int i = 0; i < aClass->nstVars()->size(); i++)
+	for (int i = 0; i < aClass->nstVars->size(); i++)
 		scope->addIvar(
-		    aClass->nstVars()->basicAt0(i).as<SymbolOop>()->asString());
+		    aClass->nstVars->basicAt0(i).as<SymbolOop>()->asString());
 }
 
 void
@@ -321,10 +321,10 @@ ClassNode::registerNamesIn(SynthContext &sctx, DictionaryOop ns)
 		ivarNames.push_back(var.first);
 
 	cls = ns->findOrCreateClass(sctx.omem(), ClassOop(), name);
-	cls->setNstVars(ArrayOopDesc::symbolArrayFromStringVector(sctx.omem(),
-	    ivarNames));
-	cls->setDictionary(ns);
-	ns->symbolInsert(sctx.omem(), cls->name(), cls);
+	cls->nstVars = ArrayOopDesc::symbolArrayFromStringVector(sctx.omem(),
+	    ivarNames);
+	cls->dictionary =ns;
+	ns->symbolInsert(sctx.omem(), cls->name, cls);
 	sctx.tyChecker().findOrCreateClass(this);
 }
 
@@ -347,7 +347,7 @@ ClassNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 	cls->setupSuperclass(superCls);
 
 	classOopAddIvarsToScopeStartingFrom(cls, scope);
-	cls->setNstSize(SmiOop(scope->iVars.size()));
+	cls->nstSize = SmiOop(scope->iVars.size());
 
 	for (auto meth : cMethods)
 		meth->synthInClassScope(scope);

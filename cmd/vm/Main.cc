@@ -35,7 +35,7 @@ main(int argc, char * argv[])
 	    SymbolOopDesc::fromString(omem, "INITIAL")).as<ClassOop>();
 	assert(!initial.isNil());
 
-	start = initial->methods()->symbolLookup(SymbolOopDesc::fromString(omem,
+	start = initial->methods->symbolLookup(SymbolOopDesc::fromString(omem,
 	    "initial")).as<MethodOop>();
 	assert(!start.isNil());
 

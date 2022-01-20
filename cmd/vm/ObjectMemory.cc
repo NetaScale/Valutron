@@ -1,4 +1,5 @@
 #include <cassert>
+#include <unistd.h>
 
 extern "C" {
 #include "mps.h"
@@ -65,59 +66,98 @@ const char * ObjectMemory::binOpStr[13] = {
 };
 SymbolOop ObjectMemory::symBin[13];
 
-#define FIXOOP(oop)                                         \
-	if (MPS_FIX1(ss, &*oop)) {                          \
-		if (oop.isPtr()) {                          \
-			/* Untag */                         \
-			mps_addr_t ref = &*oop;             \
-			mps_res_t res = MPS_FIX2(ss, &ref); \
-                                                            \
-			if (res != MPS_RES_OK)              \
-				return res;                 \
-                                                            \
-			oop = (OopDesc *)ref;               \
-		}                                           \
+#define FIXOOP(oop)                                               \
+	if (oop.isPtr() && MPS_FIX1(ss, &*oop) &&                 \
+	    oop.as<MemOop>()->m_kind != kStackAllocatedContext) { \
+		/* Untag */                                       \
+		mps_addr_t ref = &*oop;                           \
+		mps_res_t res = MPS_FIX2(ss, &ref);               \
+                                                                  \
+		if (res != MPS_RES_OK)                            \
+			return res;                               \
+                                                                  \
+		oop = (OopDesc *)ref;                             \
 	}
 
 mps_res_t
 MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 {
+	char *addr = (char *)base;
+	MemOopDesc * prev;
+
 	MPS_SCAN_BEGIN (ss) {
-		while (base < limit) {
-			MemOopDesc *obj = (MemOopDesc *)base;
-			char *addr = (char *)base;
+	loop:
+		MemOopDesc *obj = (MemOopDesc *)addr;
 
-			//printf("scan %p\n", addr);
+		switch (obj->m_kind)
+		case kFwd: {
+			addr = addr + obj->m_size;
+			break;
 
-			switch (obj->m_kind)
-			case kFwd: {
-				base = addr + obj->m_size;
-				break;
+		case kPad:
+			addr = addr + obj->m_size;
+			break;
 
-			case kPad:
-				base = addr + obj->m_size;
-				break;
+		case kBytes:
+			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size);
+			break;
 
-			case kBytes:
-				base = addr + ALIGN(sizeof(MemOopDesc) +
-				    obj->m_size);
-				break;
-
-			case kOops: {
-				FIXOOP(obj->isa());
-				for (int i = 0; i < obj->m_size; i++)
-					FIXOOP(obj->m_oops[i]);
-				base = addr + ALIGN(sizeof(MemOopDesc) +
-				    sizeof(Oop) * obj->m_size);
-
-				break;
-			}
-
-			default: {
-				FATAL("mpsScan: Bad object!!\n");
-			}
-			}
+		basic:
+		case kOops: {
+			FIXOOP(obj->isa());
+			for (int i = 0; i < obj->m_size; i++)
+				FIXOOP(obj->m_oops[i]);
+			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
+			    obj->m_size);
+			break;
 		}
+
+		case kStack: {
+			ContextOopDesc *ctx = (ContextOopDesc *)&obj->m_oops[0];
+			char *end = ((char *)obj + obj->m_size * sizeof(Oop));
+
+			while (!ctx->m_isa.isNil()) {
+				size_t ctxSize = ctx->m_size;
+
+				/* explicitly mark prevContext if it's heap */
+
+				/* start at 1 to skip prevContext */
+				for (int i = 1; i < ctxSize; i++)
+					FIXOOP(ctx->basicAt0(i));
+
+				ctx = (ContextOopDesc *) ((char*) ctx +
+				    sizeof(MemOopDesc) + ctx->m_size *
+				    sizeof(Oop));
+				if ((char *)ctx > end)
+					break;
+			}
+
+			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size *
+			    sizeof(Oop));
+			break;
+		}
+
+		case kBlock: {
+			FIXOOP(obj->isa());
+			for (int i = 0; i < obj->size(); i++)
+				if (i != 9) // ALERT: offset of Context
+					FIXOOP(obj->m_oops[i]);
+
+			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
+			    obj->m_size);
+			break;
+		}
+
+		default: {
+			FATAL("mpsScan: Bad object!!\n");
+		}
+		}
+
+		if ((char*)obj == addr)
+			sleep(1);
+
+		if (addr < limit)
+			goto loop;
 	}
 	MPS_SCAN_END(ss);
 	return MPS_RES_OK;
@@ -143,9 +183,12 @@ MemOopDesc::mpsSkip(mps_addr_t base)
 		break;
 
 	case kOops:
+	case kBlock:
+	case kStack:
 		return addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
 		    obj->m_size);
 
+	case kStackAllocatedContext:
 	default:
 		FATAL("mpsSkip: Bad object!!");
 	}
@@ -305,7 +348,7 @@ ObjectMemory::setupInitialObjects()
 
 #define CreateClass(Name)                                        \
 	cls##Name = ClassOopDesc::allocateRawClass(*this);           \
-	cls##Name->setName(SymbolOopDesc::fromString(*this, #Name)); \
+	cls##Name->name = SymbolOopDesc::fromString(*this, #Name); \
 	objGlobals->symbolInsert(*this,                              \
 	    SymbolOopDesc::fromString(*this, #Name), cls##Name)
 

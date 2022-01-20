@@ -58,6 +58,9 @@ strHash(std::string str)
 	return hash;
 }
 
+Klass gKlass;
+ClassKlass gClassKlass;
+
 ArrayOop
 ArrayOopDesc::newWithSize(ObjectMemory &omem, size_t size)
 {
@@ -159,9 +162,9 @@ void LinkOopDesc::print (int in)
 void
 ClassOopDesc::addMethod(ObjectMemory &omem, MethodOop method)
 {
-	if (methods().isNil())
-		setMethods(DictionaryOopDesc::newWithSize(omem, 20));
-	methods()->symbolInsert(omem, method->selector(), method);
+	if (methods.isNil())
+		methods = DictionaryOopDesc::newWithSize(omem, 20);
+	methods->symbolInsert(omem, method->selector(), method);
 	method->setMethodClass(this);
 }
 
@@ -182,10 +185,10 @@ ClassOopDesc::setupClass(ObjectMemory &omem, ClassOop superClass,
 		/* set metaclass isa to object metaclass */
 		isa().setIsa(ObjectMemory::clsObjectClass);
 
-		isa()->setName(SymbolOopDesc::fromString(omem, name + " class"));
+		isa()->name = SymbolOopDesc::fromString(omem, name + " class");
 	}
 
-	setName(SymbolOopDesc::fromString(omem, name));
+	this->name = SymbolOopDesc::fromString(omem, name);
 
 	setupSuperclass(superClass);
 }
@@ -194,11 +197,11 @@ void
 ClassOopDesc::setupSuperclass(ClassOop superClass)
 {
 	if (!superClass.isNil()) {
-		isa()->setSuperClass(superClass.isa());
-		setSuperClass(superClass);
+		isa()->superClass = superClass.isa();
+		this->superClass = superClass;
 	} else /* root object */
 	{
-		isa()->setSuperClass(this);
+		isa()->superClass = this;
 		/* class of Object is the terminal class for both the metaclass
 		 * and class hierarchy */
 	}
@@ -219,7 +222,8 @@ ClassOopDesc::allocate(ObjectMemory &omem, ClassOop superClass,
 		 cls = omem.newOopObj<ClassOop>(clsInstLength);
 
 	metaCls->setIsa(ObjectMemory::clsObjectClass);
-	metaCls->setName(SymbolOopDesc::fromString(omem, name + " class"));
+	metaCls->name = SymbolOopDesc::fromString(omem, name + " class");
+	metaCls->klass = &gKlass;
 	cls->setIsa(metaCls);
 	cls->setupClass(omem, superClass, name);
 
@@ -236,7 +240,7 @@ ClassPair::allocateRaw(ObjectMemory &omem)
 
 void ClassOopDesc::print (int in)
 {
-    std::cout << blanks (in) + "Class: " << name()->asCStr() << " " << blanks (in) << "{\n";
+    std::cout << blanks (in) + "Class: " << nameCStr() << " " << blanks (in) << "{\n";
     in += 1;
     in -= 1;
     std::cout << blanks (in) << "}\n";
@@ -601,5 +605,6 @@ ProcessOopDesc::allocate(ObjectMemory &omem)
 	proc->setIsa(ObjectMemory::clsProcess);
 	proc->stack = ArrayOopDesc::newWithSize(omem, 2000000);
 	proc->stackIndex = (intptr_t)1;
+	proc->stack->m_kind = kStack;
 	return proc;
 }

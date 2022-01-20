@@ -1215,13 +1215,13 @@ primDumpVariable(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	args->basicAt(1).print(20);
 	args->basicAt(1).isa()->print(20);
 	printf("          --> %s>>%s\n",
-	    ctx->reg0.isa()->name()->asCStr(),
+	    ctx->reg0.isa()->nameCStr(),
 	    ctx->isBlockContext() ?
 		      "<block>" :
 		      ctx->methodOrBlock.as<MethodOop>()->selector()->asCStr());
 	while ((ctx = ctx->previousContext) != Oop::nil())
 		printf("          --> %s>>%s\n",
-		    ctx->reg0.isa()->name()->asCStr(),
+		    ctx->reg0.isa()->nameCStr(),
 		    ctx->isBlockContext() ? "<block>" :
 						  ctx->methodOrBlock
 						.as<MethodOop>()

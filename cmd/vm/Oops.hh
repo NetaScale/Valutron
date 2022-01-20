@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -129,19 +130,40 @@ class OopDesc {
 extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
     uintptr_t timeslice) noexcept;
 
+
+class Klass {
+public:
+	static Klass klass;
+
+	enum Format {
+		kBasic,
+		kClass,
+	} format = kBasic;
+
+	Klass(Format format = kBasic) : format(format) {};
+
+	virtual std::ostream &print(std::ostream &os) const {
+		return os << "nothing";
+	}
+};
+
 class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
 	friend class OopRef<OopDesc>;
+	friend class ProcessOopDesc;
 
 	friend int execute(ObjectMemory &omem, ProcessOop proc,
 	    uintptr_t timeslice) noexcept;
 
 	enum Kind {
-		kOops,
-		kBytes,
 		kPad,
 		kFwd,
+		kBytes,
+		kOops,
+		kStack,
+		kStackAllocatedContext, /* musn't be scanned */
+		kBlock, /* needs skipping of Context pointer */
 	};
 
 	union {
@@ -342,14 +364,15 @@ class ClassOopDesc : public OopOopDesc {
 	 * For a system class (i.e. one that can't be altered by the running
 	 * Smalltalk image), defines the size of one of its instances.
 	 */
-	static const int clsInstLength = 6;
+	static const int clsInstLength = 7;
 
-	AccessorPair(SymbolOop, name, setName, 0);
-	AccessorPair(ClassOop, superClass, setSuperClass, 1);
-	AccessorPair(DictionaryOop, methods, setMethods, 2);
-	AccessorPair(SmiOop, nstSize, setNstSize, 3);
-	AccessorPair(ArrayOop, nstVars, setNstVars, 4);
-	AccessorPair(DictionaryOop, dictionary, setDictionary, 5);
+	SymbolOop name;
+	ClassOop superClass;
+	DictionaryOop methods;
+	SmiOop nstSize;
+	ArrayOop nstVars;
+	DictionaryOop dictionary;
+	Klass *klass;
 
 	const char *nameCStr();
 
@@ -391,6 +414,13 @@ class ClassOopDesc : public OopOopDesc {
 	    std::string name);
 
 	void print(int in);
+};
+
+class ClassKlass : public Klass {
+    public:
+	static ClassKlass klass;
+
+	ClassKlass() : Klass(kClass) {};
 };
 
 /* Only at:ifAbsent: and at:put: need be implemented to do ByteArrays. The other
@@ -495,7 +525,7 @@ class ContextOopDesc : public OopOopDesc {
 	friend int execute(ObjectMemory &omem, ProcessOop proc,
 	    uintptr_t timeslice) noexcept;
 
-	static const int clsNstLength = 9;
+	static const int clsNstLength = 8;
 
     public:
 	/**
@@ -565,7 +595,7 @@ class ProcessOopDesc : public OopOopDesc {
 inline const char *
 ClassOopDesc::nameCStr()
 {
-	return name()->asCStr();
+	return name->asCStr();
 }
 
 /**

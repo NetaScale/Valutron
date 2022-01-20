@@ -49,9 +49,6 @@ class ObjectMemory {
 	/** MPS thread representation. */
 	mps_thr_t m_mpsThread;
 
-	/** Generate a 24-bit number to be used as an object's hashcode. */
-	static inline uint32_t getHashCode();
-
     public:
 	static MemOop objNil;
 	static MemOop objTrue;
@@ -107,7 +104,8 @@ class ObjectMemory {
 	/**
 	 * Allocates an object composed of object pointers.
 	 */
-	template <class T> T newOopObj(size_t len);
+	template <class T> T newOopObj(size_t len,
+	    MemOopDesc::Kind = MemOopDesc::kOops);
 	/**
 	 * Allocates an object composed of bytes.
 	 */
@@ -117,6 +115,8 @@ class ObjectMemory {
 	 */
 	template <class T> T copyObj(MemOop obj);
 
+	/** Generate a 24-bit number to be used as an object's hashcode. */
+	static inline uint32_t getHashCode();
 
 	ClassOop findOrCreateClass(ClassOop superClass, std::string name);
 	ClassOop lookupClass(std::string name);
@@ -172,7 +172,7 @@ ObjectMemory::getHashCode()
 
 template <class T>
 T
-ObjectMemory::newOopObj(size_t len)
+ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 {
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
@@ -183,14 +183,14 @@ ObjectMemory::newOopObj(size_t len)
 		if (res != MPS_RES_OK)
 			FATAL("out of memory in newOopObj");
 		obj->m_isa = Oop::nil().as<ClassOop>();
-		obj->m_kind = MemOopDesc::kOops;
+		obj->m_kind = kind;
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
 		memset(obj->m_oops, 0, len * sizeof(Oop));
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
 	obj = (typename T::PtrType*)calloc(1, size);
-		obj->m_kind = MemOopDesc::kOops;
+		obj->m_kind = kind;
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
 #endif

@@ -14,14 +14,17 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
 {
 	size_t heapVarsSize = aMethod->heapVarsSize().smi();
 
-	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() +
-	    sizeof(MemOopDesc) / sizeof(Oop);
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() - 1;
+	m_hash = ObjectMemory::getHashCode();
+	m_kind = kStackAllocatedContext;
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
 	methodOrBlock = aMethod.as<OopOop>();
+	homeMethodContext = ContextOop::nil();
 	heapVars = heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
-		      Oop().as<ArrayOop>();
+		      ArrayOop::nil();
+	parentHeapVars = ArrayOop::nil();
 	programCounter = (intptr_t)0;
 
 	reg0 = aReceiver;
@@ -34,14 +37,15 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 {
 	size_t heapVarsSize = aMethod->heapVarsSize().smi();
 
-	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() +
-	    sizeof(MemOopDesc) / sizeof(Oop);
+	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() - 1;
+	m_hash = ObjectMemory::getHashCode();
+	m_kind = kStackAllocatedContext;
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
 	methodOrBlock = aMethod.as<OopOop>();
 	heapVars = heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
-		      Oop().as<ArrayOop>();
+		      ArrayOop::nil();
 	parentHeapVars = aMethod->parentHeapVars();
 	programCounter = (intptr_t)0;
 	homeMethodContext = aMethod->homeMethodContext();
@@ -78,11 +82,11 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 	ClassOop cls = startCls;
 	MethodOop meth;
 
-	if (!cls->methods().isNil())
-		meth = cls->methods()->symbolLookup(selector).as<MethodOop>();
+	if (!cls->methods.isNil())
+		meth = cls->methods->symbolLookup(selector).as<MethodOop>();
 
 	if (meth.isNil()) {
-		cls = cls->superClass();
+		cls = cls->superClass;
 		if (cls.isNil() || cls == startCls)
 			return MethodOop::nil();
 		else
@@ -186,6 +190,7 @@ void blockReturn(ProcessOop proc)
 	    homeMethodContext();
 	/* TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
 	 * implemented block return there? */
+	proc->context->setIsa(ClassOop::nil());
 	proc->context = home->previousContext;
 	if (proc->context.isNil())
 		return;
@@ -289,6 +294,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 		unsigned src = FETCH;
 		MemOop constructor = lits[src].as<MemOop>();
 		BlockOop block = omem.copyObj<BlockOop>(constructor);
+		block->m_kind = MemOopDesc::kBlock;
 		block->parentHeapVars() = proc->context->heapVars;
 		block->receiver() = RECEIVER;
 		block->homeMethodContext() = CTX;
@@ -447,7 +453,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	opSendSuper : {
 		TESTCOUNTER();
 		unsigned selIdx = FETCH, nArgs = FETCH;
-		ClassOop cls = METHODCLASS->superClass();
+		ClassOop cls = METHODCLASS->superClass;
 		CacheOop cache = lits[selIdx].as<CacheOop>();
 		MethodOop meth;
 		ContextOop newCtx;
@@ -532,7 +538,9 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 		TESTCOUNTER();
 		size_t newSI = stackIndexOfContext(CTX->previousContext,
 		    proc->stack);
+
 		proc->stackIndex = newSI;
+		CTX->setIsa(ClassOop::nil());
 		CTX = CTX->previousContext;
 
 		if (CTX.isNil()) {
@@ -553,8 +561,9 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 		ac = RECEIVER;
 		size_t newSI = stackIndexOfContext(CTX->previousContext,
 		    proc->stack);
-		proc->stackIndex = newSI;
 
+		proc->stackIndex = newSI;
+		CTX->setIsa(ClassOop::nil());
 		CTX = CTX->previousContext;
 
 		if (CTX.isNil()) {
