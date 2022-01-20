@@ -233,7 +233,7 @@ ObjectMemory::copyObj(MemOop oldObj)
 {
 	typename T::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) +
-	    (oldObj->m_kind == MemOopDesc::kBytes ? 
+	    (oldObj->m_kind == MemOopDesc::kBytes ?
 	    sizeof(uint8_t) :
 	    sizeof (Oop)) * oldObj->size());
 

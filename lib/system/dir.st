@@ -28,7 +28,7 @@ Object subclass: INITIAL [
 
 	initial [ | fac |
 		"fac <- [:n |
-			n <= 1 
+			n <= 1
 				ifTrue: [n]
 				ifFalse: [n * (fac value: n - 1)]
 			].

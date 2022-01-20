@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <iostream>
 #include <unistd.h>
 
@@ -7,13 +8,6 @@
 #include "ObjectMemory.hh"
 #include "Oops.hh"
 #include "Generation.hh"
-
-size_t in = 0, maxin = 0;
-uint64_t nsends = 0;
-
-#define IN in++; if (in > maxin) maxin = in
-#define OUT in--
-
 
 void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
     MethodOop aMethod)
@@ -52,7 +46,7 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	programCounter = (intptr_t)0;
 	homeMethodContext = aMethod->homeMethodContext();
 	reg0 = aMethod->receiver();
-	for (int i = 1; i < aMethod->stackSize().smi(); i++) 
+	for (int i = 1; i < aMethod->stackSize().smi(); i++)
 		regAt0(i) = Oop::nil();
 }
 
@@ -73,10 +67,6 @@ ContextOopDesc::newWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	return ctx;
 }
 
-//#define CALLTRACE
-//#define STACKDEPTHTRACE
-//#define TRACEDISPATCH
-
 bool ContextOopDesc::isBlockContext()
 {
 	return methodOrBlock.isa() == ObjectMemory::clsBlock;
@@ -93,44 +83,38 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 
 	if (meth.isNil()) {
 		cls = cls->superClass();
-		if (cls.isNil() || cls == startCls) {
-#ifdef CALLTRACE
-			std::cout << "Failed to find method " <<
-			    selector->asCStr() << "in class " <<
-			    receiver.isa()->name()->asCStr() << "\n";
-#endif
-			return MethodOop();
-		}
+		if (cls.isNil() || cls == startCls)
+			return MethodOop::nil();
 		else
 			return lookupMethod(receiver, cls, selector);
-	} else {
-#ifdef CALLTRACE
-		std::cout << receiver.isa()->name()->asCStr() << "(" <<
-		    cls->name()->asCStr() << ")>>" << selector->asCStr() <<
-		    "\n";
-		disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
-#endif
+	} else
 		return meth;
-	}
 }
+
+#define FETCH (*pc++)
 
 #define CTX proc->context
 #define HEAPVAR(x) proc->context->heapVars->basicAt(x)
 #define PARENTHEAPVAR(x) proc->context->parentHeapVars->basicAt(x)
 #define NSTVAR(x) proc->context->reg0.as<OopOop>()->basicAt(x)
 #define RECEIVER proc->context->reg0
-#define PC proc->context->programCounter
-#define METHODCLASS                  					       \
-	((CTX->isBlockContext()) ?    					       \
-	CTX->homeMethodContext->methodOrBlock.as<MethodOop>()    	       \
-	    ->methodClass() :    					       \
-	CTX->methodOrBlock.as<MethodOop>()->methodClass())
 
-#define FETCH (*pc++)
+/** Fetch the class in which the current method scope was defined. */
+#define METHODCLASS								\
+	((CTX->isBlockContext()) ?						\
+	    CTX->homeMethodContext->method()->methodClass() :			\
+	    CTX->methodOrBlock.as<MethodOop>()->methodClass())
+/**
+ * Spills the contents of the changeable cached members of Context and Process.
+ */
 #define SPILL() {								\
 	CTX->programCounter = pc - &CTX->bytecode->basicAt0(0);			\
 	proc->accumulator = ac;							\
 }
+/**
+ * Loads local variables caching frequently-accessed members of Process and
+ * Context objects with the values from those objects.
+ */
 #define UNSPILL() {								\
 	pc = &CTX->bytecode->basicAt0(0) + CTX->programCounter.smi();		\
 	regs = &proc->context->reg0;						\
@@ -146,6 +130,9 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 #define TESTCOUNTER() if (counter++ > timeslice) {				\
 	pc--; SPILL(); proc->accumulator = ac; return 1; 			\
 }
+
+#define IN nsends++; in++; if (in > maxin) maxin = in
+#define OUT in--
 
 /**
  * Returns a pointer to a new context within a process stack, and sets the
@@ -183,28 +170,36 @@ lookupCached(Oop obj, ClassOop cls, CacheOop cache)
 	}
 }
 
+/**
+ * Given a context and a stack (within which this context is allocated),
+ * returns the appropriate stack index (1-based index) for the beginning of
+ * that context.
+*/
+static inline size_t
+stackIndexOfContext(ContextOop ctx, ArrayOop stack)
+{
+	return ((uintptr_t) &*(ctx) - (uintptr_t) & (stack)->basicAt0(0)) /
+	    sizeof(Oop) + 1;
+}
+
 void blockReturn(ProcessOop proc)
 {
 	ContextOop home = CTX->methodOrBlock.as<BlockOop>()->
 	    homeMethodContext();
-	/* TODO: execute ifCurtailed: blocks */
+	/* TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
+	 * implemented block return there? */
 	proc->context = home->previousContext;
-	if (proc->context.isNil()) {
+	if (proc->context.isNil())
 		return;
-	} else {
-
-	proc->stackIndex = ((uintptr_t)&*home -
-			    (uintptr_t)&proc->stack->basicAt0(0)) /
-			    sizeof(Oop) + 1;
-#ifdef STACKDEPTHTRACE
-	printf("BLK SI %ld\n", proc->stackIndex.smi());
-#endif
-	}
+	else
+		proc->stackIndex = stackIndexOfContext(home, proc->stack);
 }
 
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 {
+	uint64_t in = 0, maxin = 0;
+	uint64_t nsends = 0;
 	Oop ac;
 	uint8_t * pc = &CTX->bytecode->basicAt0(0);
 	Oop * regs;
@@ -219,11 +214,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	ac = proc->accumulator;
 
 	loop:
-	Op::Opcode op = (Op::Opcode)FETCH;
-#ifdef TRACEDISPATCH
-	printf("DISPATCH %d\n", op);
-#endif
-	switch((Op::Opcode) op) {
+	switch((Op::Opcode)FETCH) {
 		/* u8 index/reg, u8 dest */
 		case Op::kMoveParentHeapVarToMyHeapVars: {
 			unsigned src = FETCH, dst = FETCH;
@@ -272,7 +263,8 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 		case Op::kLdaGlobal: {
 			unsigned src = FETCH;
-			ac = omem.objGlobals->symbolLookup(lits[src].as<SymbolOop>());
+			SymbolOop name = lits[src].as<SymbolOop>();
+			ac = omem.objGlobals->symbolLookup(name);
 			break;
 		}
 
@@ -290,8 +282,8 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 		case Op::kLdaBlockCopy: {
 			unsigned src = FETCH;
-			BlockOop block = omem.copyObj <BlockOop> (lits[src].
-			    as<MemOop>());
+			MemOop constructor = lits[src].as<MemOop>();
+			BlockOop block = omem.copyObj <BlockOop> (constructor);
 			block->parentHeapVars() = proc->context->heapVars;
 			block->receiver() = RECEIVER;
 			block->homeMethodContext() = CTX;
@@ -343,22 +335,20 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			break;
 		}
 
-		/* a value, u8 src-reg */
+		/* ac value, u8 src-reg */
 		case Op::kAnd: {
 			unsigned src = FETCH;
-			if (ac == ObjectMemory::objTrue && regs[src] == ObjectMemory::objTrue)
-			{
-				//printf("TRUE\n");
-			}
+			if (ac != ObjectMemory::objTrue ||
+			    regs[src] != ObjectMemory::objTrue)
+				ac = ObjectMemory::objFalse;
 			break;
 		}
 
-		/* a value, i16 pc-offset */
+		/* ac value, i16 pc-offset */
 		case Op::kJump: {
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
-			//std::cout << "Jumping " << offs << "\n";
 			pc = pc + offs;
 			break;
 		}
@@ -369,11 +359,10 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
-			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
-			if(ac == ObjectMemory::objFalse) {
-				//std::cout << "Branching " << offs << "for false\n";
+			assert (ac == ObjectMemory::objFalse ||
+			    ac == ObjectMemory::objTrue);
+			if(ac == ObjectMemory::objFalse)
 				pc = pc + offs;
-			}
 			break;
 		}
 
@@ -383,11 +372,10 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			uint8_t b1 = FETCH;
 			uint8_t b2 = FETCH;
 			int16_t offs = (b1 << 8) | b2;
-			assert (ac == ObjectMemory::objFalse || ac == ObjectMemory::objTrue);
-			if(ac == ObjectMemory::objTrue) {
-				//std::cout << "Branching " << offs << "for true\n";
+			assert (ac == ObjectMemory::objFalse ||
+			    ac == ObjectMemory::objTrue);
+			if(ac == ObjectMemory::objTrue)
 				pc = pc + offs;
-			}
 			break;
 		}
 
@@ -432,31 +420,19 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			ContextOop newCtx;
 
 			assert(!meth.isNil());
-
 			newCtx = newContext(proc);
 			newCtx->initWithMethod(omem, ac, meth);
+			for (int i = 0; i < nArgs; i++)
+				newCtx->regAt0(i + 1) = regs[FETCH];
 
-			for (int i = 0; i < nArgs; i++) {
-				Oop obj = regs[FETCH];
-				//obj.print(16); FIXME:
-				newCtx->regAt0(i + 1) = obj;
-			}
-
-			nsends++;
-
-			//std::cout << blanks(in) << "=> " <<
-			//cls->name()->asCStr() << ">>" <<
-			//    cache->selector()->asCStr() << "\n";
 			SPILL();
 			CTX = newCtx;
 			UNSPILL();
 			IN;
-#ifdef STACKDEPTHTRACE
-			std::cout << "SI=" << newSI << " after send\n";
+#ifdef TRACE_CALLS
+			std::cout << blanks(in) << "=> " << cls->nameCStr() <<
+			    ">>" << cache->selector()->asCStr() << "\n";
 #endif
-			//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
-			//sleep(1);
-
 			break;
 		}
 
@@ -474,26 +450,20 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 			meth = lookupCached(ac, cls, cache);
 			assert(!meth.isNil());
-
 			newCtx = newContext(proc);
 			newCtx->initWithMethod(omem, ac, meth);
-
 			for (int i = 0; i < nArgs; i++) {
 				newCtx->regAt0(i + 1) = regs[FETCH];
 			}
 
-			//std::cout << blanks(in) << "=> " <<
-			//    cls->name()->asCStr() << ">>" <<
-			//    lits[selIdx].as<SymbolOop>()->asCStr() << "\n";
 			SPILL();
 			CTX = newCtx;
 			UNSPILL();
 			IN;
-			nsends++;
-#ifdef STACKDEPTHTRACE
-			std::cout << "SI=" << newSI << " after send\n";
+#ifdef TRACE_CALLS
+			std::cout << blanks(in) << "=> " << cls->nameCStr() <<
+			    ">>" << cache->selector()->asCStr() << "\n";
 #endif
-
 			break;
 		}
 
@@ -503,9 +473,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			unsigned prim = FETCH, nArgs = FETCH;
 			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
-			//printf("PRIMITIVE %s\n", Primitive::primitives[prim].name);
-
-			for (int i = 0; i < nArgs; i++) 
+			for (int i = 0; i < nArgs; i++)
 				args->basicAt0(i) = regs[FETCH];
 
 			SPILL();
@@ -514,7 +482,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			break;
 		}
 
-		/** a arg, u8 prim-num */
+		/** ac arg, u8 prim-num */
 		case Op::kPrimitive1: {
 			TESTCOUNTER();
 			unsigned prim = FETCH;
@@ -524,7 +492,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			break;
 		}
 
-		/** a arg2, u8 prim-num, u8 arg1-reg */
+		/** ac arg2, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive2: {
 			TESTCOUNTER();
 			unsigned prim = FETCH, arg1reg = FETCH;
@@ -535,7 +503,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			break;
 		}
 
-		/** a arg3, u8 prim-num, u8 arg1-reg */
+		/** ac arg3, u8 prim-num, u8 arg1-reg */
 		case Op::kPrimitive3: {
 			TESTCOUNTER();
 			unsigned prim = FETCH, arg1reg = FETCH;
@@ -558,30 +526,18 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 		case Op::kReturn: {
 			TESTCOUNTER();
-			size_t newSI = ((uintptr_t)&*CTX->previousContext -
-			    (uintptr_t)&proc->stack->basicAt0(0)) /
-			    sizeof(Oop) + 1;
+			size_t newSI = stackIndexOfContext(CTX->previousContext,
+			    proc->stack);
 			proc->stackIndex = newSI;
 			CTX = CTX->previousContext;
 
 			if (CTX.isNil()) {
-				std::cout << "Made " << nsends << " message sends.\n";
-				std::cout << "Maximum context depth " << maxin <<"\n";
-				std::cout << "Completed evaluation with result:\n";
-				ac.print(5);
+				proc->accumulator = ac;
 				return 0;
 			} else {
 #ifdef CALLTRACE
-				std::cout <<"RETURN TO: ";
-				std::cout << RECEIVER.isa()->name()->asCStr() << ">>";
-				if (proc->context->isBlockContext())
-		 		std::cout << proc->context->homeMethodContext->methodOrBlock.as<MethodOop>()->selector()->asCStr() << "(Block)\n";
-				else
-		 		std::cout << proc->context->methodOrBlock.as<MethodOop>()->selector()->asCStr() << "\n";
-
-#endif
-#ifdef STACKDEPTHTRACE
-				std::cout << "SI=" << newSI << " after ret \n";
+				std::cout << "Return to " << methodOf(CTX) <<
+				    "\n";
 #endif
 			}
 			UNSPILL();
@@ -592,26 +548,19 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 		case Op::kReturnSelf:{
 			TESTCOUNTER();
 			ac = RECEIVER;
-			size_t newSI = ((uintptr_t)&*CTX->previousContext -
-			    (uintptr_t)&proc->stack->basicAt0(0)) /
-			    sizeof(Oop) + 1;
+			size_t newSI = stackIndexOfContext(CTX->previousContext,
+			    proc->stack);
 			proc->stackIndex = newSI;
-			
+
 			CTX = CTX->previousContext;
 
-			//std::cout << blanks(in) << "Returning\n";
 			if (CTX.isNil()) {
-				std::cout << "Did " << nsends << " message sends.\n";
-				std::cout << "Maximum context depth " << maxin <<"\n";
-				std::cout << "Completed evaluation with result:\n";
-				ac.print(2);
+				proc->accumulator = ac;
 				return 0;
 			} else {
 #ifdef CALLTRACE
-				std::cout <<"RETURN TO: " << proc->context->methodOrBlock.as<MethodOop>()->selector()->asCStr() << "\n";
-#endif
-#ifdef STACKDEPTHTRACE
-				std::cout << "SI=" << newSI << "after ret \n";
+				std::cout << "Return to " << methodOf(CTX) <<
+				    "\n";
 #endif
 			}
 			UNSPILL();
@@ -633,4 +582,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	} /* switch (op) */
 	goto loop;
 
+timeslice_done:
+	proc->accumulator = ac;
+	return 1;
 }

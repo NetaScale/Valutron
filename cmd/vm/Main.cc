@@ -48,6 +48,8 @@ main(int argc, char * argv[])
 	while(execute(omem, firstProcess, 10000000));
 	clock_t end = clock();
 	std::cerr << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
+	std::cerr << "Process returned:\n\t";
+	firstProcess->accumulator.print(4);
 
 	return 0;
 }

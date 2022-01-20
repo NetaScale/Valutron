@@ -518,7 +518,7 @@ primSubtract(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 		return (Oop::nil());
 	longresult = a.as<SmiOop>().smi();
 	longresult -= b.as<SmiOop>().smi();
-	if (longresult < INT64_MAX / 2) // FIXME: smi boundcheck 
+	if (longresult < INT64_MAX / 2) // FIXME: smi boundcheck
 		return (SmiOop(longresult));
 	else
 		return (Oop::nil());

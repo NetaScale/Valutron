@@ -218,7 +218,7 @@ class ByteOopDesc : public MemOopDesc {
 	uint8_t &basicAtPut0(size_t i, uint8_t val) { return m_bytes[i] = val; };
 
 	uint8_t &basicAt(size_t idx) { return m_bytes[idx - 1]; }
-	uint8_t &basicAtPut(size_t i, uint8_t val) { return m_bytes[i - 1] = val; }
+	uint8_t &basicAtPut(size_t i, uint8_t val) { return m_bytes[i-1] = val; }
 };
 
 class FloatOopDesc : public ByteOopDesc {
@@ -350,6 +350,8 @@ class ClassOopDesc : public OopOopDesc {
 	AccessorPair(SmiOop, nstSize, setNstSize, 3);
 	AccessorPair(ArrayOop, nstVars, setNstVars, 4);
 	AccessorPair(DictionaryOop, dictionary, setDictionary, 5);
+
+	const char *nameCStr();
 
 	/**
 	 * Adds an instance method to the class. Creates the method dictionary
@@ -559,6 +561,12 @@ class ProcessOopDesc : public OopOopDesc {
 
 	static ProcessOop allocate(ObjectMemory &omem);
 };
+
+inline const char *
+ClassOopDesc::nameCStr()
+{
+	return name()->asCStr();
+}
 
 /**
  * @}
