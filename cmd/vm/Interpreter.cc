@@ -198,53 +198,9 @@ extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 {
 	static void* opTable[] = {
-		&&opMoveParentHeapVarToMyHeapVars,
-		&&opMoveMyHeapVarToParentHeapVars,
-		&&opLdaNil,
-		&&opLdaTrue,
-		&&opLdaFalse,
-		&&opLdaThisContext,
-		&&opLdaSmalltalk,
-
-		&&opLdaParentHeapVar,
-		&&opLdaMyHeapVar,
-		&&opLdaGlobal,
-		&&opLdaNstVar,
-		&&opLdaLiteral,
-		&&opLdaBlockCopy,
-		&&opLdar,
-
-		&&opStaNstVar,
-		&&opStaGlobal,
-		&&opStaParentHeapVar,
-		&&opStaMyHeapVar,
-
-		&&opStar,
-
-
-		&&opMove,
-
-		&&opAnd,
-
-		&&opJump,
-		&&opBranchIfFalse,
-		&&opBranchIfTrue,
-
-		&&opBinOp,
-
-		&&opSend,
-		&&opSendSuper,
-		&&opPrimitive,
-		&&opPrimitive1,
-		&&opPrimitive2,
-		&&opPrimitive3,
-		&&opPrimitiveV,
-
-		&&opReturnSelf,
-
-		&&opReturn,
-		&&opBlockReturn,
-
+#define X(OP) &&op##OP,
+		OPS
+#undef X
 	};
 	uint64_t in = 0, maxin = 0;
 	uint64_t nsends = 0;
