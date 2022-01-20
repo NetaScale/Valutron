@@ -127,9 +127,7 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
  *
  * n.b. extraneous setting of ac in proc object seems to enhance performance.
  */
-#define TESTCOUNTER() if (counter++ > timeslice) {				\
-	pc--; SPILL(); proc->accumulator = ac; return 1; 			\
-}
+#define TESTCOUNTER() if (counter++ > timeslice) goto timesliceDone
 
 #define IN nsends++; in++; if (in > maxin) maxin = in
 #define OUT in--
@@ -195,9 +193,59 @@ void blockReturn(ProcessOop proc)
 		proc->stackIndex = stackIndexOfContext(home, proc->stack);
 }
 
+
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 {
+	static void* opTable[] = {
+		&&opMoveParentHeapVarToMyHeapVars,
+		&&opMoveMyHeapVarToParentHeapVars,
+		&&opLdaNil,
+		&&opLdaTrue,
+		&&opLdaFalse,
+		&&opLdaThisContext,
+		&&opLdaSmalltalk,
+
+		&&opLdaParentHeapVar,
+		&&opLdaMyHeapVar,
+		&&opLdaGlobal,
+		&&opLdaNstVar,
+		&&opLdaLiteral,
+		&&opLdaBlockCopy,
+		&&opLdar,
+
+		&&opStaNstVar,
+		&&opStaGlobal,
+		&&opStaParentHeapVar,
+		&&opStaMyHeapVar,
+
+		&&opStar,
+
+
+		&&opMove,
+
+		&&opAnd,
+
+		&&opJump,
+		&&opBranchIfFalse,
+		&&opBranchIfTrue,
+
+		&&opBinOp,
+
+		&&opSend,
+		&&opSendSuper,
+		&&opPrimitive,
+		&&opPrimitive1,
+		&&opPrimitive2,
+		&&opPrimitive3,
+		&&opPrimitiveV,
+
+		&&opReturnSelf,
+
+		&&opReturn,
+		&&opBlockReturn,
+
+	};
 	uint64_t in = 0, maxin = 0;
 	uint64_t nsends = 0;
 	Oop ac;
@@ -213,376 +261,374 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	UNSPILL();
 	ac = proc->accumulator;
 
+	#define DISPATCH goto *opTable[FETCH]
 	loop:
-	switch((Op::Opcode)FETCH) {
-		/* u8 index/reg, u8 dest */
-		case Op::kMoveParentHeapVarToMyHeapVars: {
-			unsigned src = FETCH, dst = FETCH;
-			HEAPVAR(dst) = PARENTHEAPVAR(src);
-			break;
-		}
+	DISPATCH;
+	/* u8 index/reg, u8 dest */
+	opMoveParentHeapVarToMyHeapVars : {
+		unsigned src = FETCH, dst = FETCH;
+		HEAPVAR(dst) = PARENTHEAPVAR(src);
+		DISPATCH;
+	}
 
-		case Op::kMoveMyHeapVarToParentHeapVars: {
-			unsigned src = FETCH, dst = FETCH;
-			PARENTHEAPVAR(dst) = HEAPVAR(src);
-			break;
-		}
+	opMoveMyHeapVarToParentHeapVars : {
+		unsigned src = FETCH, dst = FETCH;
+		PARENTHEAPVAR(dst) = HEAPVAR(src);
+		DISPATCH;
+	}
 
-		case Op::kLdaNil:
-			ac = Oop();
-			break;
+	opLdaNil:
+		ac = Oop();
+		DISPATCH;
 
-		case Op::kLdaTrue:
-			ac = ObjectMemory::objTrue;
-			break;
+	opLdaTrue:
+		ac = ObjectMemory::objTrue;
+		DISPATCH;
 
-		case Op::kLdaFalse:
+	opLdaFalse:
+		ac = ObjectMemory::objFalse;
+		DISPATCH;
+
+	opLdaThisContext:
+		ac = CTX;
+		DISPATCH;
+
+	opLdaSmalltalk:
+		ac = ObjectMemory::objsmalltalk;
+		DISPATCH;
+
+	/* u8 index*/
+	opLdaParentHeapVar : {
+		unsigned src = FETCH;
+		ac = PARENTHEAPVAR(src);
+		DISPATCH;
+	}
+
+	opLdaMyHeapVar : {
+		unsigned src = FETCH;
+		ac = HEAPVAR(src);
+		DISPATCH;
+	}
+
+	opLdaGlobal : {
+		unsigned src = FETCH;
+		SymbolOop name = lits[src].as<SymbolOop>();
+		ac = omem.objGlobals->symbolLookup(name);
+		DISPATCH;
+	}
+
+	opLdaNstVar : {
+		unsigned src = FETCH;
+		ac = NSTVAR(src);
+		DISPATCH;
+	}
+
+	opLdaLiteral : {
+		unsigned src = FETCH;
+		ac = lits[src];
+		DISPATCH;
+	}
+
+	opLdaBlockCopy : {
+		unsigned src = FETCH;
+		MemOop constructor = lits[src].as<MemOop>();
+		BlockOop block = omem.copyObj<BlockOop>(constructor);
+		block->parentHeapVars() = proc->context->heapVars;
+		block->receiver() = RECEIVER;
+		block->homeMethodContext() = CTX;
+		ac = block;
+		DISPATCH;
+	}
+
+	opLdar : {
+		unsigned src = FETCH;
+		ac = regs[src];
+		DISPATCH;
+	}
+
+	/* u8 index */
+	opStaNstVar : {
+		unsigned dst = FETCH;
+		NSTVAR(dst) = ac;
+		DISPATCH;
+	}
+
+	opStaGlobal : {
+		unsigned dst = FETCH;
+		printf("UNIMPLEMENTED StaGlobal\n");
+		abort();
+		DISPATCH;
+	}
+
+	opStaParentHeapVar : {
+		unsigned dst = FETCH;
+		PARENTHEAPVAR(dst) = ac;
+		DISPATCH;
+	}
+
+	opStaMyHeapVar : {
+		unsigned dst = FETCH;
+		HEAPVAR(dst) = ac;
+		DISPATCH;
+	}
+
+	opStar : {
+		unsigned dst = FETCH;
+		regs[dst] = ac;
+		DISPATCH;
+	}
+
+	opMove : {
+		unsigned dst = FETCH, src = FETCH;
+		regs[dst] = regs[src];
+		DISPATCH;
+	}
+
+	/* ac value, u8 src-reg */
+	opAnd : {
+		unsigned src = FETCH;
+		if (ac != ObjectMemory::objTrue ||
+		    regs[src] != ObjectMemory::objTrue)
 			ac = ObjectMemory::objFalse;
-			break;
+		DISPATCH;
+	}
 
-		case Op::kLdaThisContext:
-			ac = CTX;
-			break;
+	/* ac value, i16 pc-offset */
+	opJump : {
+		uint8_t b1 = FETCH;
+		uint8_t b2 = FETCH;
+		int16_t offs = (b1 << 8) | b2;
+		pc = pc + offs;
+		DISPATCH;
+	}
 
-		case Op::kLdaSmalltalk:
-			ac = ObjectMemory::objsmalltalk;
-			break;
-
-		/* u8 index*/
-		case Op::kLdaParentHeapVar: {
-			unsigned src = FETCH;
-			ac = PARENTHEAPVAR(src);
-			break;
-		}
-
-		case Op::kLdaMyHeapVar: {
-			unsigned src = FETCH;
-			ac = HEAPVAR(src);
-			break;
-		}
-
-		case Op::kLdaGlobal: {
-			unsigned src = FETCH;
-			SymbolOop name = lits[src].as<SymbolOop>();
-			ac = omem.objGlobals->symbolLookup(name);
-			break;
-		}
-
-		case Op::kLdaNstVar: {
-			unsigned src = FETCH;
-			ac = NSTVAR(src);
-			break;
-		}
-
-		case Op::kLdaLiteral: {
-			unsigned src = FETCH;
-			ac = lits[src];
-			break;
-		}
-
-		case Op::kLdaBlockCopy: {
-			unsigned src = FETCH;
-			MemOop constructor = lits[src].as<MemOop>();
-			BlockOop block = omem.copyObj <BlockOop> (constructor);
-			block->parentHeapVars() = proc->context->heapVars;
-			block->receiver() = RECEIVER;
-			block->homeMethodContext() = CTX;
-			ac = block;
-			break;
-		}
-
-		case Op::kLdar: {
-			unsigned src = FETCH;
-			ac = regs[src];
-			break;
-		}
-
-		/* u8 index */
-		case Op::kStaNstVar: {
-			unsigned dst = FETCH;
-			NSTVAR(dst) = ac;
-			break;
-		}
-
-		case Op::kStaGlobal: {
-			unsigned dst = FETCH;
-			printf("UNIMPLEMENTED StaGlobal\n");
-			abort();
-			break;
-		}
-
-		case Op::kStaParentHeapVar: {
-			unsigned dst = FETCH;
-			PARENTHEAPVAR(dst) = ac;
-			break;
-		}
-
-		case Op::kStaMyHeapVar: {
-			unsigned dst = FETCH;
-			HEAPVAR(dst) = ac;
-			break;
-		}
-
-		case Op::kStar: {
-			unsigned dst = FETCH;
-			regs[dst] = ac;
-			break;
-		}
-
-		case Op::kMove: {
-			unsigned dst = FETCH, src = FETCH;
-			regs[dst] = regs[src];
-			break;
-		}
-
-		/* ac value, u8 src-reg */
-		case Op::kAnd: {
-			unsigned src = FETCH;
-			if (ac != ObjectMemory::objTrue ||
-			    regs[src] != ObjectMemory::objTrue)
-				ac = ObjectMemory::objFalse;
-			break;
-		}
-
-		/* ac value, i16 pc-offset */
-		case Op::kJump: {
-			uint8_t b1 = FETCH;
-			uint8_t b2 = FETCH;
-			int16_t offs = (b1 << 8) | b2;
+	/* a value, i16 pc-offset */
+	opBranchIfFalse : {
+		TESTCOUNTER();
+		uint8_t b1 = FETCH;
+		uint8_t b2 = FETCH;
+		int16_t offs = (b1 << 8) | b2;
+		assert(ac == ObjectMemory::objFalse ||
+		    ac == ObjectMemory::objTrue);
+		if (ac == ObjectMemory::objFalse)
 			pc = pc + offs;
-			break;
-		}
+		DISPATCH;
+	}
 
-		/* a value, i16 pc-offset */
-		case Op::kBranchIfFalse: {
-			TESTCOUNTER();
-			uint8_t b1 = FETCH;
-			uint8_t b2 = FETCH;
-			int16_t offs = (b1 << 8) | b2;
-			assert (ac == ObjectMemory::objFalse ||
-			    ac == ObjectMemory::objTrue);
-			if(ac == ObjectMemory::objFalse)
-				pc = pc + offs;
-			break;
-		}
+	/* a value, i16 pc-offset */
+	opBranchIfTrue : {
+		TESTCOUNTER();
+		uint8_t b1 = FETCH;
+		uint8_t b2 = FETCH;
+		int16_t offs = (b1 << 8) | b2;
+		assert(ac == ObjectMemory::objFalse ||
+		    ac == ObjectMemory::objTrue);
+		if (ac == ObjectMemory::objTrue)
+			pc = pc + offs;
+		DISPATCH;
+	}
 
-		/* a value, i16 pc-offset */
-		case Op::kBranchIfTrue: {
-			TESTCOUNTER();
-			uint8_t b1 = FETCH;
-			uint8_t b2 = FETCH;
-			int16_t offs = (b1 << 8) | b2;
-			assert (ac == ObjectMemory::objFalse ||
-			    ac == ObjectMemory::objTrue);
-			if(ac == ObjectMemory::objTrue)
-				pc = pc + offs;
-			break;
-		}
+	opBinOp : {
+		TESTCOUNTER();
+		uint8_t src = FETCH;
+		uint8_t op = FETCH;
+		Oop arg1 = regs[src];
+		Oop arg2 = ac;
 
-		case Op::kBinOp: {
-			TESTCOUNTER();
-			uint8_t src = FETCH;
-			uint8_t op = FETCH;
-			Oop arg1 = regs[src];
-			Oop arg2 = ac;
-
-			ac = Primitive::primitives[op].fn2(omem, proc,arg1,
-			    arg2);
-			if (ac.isNil()) {
-				MethodOop meth = lookupMethod(arg1, arg1.isa(),
-				    ObjectMemory::symBin[op]);
-				ContextOop newCtx;
-
-				assert(!meth.isNil());
-
-				newCtx = newContext(proc);
-				newCtx->initWithMethod(omem, arg1, meth);
-				newCtx->regAt0(1) = arg2;
-
-				SPILL();
-				CTX = newCtx;
-				UNSPILL();
-				IN;
-			}
-			break;
-		}
-
-		/**
-		 * a receiver, u8 selector-literal-index, u8 num-args,
-		 *     (u8 arg-register)+, ->a result
-		 */
-		case Op::kSend: {
-			TESTCOUNTER();
-			unsigned selIdx = FETCH, nArgs = FETCH;
-			CacheOop cache = lits[selIdx].as<CacheOop>();
-			ClassOop cls = ac.isa();
-			MethodOop meth = lookupCached(ac, cls, cache);
+		ac = Primitive::primitives[op].fn2(omem, proc, arg1, arg2);
+		if (ac.isNil()) {
+			MethodOop meth = lookupMethod(arg1, arg1.isa(),
+			    ObjectMemory::symBin[op]);
 			ContextOop newCtx;
 
 			assert(!meth.isNil());
+
 			newCtx = newContext(proc);
-			newCtx->initWithMethod(omem, ac, meth);
-			for (int i = 0; i < nArgs; i++)
-				newCtx->regAt0(i + 1) = regs[FETCH];
+			newCtx->initWithMethod(omem, arg1, meth);
+			newCtx->regAt0(1) = arg2;
 
 			SPILL();
 			CTX = newCtx;
 			UNSPILL();
 			IN;
+		}
+		DISPATCH;
+	}
+
+	/**
+	 * a receiver, u8 selector-literal-index, u8 num-args,
+	 *     (u8 arg-register)+, ->a result
+	 */
+	opSend : {
+		TESTCOUNTER();
+		unsigned selIdx = FETCH, nArgs = FETCH;
+		CacheOop cache = lits[selIdx].as<CacheOop>();
+		ClassOop cls = ac.isa();
+		MethodOop meth = lookupCached(ac, cls, cache);
+		ContextOop newCtx;
+
+		assert(!meth.isNil());
+		newCtx = newContext(proc);
+		newCtx->initWithMethod(omem, ac, meth);
+		for (int i = 0; i < nArgs; i++)
+			newCtx->regAt0(i + 1) = regs[FETCH];
+
+		SPILL();
+		CTX = newCtx;
+		UNSPILL();
+		IN;
 #ifdef TRACE_CALLS
-			std::cout << blanks(in) << "=> " << cls->nameCStr() <<
-			    ">>" << cache->selector()->asCStr() << "\n";
+		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
+			  << cache->selector()->asCStr() << "\n";
 #endif
-			break;
+		DISPATCH;
+	}
+
+	/**
+	 * a receiver, u8 selector-literal-index, u8 num-args,
+	 *     (u8 arg-register)+, ->a result
+	 */
+	opSendSuper : {
+		TESTCOUNTER();
+		unsigned selIdx = FETCH, nArgs = FETCH;
+		ClassOop cls = METHODCLASS->superClass();
+		CacheOop cache = lits[selIdx].as<CacheOop>();
+		MethodOop meth;
+		ContextOop newCtx;
+
+		meth = lookupCached(ac, cls, cache);
+		assert(!meth.isNil());
+		newCtx = newContext(proc);
+		newCtx->initWithMethod(omem, ac, meth);
+		for (int i = 0; i < nArgs; i++) {
+			newCtx->regAt0(i + 1) = regs[FETCH];
 		}
 
-		/**
-		 * a receiver, u8 selector-literal-index, u8 num-args,
-		 *     (u8 arg-register)+, ->a result
-		 */
-		case Op::kSendSuper: {
-			TESTCOUNTER();
-			unsigned selIdx = FETCH, nArgs = FETCH;
-			ClassOop cls = METHODCLASS->superClass();
-			CacheOop cache = lits[selIdx].as<CacheOop>();
-			MethodOop meth;
-			ContextOop newCtx;
-
-			meth = lookupCached(ac, cls, cache);
-			assert(!meth.isNil());
-			newCtx = newContext(proc);
-			newCtx->initWithMethod(omem, ac, meth);
-			for (int i = 0; i < nArgs; i++) {
-				newCtx->regAt0(i + 1) = regs[FETCH];
-			}
-
-			SPILL();
-			CTX = newCtx;
-			UNSPILL();
-			IN;
+		SPILL();
+		CTX = newCtx;
+		UNSPILL();
+		IN;
 #ifdef TRACE_CALLS
-			std::cout << blanks(in) << "=> " << cls->nameCStr() <<
-			    ">>" << cache->selector()->asCStr() << "\n";
+		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
+			  << cache->selector()->asCStr() << "\n";
 #endif
-			break;
-		}
+		DISPATCH;
+	}
 
-		/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
-		case Op::kPrimitive: {
-			TESTCOUNTER();
-			unsigned prim = FETCH, nArgs = FETCH;
-			ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
+	/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
+	opPrimitive : {
+		TESTCOUNTER();
+		unsigned prim = FETCH, nArgs = FETCH;
+		ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
-			for (int i = 0; i < nArgs; i++)
-				args->basicAt0(i) = regs[FETCH];
+		for (int i = 0; i < nArgs; i++)
+			args->basicAt0(i) = regs[FETCH];
 
-			SPILL();
-			ac = Primitive::primitives[prim].fnp(omem, proc, args);
-			UNSPILL();
-			break;
-		}
+		SPILL();
+		ac = Primitive::primitives[prim].fnp(omem, proc, args);
+		UNSPILL();
+		DISPATCH;
+	}
 
-		/** ac arg, u8 prim-num */
-		case Op::kPrimitive1: {
-			TESTCOUNTER();
-			unsigned prim = FETCH;
-			SPILL();
-			ac = Primitive::primitives[prim].fn1(omem, proc, ac);
-			UNSPILL();
-			break;
-		}
+	/** ac arg, u8 prim-num */
+	opPrimitive1 : {
+		TESTCOUNTER();
+		unsigned prim = FETCH;
+		SPILL();
+		ac = Primitive::primitives[prim].fn1(omem, proc, ac);
+		UNSPILL();
+		DISPATCH;
+	}
 
-		/** ac arg2, u8 prim-num, u8 arg1-reg */
-		case Op::kPrimitive2: {
-			TESTCOUNTER();
-			unsigned prim = FETCH, arg1reg = FETCH;
-			SPILL();
-			ac = Primitive::primitives[prim].fn2(omem, proc,
-			    regs[arg1reg], ac);
-			UNSPILL();
-			break;
-		}
+	/** ac arg2, u8 prim-num, u8 arg1-reg */
+	opPrimitive2 : {
+		TESTCOUNTER();
+		unsigned prim = FETCH, arg1reg = FETCH;
+		SPILL();
+		ac = Primitive::primitives[prim].fn2(omem, proc, regs[arg1reg],
+		    ac);
+		UNSPILL();
+		DISPATCH;
+	}
 
-		/** ac arg3, u8 prim-num, u8 arg1-reg */
-		case Op::kPrimitive3: {
-			TESTCOUNTER();
-			unsigned prim = FETCH, arg1reg = FETCH;
-			SPILL();
-			ac = Primitive::primitives[prim].fn3(omem, proc,
-			    regs[arg1reg], regs[arg1reg + 1], ac);
-			UNSPILL();
-			break;
-		}
+	/** ac arg3, u8 prim-num, u8 arg1-reg */
+	opPrimitive3 : {
+		TESTCOUNTER();
+		unsigned prim = FETCH, arg1reg = FETCH;
+		SPILL();
+		ac = Primitive::primitives[prim].fn3(omem, proc, regs[arg1reg],
+		    regs[arg1reg + 1], ac);
+		UNSPILL();
+		DISPATCH;
+	}
 
-		case Op::kPrimitiveV: {
-			TESTCOUNTER();
-			unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
-			SPILL();
-			ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
-			    &regs[arg1reg]);
-			UNSPILL();
-			break;
-		}
+	opPrimitiveV : {
+		TESTCOUNTER();
+		unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
+		SPILL();
+		ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
+		    &regs[arg1reg]);
+		UNSPILL();
+		DISPATCH;
+	}
 
-		case Op::kReturn: {
-			TESTCOUNTER();
-			size_t newSI = stackIndexOfContext(CTX->previousContext,
-			    proc->stack);
-			proc->stackIndex = newSI;
-			CTX = CTX->previousContext;
+	opReturn : {
+		TESTCOUNTER();
+		size_t newSI = stackIndexOfContext(CTX->previousContext,
+		    proc->stack);
+		proc->stackIndex = newSI;
+		CTX = CTX->previousContext;
 
-			if (CTX.isNil()) {
-				proc->accumulator = ac;
-				return 0;
-			} else {
+		if (CTX.isNil()) {
+			proc->accumulator = ac;
+			return 0;
+		} else {
 #ifdef CALLTRACE
-				std::cout << "Return to " << methodOf(CTX) <<
-				    "\n";
+			std::cout << "Return to " << methodOf(CTX) << "\n";
 #endif
-			}
-			UNSPILL();
-			OUT;
-			break;
 		}
+		UNSPILL();
+		OUT;
+		DISPATCH;
+	}
 
-		case Op::kReturnSelf:{
-			TESTCOUNTER();
-			ac = RECEIVER;
-			size_t newSI = stackIndexOfContext(CTX->previousContext,
-			    proc->stack);
-			proc->stackIndex = newSI;
+	opReturnSelf : {
+		TESTCOUNTER();
+		ac = RECEIVER;
+		size_t newSI = stackIndexOfContext(CTX->previousContext,
+		    proc->stack);
+		proc->stackIndex = newSI;
 
-			CTX = CTX->previousContext;
+		CTX = CTX->previousContext;
 
-			if (CTX.isNil()) {
-				proc->accumulator = ac;
-				return 0;
-			} else {
+		if (CTX.isNil()) {
+			proc->accumulator = ac;
+			return 0;
+		} else {
 #ifdef CALLTRACE
-				std::cout << "Return to " << methodOf(CTX) <<
-				    "\n";
+			std::cout << "Return to " << methodOf(CTX) << "\n";
 #endif
-			}
-			UNSPILL();
-			OUT;
-			break;
 		}
+		UNSPILL();
+		OUT;
+		DISPATCH;
+	}
 
-		case Op::kBlockReturn: {
-			TESTCOUNTER();
-			SPILL();
-			blockReturn(proc);
-			if (CTX.isNil()) {
-				ac.print(2);
-				return 0;
-			}
-			UNSPILL();
-			break;
+	opBlockReturn : {
+		TESTCOUNTER();
+		SPILL();
+		blockReturn(proc);
+		if (CTX.isNil()) {
+			ac.print(2);
+			return 0;
 		}
-	} /* switch (op) */
-	goto loop;
+		UNSPILL();
+		DISPATCH;
+	}
 
-timeslice_done:
+timesliceDone:
+	pc--;
+	SPILL();
 	proc->accumulator = ac;
 	return 1;
 }

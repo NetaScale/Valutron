@@ -112,6 +112,8 @@ class Op {
 		/* u8 source-register */
 		kReturn,
 		kBlockReturn,
+
+		kMax,
 	};
 };
 
