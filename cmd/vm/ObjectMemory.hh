@@ -50,22 +50,47 @@ class ObjectMemory {
 	mps_thr_t m_mpsThread;
 
     public:
-	static MemOop objNil;
-	static MemOop objTrue;
-	static MemOop objFalse;
-	/* Indexed by string hash */
-	static DictionaryOop objSymbolTable;
-	/* Indexed by object hashcode */
-	static DictionaryOop objGlobals;
-	static MemOop objsmalltalk;
-	static MemOop objUnused1;
-	static MemOop objUnused2;
-	static MemOop objUnused3;
-	static MemOop objMinClass;
 
-	/** the metaclass hierarchy */
-	static ClassOop clsObjectClass;
-	static ClassOop clsObject;
+	#define OMEM_STATICS \
+		X(MemOop, objNil)		\
+		X(MemOop, objTrue)		\
+		X(MemOop, objFalse)		\
+		X(DictionaryOop, objSymbolTable)\
+		X(DictionaryOop, objGlobals)	\
+		X(MemOop, objsmalltalk)		\
+		X(MemOop, objUnused1)		\
+		X(MemOop, objUnused2)		\
+		X(MemOop, objUnused3)		\
+		X(MemOop, objMinClass)		\
+		X(ClassOop, clsObjectClass)	\
+		X(ClassOop, clsObject)		\
+		X(ClassOop, clsSymbol)		\
+		X(ClassOop, clsInteger)		\
+		X(ClassOop, clsArray)		\
+		X(ClassOop, clsByteArray)	\
+		X(ClassOop, clsString)		\
+		X(ClassOop, clsMethod)		\
+		X(ClassOop, clsProcess)		\
+		X(ClassOop, clsUndefinedObject)	\
+		X(ClassOop, clsTrue)		\
+		X(ClassOop, clsFalse)		\
+		X(ClassOop, clsLink)		\
+		X(ClassOop, clsDictionary)	\
+		X(ClassOop, clsBlock)		\
+		X(ClassOop, clsContext)		\
+		X(ClassOop, clsSymbolTable)	\
+		X(ClassOop, clsSystemDictionary)\
+		X(ClassOop, clsFloat)		\
+		X(ClassOop, clsVM)		\
+		X(ClassOop, clsCharacter)	\
+		X(ClassOop, clsProcessor)	\
+		X(ClassOop, clsNativeCode)	\
+		X(ClassOop, clsNativePointer)
+
+#define X(TYPE, NAME) static TYPE NAME;
+	OMEM_STATICS
+#undef X
+
 #if 0
 	static ClassOop clsBehavior;
 	static ClassOop clsClassDescription;
@@ -73,28 +98,6 @@ class ObjectMemory {
 	static ClassOop clsMetaclass;
 #endif
 
-	static ClassOop clsSymbol;
-	static ClassOop clsInteger;
-	static ClassOop clsArray;
-	static ClassOop clsByteArray;
-	static ClassOop clsString;
-	static ClassOop clsMethod;
-	static ClassOop clsProcess;
-	static ClassOop clsUndefinedObject;
-	static ClassOop clsTrue;
-	static ClassOop clsFalse;
-	static ClassOop clsLink;
-	static ClassOop clsDictionary;
-	static ClassOop clsBlock;
-	static ClassOop clsContext;
-	static ClassOop clsSymbolTable;
-	static ClassOop clsSystemDictionary;
-	static ClassOop clsFloat;
-	static ClassOop clsVM;
-	static ClassOop clsCharacter;
-	static ClassOop clsProcessor;
-	static ClassOop clsNativeCode;
-	static ClassOop clsNativePointer;
 
 	static const char * binOpStr[13];
 	static SymbolOop symBin[13];
@@ -113,7 +116,7 @@ class ObjectMemory {
 	/**
 	 * Copies any object.
 	 */
-	template <class T> T copyObj(MemOop obj);
+	template <class T> T copyObj(MemOopDesc * obj);
 
 	/** Generate a 24-bit number to be used as an object's hashcode. */
 	static inline uint32_t getHashCode();
@@ -194,7 +197,6 @@ ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
 #endif
-
 	return obj;
 }
 
@@ -218,9 +220,9 @@ ObjectMemory::newByteObj(size_t len)
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
 	obj = (typename T::PtrType*)calloc(1, size);
-		obj->m_kind = MemOopDesc::kBytes;
-		obj->m_hash = getHashCode();
-		obj->m_size = len;
+	obj->m_kind = MemOopDesc::kBytes;
+	obj->m_hash = getHashCode();
+	obj->m_size = len;
 #endif
 
 
@@ -229,29 +231,30 @@ ObjectMemory::newByteObj(size_t len)
 
 template <class T>
 T
-ObjectMemory::copyObj(MemOop oldObj)
+ObjectMemory::copyObj(MemOopDesc * oldObj)
 {
-	typename T::PtrType * obj;
-	size_t size =  ALIGN(sizeof(MemOopDesc) +
-	    (oldObj->m_kind == MemOopDesc::kBytes ?
-	    sizeof(uint8_t) :
-	    sizeof (Oop)) * oldObj->size());
+	mps_addr_t mem;
+	size_t size = ALIGN(sizeof(MemOopDesc) +
+	    (oldObj->m_kind == MemOopDesc::kBytes ? sizeof(uint8_t) :
+	    sizeof(Oop)) * oldObj->size());
 
 #if VT_GC == VT_GC_MPS
 	do {
-		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
+		mps_res_t res = mps_reserve(&mem, m_objAP, size);
 		if (res != MPS_RES_OK)
 			FATAL("out of memory in copyObj");
-		memcpy(obj, &*oldObj, size);
+		memcpy((void*)mem, (void*)oldObj, size);
+		MemOopDesc * obj = (MemOopDesc*)mem;
 		obj->m_hash = getHashCode();
-	} while (!mps_commit(m_objAP, ((void *)obj), size));
+	} while (!mps_commit(m_objAP, mem, size));
 #else
-	obj = (typename T::PtrType*)calloc(1, size);
+	typename T::PtrType *obj = (typename T::PtrType*)calloc(1, size);
 	memcpy(obj, &*oldObj, size);
 	obj->m_hash = getHashCode();
+	return T((typename T::PtrType*)obj);
 #endif
 
-	return obj;
+	return T((typename T::PtrType*)mem);
 }
 
 #endif /* OBJECTMEMORY_HH_ */

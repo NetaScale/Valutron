@@ -26,6 +26,18 @@ Object subclass: Tester [
 
 Object subclass: INITIAL [
 
+	doStuff1 [
+		(1 to: 2) do: [ :i |
+		
+		<#debugMsg ((34 fib) printString)> ]
+	]
+
+
+	doStuff2 [
+		(1 to: 2) do: [ :i |
+		<#debugMsg (70 asLongInteger factorial printString )> ]
+	]
+
 	initial [ | fac |
 		"fac <- [:n |
 			n <= 1
@@ -37,7 +49,7 @@ Object subclass: INITIAL [
 	<#debugMsg (20 fib printString)>.
 	<#debugMsg ((10 asLongInteger + 2) printString)>.
 	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>.
-	^ 53 asLongInteger factorial printString
+	^ 10 asLongInteger factorial printString
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ (20 fib)"

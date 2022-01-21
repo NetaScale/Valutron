@@ -126,8 +126,8 @@ disassemble(uint8_t *code, int length) noexcept
 		}
 
 		case Op::kStar: {
-			unsigned src = FETCH;
-			std::cout << "r" << src << " <- ac.\n";
+			unsigned dst = FETCH;
+			std::cout << "r" << dst << " <- ac.\n";
 			break;
 		}
 

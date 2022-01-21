@@ -8,6 +8,8 @@
 #include "Typecheck.hh"
 #include "Interpreter.hh"
 
+extern void run(ObjectMemory & omem);
+
 int
 main(int argc, char * argv[])
 {
@@ -50,6 +52,8 @@ main(int argc, char * argv[])
 	std::cerr << "Completed in " << (double)(end - begin) / CLOCKS_PER_SEC << "\n";
 	std::cerr << "Process returned:\n\t";
 	firstProcess->accumulator.print(4);
+
+	run(omem);
 
 	return 0;
 }

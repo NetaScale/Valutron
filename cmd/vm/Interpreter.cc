@@ -9,6 +9,9 @@
 #include "Oops.hh"
 #include "Generation.hh"
 
+	volatile int ninstr = 0;
+
+
 void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
     MethodOop aMethod)
 {
@@ -17,6 +20,16 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
 	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() - 1;
 	m_hash = ObjectMemory::getHashCode();
 	m_kind = kStackAllocatedContext;
+
+	/*
+	 * We deliberately exceed the bounds of the context by one to annul the
+	 * first Oop after the context - this is to ensure that we don't
+	 * mistakenly scan it. We are careful to zero before we set isa, which
+	 * makes this object eligible for scanning.
+	 */
+	for (int i = 1; i < aMethod->stackSize().smi() + 1; i++)
+		regAt0(i) = Oop::nil();
+
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
 	methodOrBlock = aMethod.as<OopOop>();
@@ -28,8 +41,6 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
 	programCounter = (intptr_t)0;
 
 	reg0 = aReceiver;
-	for (int i = 1; i < aMethod->stackSize().smi(); i++)
-		regAt0(i) = Oop::nil();
 }
 
 void
@@ -40,6 +51,10 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	m_size = ContextOopDesc::clsNstLength + aMethod->stackSize().smi() - 1;
 	m_hash = ObjectMemory::getHashCode();
 	m_kind = kStackAllocatedContext;
+
+	for (int i = 1; i < aMethod->stackSize().smi() + 1; i++)
+		regAt0(i) = Oop::nil();
+
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
 	methodOrBlock = aMethod.as<OopOop>();
@@ -50,8 +65,6 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 	programCounter = (intptr_t)0;
 	homeMethodContext = aMethod->homeMethodContext();
 	reg0 = aMethod->receiver();
-	for (int i = 1; i < aMethod->stackSize().smi(); i++)
-		regAt0(i) = Oop::nil();
 }
 
 ContextOop
@@ -87,8 +100,13 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 
 	if (meth.isNil()) {
 		cls = cls->superClass;
-		if (cls.isNil() || cls == startCls)
+		if (cls.isNil() || cls == startCls) {
+			std::cout <<"Failed to find method " <<
+			    selector->asCStr() << " in class " <<
+			    receiver.isa()->nameCStr() << "\n"; 
+			abort();
 			return MethodOop::nil();
+		}
 		else
 			return lookupMethod(receiver, cls, selector);
 	} else
@@ -146,6 +164,14 @@ static inline ContextOop
 newContext(ProcessOop &proc)
 {
 	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
+	//std::cout << proc.m_ptr << " stack size " << newSI << "\n";
+	if (newSI > proc->stack->size()) {
+		std::cout << "New stack index " << newSI << " overflows stack\n";
+		std::cout << "Previous stack size: " << proc->stackIndex.smi() << "\n";
+		std::cout << "Top frame size: " << proc->context->fullSize() << "\n";
+		std::cout << "Process: " << proc.m_ptr << "\n";
+		abort();
+	}
 	ContextOop newCtx = (void *)&proc->stack->basicAt(newSI);
 	proc->stackIndex = SmiOop(newSI);
 	newCtx->previousContext = proc->context;
@@ -180,24 +206,69 @@ lookupCached(Oop obj, ClassOop cls, CacheOop cache)
 static inline size_t
 stackIndexOfContext(ContextOop ctx, ArrayOop stack)
 {
-	return ((uintptr_t) &*(ctx) - (uintptr_t) & (stack)->basicAt0(0)) /
+	ssize_t r = (((uintptr_t) (ctx.m_ptr)) - ((uintptr_t) &(stack)->basicAt0(0))) /
 	    sizeof(Oop) + 1;
+	//std::cout <<"r:" << r;
+	if (r > 8000000)
+		abort();
+	return r;
 }
 
 void blockReturn(ProcessOop proc)
 {
 	ContextOop home = CTX->methodOrBlock.as<BlockOop>()->
 	    homeMethodContext();
-	/* TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
-	 * implemented block return there? */
-	proc->context->setIsa(ClassOop::nil());
+
+	/*
+	 * TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
+	 * implemented block return there?
+	 */
+	home->setIsa(ClassOop::nil());
 	proc->context = home->previousContext;
 	if (proc->context.isNil())
 		return;
 	else
+		proc->stackIndex = stackIndexOfContext(proc->context, proc->stack);
+
+#if 0
+	/* TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
+	 * implemented block return there? */
+	proc->context->setIsa(ClassOop::nil());
+	proc->context = home->previousContext;
+	home->setIsa(ClassOop::nil());
+	if (proc->context.isNil())
+		return;
+	else
 		proc->stackIndex = stackIndexOfContext(home, proc->stack);
+#endif
 }
 
+void dumpRegs(ContextOop ctx)
+{
+	for (int i = 0; i < ctx->size()-7;  i++)
+		printf("Reg %d: %p/isa %p\n", i, ctx->regAt0(i).m_ptr,
+		    ctx->regAt0(i).isa().m_ptr);
+}
+
+void currentMethod(ContextOop ctx)
+{
+	std::cout << ctx->reg0.isa()->nameCStr() << ">>";
+	if (ctx->isBlockContext())
+		std::cout << "<block>(" << ctx->block()->homeMethodContext()->
+		    method()->selector()->asCStr() << ")";
+	else
+		 std::cout << "" << ctx->method()->selector()->asCStr();
+	std::cout <<"\n";
+}
+
+void stackTrace(ContextOop ctx, bool regs = false)
+{
+	while (!ctx.isNil()) {
+		currentMethod(ctx);
+		dumpRegs(ctx);
+		ctx = ctx->previousContext;
+	}
+}
 
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
@@ -215,14 +286,24 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	Oop * lits;
 	volatile int counter = 0;
 
+#if 1
 	std::cout <<"\n\nInterpreter will now run:\n";
 	disassemble(CTX->bytecode->vns(), CTX->bytecode->size());
 	std::cout << "\n\n";
+#endif
 
-	UNSPILL();
+	{
+		pc = &proc->context->bytecode->basicAt0(0) +
+		    proc->context->programCounter.smi();
+		regs = &proc->context->reg0;
+		lits = &proc->context->method()->literals()->basicAt0(0);
+	};
 	ac = proc->accumulator;
+	ninstr=0;
 
-	#define DISPATCH goto *opTable[FETCH]
+	std::cout << "Stack Index " << proc->stackIndex.smi() << "\n";
+
+	#define DISPATCH ninstr++; goto *opTable[FETCH]
 	loop:
 	DISPATCH;
 	/* u8 index/reg, u8 dest */
@@ -293,7 +374,16 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	opLdaBlockCopy : {
 		unsigned src = FETCH;
 		MemOop constructor = lits[src].as<MemOop>();
-		BlockOop block = omem.copyObj<BlockOop>(constructor);
+		BlockOop block;
+
+		/*
+		 * must do this to prevent optimisations from making constructor
+		 * invisible to the MPS
+		 */
+		ac = constructor;
+		SPILL(); //FIXME: I don't think this is required.
+		block = omem.copyObj<BlockOop>(constructor.m_ptr);
+		UNSPILL();
 		block->m_kind = MemOopDesc::kBlock;
 		block->parentHeapVars() = proc->context->heapVars;
 		block->receiver() = RECEIVER;
@@ -430,6 +520,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 		ContextOop newCtx;
 
 		assert(!meth.isNil());
+		proc->accumulator = ac;
 		newCtx = newContext(proc);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++)
@@ -488,6 +579,8 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 		SPILL();
 		ac = Primitive::primitives[prim].fnp(omem, proc, args);
+		if (proc.isNil()) /* yielded */
+			return -1;
 		UNSPILL();
 		DISPATCH;
 	}
@@ -536,17 +629,14 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 
 	opReturn : {
 		TESTCOUNTER();
-		size_t newSI = stackIndexOfContext(CTX->previousContext,
-		    proc->stack);
 
-		proc->stackIndex = newSI;
-		CTX->setIsa(ClassOop::nil());
-		CTX = CTX->previousContext;
-
-		if (CTX.isNil()) {
+		if (CTX->previousContext.isNil()) {
 			proc->accumulator = ac;
 			return 0;
 		} else {
+			proc->stackIndex = stackIndexOfContext(CTX->previousContext, proc->stack);
+			CTX->setIsa(ClassOop::nil());
+			CTX = CTX->previousContext;
 #ifdef CALLTRACE
 			std::cout << "Return to " << methodOf(CTX) << "\n";
 #endif
@@ -559,10 +649,6 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 	opReturnSelf : {
 		TESTCOUNTER();
 		ac = RECEIVER;
-		size_t newSI = stackIndexOfContext(CTX->previousContext,
-		    proc->stack);
-
-		proc->stackIndex = newSI;
 		CTX->setIsa(ClassOop::nil());
 		CTX = CTX->previousContext;
 
@@ -571,6 +657,7 @@ execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
 			return 0;
 		} else {
 #ifdef CALLTRACE
+			proc->stackIndex = stackIndexOfContext(CTX, proc->stack);
 			std::cout << "Return to " << methodOf(CTX) << "\n";
 #endif
 		}

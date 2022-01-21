@@ -5,6 +5,7 @@ extern "C" {
 #include "mps.h"
 #include "mpsavm.h"
 #include "mpscamc.h"
+#include "mpscams.h"
 }
 
 #include "ObjectMemory.hh"
@@ -12,42 +13,9 @@ extern "C" {
 mps_arena_t ObjectMemory::m_arena = NULL;
 uint32_t ObjectMemory::s_hashCounter = 1;
 
-MemOop ObjectMemory::objNil;
-MemOop ObjectMemory::objTrue;
-MemOop ObjectMemory::objFalse;
-/* Indexed by string hash */
-DictionaryOop ObjectMemory::objSymbolTable;
-/* Indexed by value */
-DictionaryOop ObjectMemory::objGlobals;
-MemOop ObjectMemory::objsmalltalk;
-MemOop ObjectMemory::objUnused1;
-MemOop ObjectMemory::objUnused2;
-MemOop ObjectMemory::objUnused3;
-MemOop ObjectMemory::objMinClass;
-ClassOop ObjectMemory::clsObjectClass;
-ClassOop ObjectMemory::clsObject;
-ClassOop ObjectMemory::clsSymbol;
-ClassOop ObjectMemory::clsInteger;
-ClassOop ObjectMemory::clsArray;
-ClassOop ObjectMemory::clsByteArray;
-ClassOop ObjectMemory::clsString;
-ClassOop ObjectMemory::clsMethod;
-ClassOop ObjectMemory::clsProcess;
-ClassOop ObjectMemory::clsUndefinedObject;
-ClassOop ObjectMemory::clsTrue;
-ClassOop ObjectMemory::clsFalse;
-ClassOop ObjectMemory::clsLink;
-ClassOop ObjectMemory::clsDictionary;
-ClassOop ObjectMemory::clsBlock;
-ClassOop ObjectMemory::clsContext;
-ClassOop ObjectMemory::clsSymbolTable;
-ClassOop ObjectMemory::clsSystemDictionary;
-ClassOop ObjectMemory::clsFloat;
-ClassOop ObjectMemory::clsVM;
-ClassOop ObjectMemory::clsCharacter;
-ClassOop ObjectMemory::clsProcessor;
-ClassOop ObjectMemory::clsNativeCode;
-ClassOop ObjectMemory::clsNativePointer;
+#define X(TYPE, NAME) TYPE ObjectMemory::NAME;
+OMEM_STATICS
+#undef X
 
 const char * ObjectMemory::binOpStr[13] = {
 			 "+",
@@ -66,18 +34,34 @@ const char * ObjectMemory::binOpStr[13] = {
 };
 SymbolOop ObjectMemory::symBin[13];
 
-#define FIXOOP(oop)                                               \
-	if (oop.isPtr() && MPS_FIX1(ss, &*oop) &&                 \
-	    oop.as<MemOop>()->m_kind != kStackAllocatedContext) { \
-		/* Untag */                                       \
-		mps_addr_t ref = &*oop;                           \
-		mps_res_t res = MPS_FIX2(ss, &ref);               \
-                                                                  \
-		if (res != MPS_RES_OK)                            \
-			return res;                               \
-                                                                  \
-		oop = (OopDesc *)ref;                             \
+#define FIXOOP(oop)                                                           \
+	if (oop.isPtr() && MPS_FIX1(ss, &*oop)) { \
+		/* Untag */                                                   \
+		mps_addr_t ref = &*oop;                                       \
+		mps_res_t res = MPS_FIX2(ss, &ref);                           \
+                                                                              \
+		if (res != MPS_RES_OK)                                        \
+			return res;                                           \
+                                                                              \
+		oop = (OopDesc *)ref;                                         \
 	}
+
+#define ELEMENTSOF(X) (sizeof X / sizeof *X)
+
+static mps_res_t
+scanGlobals(mps_ss_t ss, void *p, size_t s)
+{
+	MPS_SCAN_BEGIN (ss) {
+#define X(TYPE, NAME) FIXOOP(ObjectMemory::NAME)
+		OMEM_STATICS
+#undef X
+		for (int i = 0; i < ELEMENTSOF(ObjectMemory::symBin); i++)
+			FIXOOP(ObjectMemory::symBin[i]);
+
+	}
+	MPS_SCAN_END(ss);
+	return MPS_RES_OK;
+}
 
 mps_res_t
 MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
@@ -99,14 +83,26 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			break;
 
 		case kBytes:
+			FIXOOP(obj->isa());
 			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size);
 			break;
 
 		basic:
 		case kOops: {
 			FIXOOP(obj->isa());
+			if (obj->isa() == ObjectMemory::clsProcess)
+			{
+			/* skip Context */
+			for (int i = 1; i < obj->m_size; i++) {
+				printf("fixing %d of process %p\n", i, obj);
+				FIXOOP(obj->m_oops[i]);
+			}
+			printf("stack index %d\n", obj->m_oops[2].smi());
+			}
+			else {
 			for (int i = 0; i < obj->m_size; i++)
 				FIXOOP(obj->m_oops[i]);
+			}
 			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
 			    obj->m_size);
 			break;
@@ -116,14 +112,19 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			ContextOopDesc *ctx = (ContextOopDesc *)&obj->m_oops[0];
 			char *end = ((char *)obj + obj->m_size * sizeof(Oop));
 
-			while (!ctx->m_isa.isNil()) {
-				size_t ctxSize = ctx->m_size;
+			FIXOOP(obj->isa())
 
-				/* explicitly mark prevContext if it's heap */
+			while (!ctx->m_isa.isNil()) {
+				// TODO: fix prevContext if it's heap
+
+				FIXOOP(ctx->isa());
 
 				/* start at 1 to skip prevContext */
-				for (int i = 1; i < ctxSize; i++)
+				for (int i = 1; i < ctx->m_size - 1; i++) {
+					//printf("fixing %p\n", ctx->basicAt0(i).m_ptr);
+					if (i != 2) /* skip homeMethodContext */
 					FIXOOP(ctx->basicAt0(i));
+				}
 
 				ctx = (ContextOopDesc *) ((char*) ctx +
 				    sizeof(MemOopDesc) + ctx->m_size *
@@ -139,8 +140,9 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 
 		case kBlock: {
 			FIXOOP(obj->isa());
-			for (int i = 0; i < obj->size(); i++)
-				if (i != 9) // ALERT: offset of Context
+			for (int i = 0; i < obj->m_size; i++)
+				/* skip offset of Context within Block! */
+				if (i != 9)
 					FIXOOP(obj->m_oops[i]);
 
 			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
@@ -316,7 +318,8 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 	if (res != MPS_RES_OK)
 		FATAL("Couldn't create root");
 
-	res = mps_root_create_area(&m_globalRoot, m_arena, mps_rank_ambig(), 0, &ObjectMemory::objNil, &ObjectMemory::clsNativePointer + 1, mps_scan_area, NULL);
+	res = mps_root_create(&m_globalRoot, m_arena, mps_rank_exact(), 0,
+	    scanGlobals, NULL, 0);
 	if (res != MPS_RES_OK)
 		FATAL("Couldn't create globals root");
 }

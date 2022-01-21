@@ -1,2 +1,2 @@
-@include 'NativeCode.st'
+"@include 'NativeCode.st'"
 @include 'NativePointer.st'

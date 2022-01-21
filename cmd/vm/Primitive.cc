@@ -1200,8 +1200,6 @@ primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 
 	ctx->previousContext = proc->context->previousContext;
 	proc->context = ctx;
-	// printf ("=> Entering block\n");
-	//disassemble(meth->bytecode()->vns(), meth->bytecode()->size());
 	return Oop();
 }
 

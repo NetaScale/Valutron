@@ -65,6 +65,7 @@ ArrayOop
 ArrayOopDesc::newWithSize(ObjectMemory &omem, size_t size)
 {
 	ArrayOop newArr = omem.newOopObj<ArrayOop>(size);
+	newArr.setIsa(ObjectMemory::clsArray);
 	return newArr;
 }
 
@@ -72,6 +73,7 @@ ArrayOop
 ArrayOopDesc::fromVector(ObjectMemory &omem, std::vector<Oop> vec)
 {
 	ArrayOop newArr = newWithSize(omem, vec.size());
+	newArr.setIsa(ObjectMemory::clsArray);
 	std::copy(vec.begin(), vec.end(), newArr->vns());
 	return newArr;
 }

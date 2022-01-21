@@ -42,7 +42,7 @@ class MemOopDesc;
 class MethodOopDesc;
 class OopOopDesc;
 class ProcessOopDesc;
-class ProcessorOopDesc;
+class SchedulerOopDesc;
 
 template <class T> class OopRef;
 
@@ -63,7 +63,7 @@ typedef OopRef    <DictionaryOopDesc>	DictionaryOop;
 typedef OopRef    <LinkOopDesc> 	LinkOop;
 typedef OopRef    <MethodOopDesc>	MethodOop;
 typedef OopRef    <ProcessOopDesc>	ProcessOop;
-typedef OopRef    <ProcessorOopDesc>	ProcessorOop;
+typedef OopRef    <SchedulerOopDesc>	SchedulerOop;
 typedef OopRef    <StringOopDesc>	StringOop;
 typedef OopRef    <SymbolOopDesc>	SymbolOop;
 typedef OopRef   <ByteOopDesc>		ByteOop;
@@ -100,7 +100,7 @@ template <class T> class OopRef {
 	inline int64_t smi() const { return VT_intValue(m_ptr); }
 	template <typename OT> inline OT & as() { return reinterpret_cast<OT&>(*this); }
 
-	inline ClassOop &isa(); //{ return isSmi() ? 0 : as<MemOop>()->isa(); }
+	inline ClassOop &isa();
 	inline ClassOop &setIsa(ClassOop oop);
 
 	void print(size_t in);
@@ -118,7 +118,7 @@ template <class T> class OopRef {
 	{
 		return other.m_ptr != m_ptr;
 	}
-	inline T *operator->() const { return m_ptr; }
+	T *operator->() const { return m_ptr; }
 	inline T &operator*() const { return *m_ptr; }
 	inline operator Oop() const { return m_ptr; }
 } __attribute__((packed));
@@ -126,10 +126,6 @@ template <class T> class OopRef {
 class OopDesc {
 
 };
-
-extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
-    uintptr_t timeslice) noexcept;
-
 
 class Klass {
 public:
@@ -147,6 +143,10 @@ public:
 	}
 };
 
+extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
+    uintptr_t timeslice) noexcept;
+static mps_res_t scanGlobals(mps_ss_t ss, void *p, size_t s);
+
 class MemOopDesc : public OopDesc {
     protected:
 	friend class ObjectMemory;
@@ -155,6 +155,7 @@ class MemOopDesc : public OopDesc {
 
 	friend int execute(ObjectMemory &omem, ProcessOop proc,
 	    uintptr_t timeslice) noexcept;
+	friend mps_res_t scanGlobals(mps_ss_t ss, void *p, size_t s);
 
 	enum Kind {
 		kPad,
@@ -562,6 +563,7 @@ class ContextOopDesc : public OopOopDesc {
 	void initWithMethod(ObjectMemory &omem, Oop receiver,
 	    MethodOop aMethod);
 
+	inline BlockOop &block() { return methodOrBlock.as<BlockOop>(); }
 	inline MethodOop &method() { return methodOrBlock.as<MethodOop>(); }
 	Oop &regAt0(size_t num) { return m_oops[7 + num]; }
 
@@ -581,15 +583,45 @@ class ContextOopDesc : public OopOopDesc {
 };
 
 class ProcessOopDesc : public OopOopDesc {
-	static const int clsNstLength = 4;
+	static const int clsNstLength = 5;
 
     public:
 	ContextOop context;
 	ArrayOop stack;
 	SmiOop stackIndex; /* 1-based */
 	Oop accumulator;
+	ProcessOop link;
 
 	static ProcessOop allocate(ObjectMemory &omem);
+};
+
+class SchedulerOopDesc : public OopOopDesc {
+	public:
+	static const int clstNstLength = 2;
+
+	ProcessOop runnable;
+	ProcessOop waiting;
+	//ProcessOop current;
+
+	/**
+	 * Add a process to the runnable list. Process must NOT already be in
+	 * the list.
+	 */
+	void addProcToRunnables(ProcessOop proc);
+	/**
+	 * Suspend the currently-running process. Places it into the #waiting
+	 * list.
+	 */
+	void suspendCurrentProcess();
+	/**
+	 * Get the next runnable process, moving it to the last position in
+	 * the runnable queue.
+	 */
+	ProcessOop getNextForRunning();
+	/**
+	 * Suspend a process. Must not be the current process.
+	 */
+	void suspendProcess(ProcessOop proc);
 };
 
 inline const char *

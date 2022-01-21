@@ -2,7 +2,8 @@ FlexComp(Scanner.l)
 LemonComp(Parser.y)
 
 add_executable(vm AST.cc Bytecode.cc Main.cc Generation.cc Interpreter.cc
-    ObjectMemory.cc Objects.cc Synth.cc Primitive.cc Typecheck.cc TypeFlow.cc
+    ObjectMemory.cc Objects.cc Scheduling.cc Synth.cc Primitive.cc Typecheck.cc
+    TypeFlow.cc
     ${CMAKE_CURRENT_BINARY_DIR}/Scanner.l.cc
     ${CMAKE_CURRENT_BINARY_DIR}/Parser.tab.cc)
 

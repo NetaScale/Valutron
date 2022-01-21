@@ -1,15 +1,9 @@
-Object subclass: NativePointer [
-    "I represent a pointer to a native address. My purpose is to make it
-     absolutely explicit that some given variable stores a native pointer,
-     because attempting to send a message to a native pointer would cause
-     a crash!"
-    | ptr |
+ByteArray subclass: NativePointer [
+    "Represents a pointer to a native address. ITs purpose is to make it
+     absolutely explicit that some given variable stores a native pointer."
 
-    class>>ptr: ptr [
-        ^ self new ptr: ptr
+    class>>new [
+        ^ self new: 8 "FIXME: use platform word size"
     ]
 
-    ptr: anOop [
-        ptr <- anOop.
-    ]
 ]
