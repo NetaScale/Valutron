@@ -35,7 +35,7 @@ Object subclass: INITIAL [
 
 	doStuff2 [
 		(1 to: 2) do: [ :i |
-		<#debugMsg (65 asLongInteger factorial printString )> ]
+		<#debugMsg (10 asLongInteger factorial printString )> ]
 	]
 
 	initial [ | fac |

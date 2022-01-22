@@ -81,6 +81,6 @@ class Op {
 };
 
 extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
-   uintptr_t timeslice) noexcept;
+   volatile bool &interruptFlag) noexcept;
 
 #endif /* INTERPRETER_HH_ */

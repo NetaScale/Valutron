@@ -1,5 +1,6 @@
 #include "Generation.hh"
 #include "Interpreter.hh"
+#include "Objects.hh"
 
 void
 CodeGen::genCode(uint8_t code)

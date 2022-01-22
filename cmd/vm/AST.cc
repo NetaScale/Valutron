@@ -1,8 +1,10 @@
 #include <sys/types.h>
 #include <cassert>
 #include <stdexcept>
+
 #include "AST.hh"
 #include "Generation.hh"
+#include "Objects.hh"
 
 ClassNode::ClassNode(std::string name, std::vector<VarDecl> tyParams,
     std::string superName, std::vector<Type*> superTyArgs,
@@ -647,10 +649,10 @@ BlockExprNode::generateOn(CodeGen &gen)
 	    blockGen.bytecode()));
 	block->setLiterals(ArrayOopDesc::fromVector(gen.omem(),
 	    blockGen.literals()));
-	block->setArgumentCount(SmiOop(args.size()));
-	block->setTemporarySize(SmiOop((intptr_t)0));
-	block->setHeapVarsSize(SmiOop(scope->myHeapVars.size()));
-	block->setStackSize(SmiOop(blockGen.nRegs()));
+	block->setArgumentCount(Smi(args.size()));
+	block->setTemporarySize(Smi((intptr_t)0));
+	block->setHeapVarsSize(Smi(scope->myHeapVars.size()));
+	block->setStackSize(Smi(blockGen.nRegs()));
 
 	// gen.popCurrentScope ();
 	// if (!blockGen._blockHasBlockReturn)

@@ -6,11 +6,10 @@
 #include "Interpreter.hh"
 #include "Misc.hh"
 #include "ObjectMemory.hh"
-#include "Oops.hh"
+#include "Objects.hh"
 #include "Generation.hh"
 
-	volatile int ninstr = 0;
-
+volatile int ninstr = 0;
 
 void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
     MethodOop aMethod)
@@ -149,7 +148,7 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
  *
  * n.b. extraneous setting of ac in proc object seems to enhance performance.
  */
-#define TESTCOUNTER() if (counter++ > timeslice) goto timesliceDone
+#define TESTCOUNTER() if (interruptFlag) goto timesliceDone
 
 #define IN nsends++; in++; if (in > maxin) maxin = in
 #define OUT in--
@@ -173,7 +172,7 @@ newContext(ProcessOop &proc)
 		abort();
 	}
 	ContextOop newCtx = (void *)&proc->stack->basicAt(newSI);
-	proc->stackIndex = SmiOop(newSI);
+	proc->stackIndex = Smi(newSI);
 	newCtx->previousContext = proc->context;
 	return newCtx;
 }
@@ -271,7 +270,7 @@ void stackTrace(ContextOop ctx, bool regs = false)
 }
 
 extern "C" int
-execute(ObjectMemory &omem, ProcessOop proc, uintptr_t timeslice) noexcept
+execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexcept
 {
 	static void* opTable[] = {
 #define X(OP) &&op##OP,

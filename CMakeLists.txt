@@ -46,6 +46,7 @@ endfunction (LemonComp)
 # feature checks
 #
 
+find_package(Threads REQUIRED)
 find_package(FLEX)
 #find_package(BISON)
 

@@ -4,7 +4,7 @@
 
 #include "Misc.hh"
 #include "ObjectMemory.hh"
-#include "Oops.hh"
+#include "Objects.hh"
 
 #define cout cerr
 

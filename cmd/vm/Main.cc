@@ -4,9 +4,10 @@
 #include "AST.hh"
 #include "Compiler.hh"
 #include "ObjectMemory.hh"
-#include "Oops.hh"
+#include "Objects.hh"
 #include "Typecheck.hh"
 #include "Interpreter.hh"
+#include "CPUThread.hh"
 
 extern void run(ObjectMemory & omem);
 
@@ -56,6 +57,8 @@ main(int argc, char * argv[])
 
 	run(omem);
 #endif
+
+	CPUThreadPair mainThread(omem);
 
 	return 0;
 }

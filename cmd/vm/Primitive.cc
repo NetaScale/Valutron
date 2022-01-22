@@ -4,7 +4,7 @@
 
 #include "Interpreter.hh"
 #include "ObjectMemory.hh"
-#include "Oops.hh"
+#include "Objects.hh"
 
 Oop
 unsupportedPrim(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
@@ -39,7 +39,7 @@ primRandom(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	i = rand() >> 8; /* strip off lower bits */
 	if (i < 0)
 		i = -i;
-	return (SmiOop(i >> 1));
+	return (Smi(i >> 1));
 }
 
 extern bool watching;
@@ -108,7 +108,7 @@ Oop
 primSize(ObjectMemory &omem, ProcessOop &proc, Oop arg)
 {
 	if (arg.isSmi())
-		return SmiOop((intptr_t)0);
+		return Smi((intptr_t)0);
 	else
 		return arg.as<MemOop>()->size();
 }
@@ -123,7 +123,7 @@ primHash(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	if (args->basicAt(1).isSmi())
 		return (args->basicAt(1));
 	else
-		return (SmiOop(args->basicAt(1).hashCode()));
+		return (Smi(args->basicAt(1).hashCode()));
 }
 
 /*
@@ -280,7 +280,7 @@ primBasicAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index)
 		printf("non-integer argument of basicAt:");
 		return (Oop::nil());
 	}
-	i = index.as<SmiOop>().smi();
+	i = index.as<Smi>().smi();
 	if (i < 1 || i > obj.as<MemOop>()->size()) {
 		printf("#basicAt: argument out of bounds (%d)", i);
 		return (Oop::nil());
@@ -300,10 +300,10 @@ primByteAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index) /*fix*/
 	int i;
 	if (!index.isSmi())
 		perror("non integer index byteAt:");
-	i = obj.as<ByteArrayOop>()->basicAt(index.as<SmiOop>().smi());
+	i = obj.as<ByteArrayOop>()->basicAt(index.as<Smi>().smi());
 	if (i < 0)
 		i += 256;
-	return (SmiOop(i));
+	return (Smi(i));
 }
 
 /*
@@ -334,7 +334,7 @@ primbasicAtPut(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index,
 		return (Oop::nil());
 	if (!index.isSmi())
 		return (Oop::nil());
-	i = index.as<SmiOop>().smi();
+	i = index.as<Smi>().smi();
 	if (i < 1 || i > obj.as<MemOop>()->size())
 		return (Oop::nil());
 	obj.as<OopOop>()->basicAtPut(i, val);
@@ -356,8 +356,8 @@ primByteAtPut(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index,
 		perror("#byteAt: non integer index");
 	if (!val.isSmi())
 		perror("#byteAt: non integer assignee");
-	obj.as<ByteArrayOop>()->basicAtPut(index.as<SmiOop>().smi(),
-	    val.as<SmiOop>().smi());
+	obj.as<ByteArrayOop>()->basicAtPut(index.as<Smi>().smi(),
+	    val.as<Smi>().smi());
 	return (obj);
 }
 
@@ -388,8 +388,8 @@ primCopyFromTo(ObjectMemory &omem, ProcessOop proc, ArrayOop args) /*fix*/
 	{
 		uint8_t *src = args->basicAt(1).as<StringOop>()->vns();
 		size_t len = strlen((char *)src);
-		int pos1 = args->basicAt(2).as<SmiOop>().smi();
-		int pos2 = args->basicAt(2).as<SmiOop>().smi();
+		int pos1 = args->basicAt(2).as<Smi>().smi();
+		int pos2 = args->basicAt(2).as<Smi>().smi();
 		int req = pos2 + 1 - pos1;
 		size_t act;
 		StringOop ans;
@@ -464,7 +464,7 @@ primAllocOrefObj(ObjectMemory &omem, ProcessOop &proc, Oop size)
 {
 	if (!size.isSmi())
 		return (Oop::nil());
-	return (omem.newOopObj<MemOop>(size.as<SmiOop>().smi()));
+	return (omem.newOopObj<MemOop>(size.as<Smi>().smi()));
 }
 
 /*
@@ -479,7 +479,7 @@ primAllocByteObj(ObjectMemory &omem, ProcessOop &proc, Oop size)
 {
 	if (!size.isSmi())
 		return (Oop::nil());
-	return (omem.newByteObj<MemOop>(size.as<SmiOop>().smi()));
+	return (omem.newByteObj<MemOop>(size.as<Smi>().smi()));
 }
 
 /*
@@ -496,10 +496,10 @@ primAdd(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	if (!a.isSmi() || !b.isSmi()) {
 		return (Oop::nil());
 	}
-	longresult = a.as<SmiOop>().smi();
-	longresult += b.as<SmiOop>().smi();
+	longresult = a.as<Smi>().smi();
+	longresult += b.as<Smi>().smi();
 	if (longresult < INT64_MAX / 2) // FIXME: bounds test SMI
-		return (SmiOop(longresult));
+		return (Smi(longresult));
 	else
 		return (Oop::nil());
 }
@@ -516,10 +516,10 @@ primSubtract(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	long longresult;
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = a.as<SmiOop>().smi();
-	longresult -= b.as<SmiOop>().smi();
+	longresult = a.as<Smi>().smi();
+	longresult -= b.as<Smi>().smi();
 	if (longresult < INT64_MAX / 2) // FIXME: smi boundcheck
-		return (SmiOop(longresult));
+		return (Smi(longresult));
 	else
 		return (Oop::nil());
 }
@@ -535,8 +535,8 @@ primLessThan(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() <
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() <
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -553,8 +553,8 @@ primGreaterThan(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() >
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() >
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -570,8 +570,8 @@ primLessOrEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() <=
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() <=
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -587,8 +587,8 @@ primGreaterOrEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() >=
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() >=
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -604,8 +604,8 @@ primEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() ==
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() ==
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -621,8 +621,8 @@ primNotEqual(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 {
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (a.as<SmiOop>().smi() !=
-	    b.as<SmiOop>().smi())
+	if (a.as<Smi>().smi() !=
+	    b.as<Smi>().smi())
 		return ((Oop)ObjectMemory::objTrue);
 	else
 		return ((Oop)ObjectMemory::objFalse);
@@ -640,10 +640,10 @@ primMultiply(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	long longresult;
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = a.as<SmiOop>().smi();
-	longresult *= b.as<SmiOop>().smi();
+	longresult = a.as<Smi>().smi();
+	longresult *= b.as<Smi>().smi();
 	if (longresult < INT64_MAX / 2) // FIXME: boundscheck smi
-		return (SmiOop(longresult));
+		return (Smi(longresult));
 	else
 		return (Oop::nil());
 }
@@ -660,12 +660,12 @@ primQuotient(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	long longresult;
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	if (b.as<SmiOop>().smi() == 0)
+	if (b.as<Smi>().smi() == 0)
 		return (Oop::nil());
-	longresult = a.as<SmiOop>().smi();
-	longresult /= b.as<SmiOop>().smi();
+	longresult = a.as<Smi>().smi();
+	longresult /= b.as<Smi>().smi();
 	if (1) // FIXME: boundscheck 1) // FIXME: boundscheck smi
-		return (SmiOop(longresult));
+		return (Smi(longresult));
 	else
 		return (Oop::nil());
 }
@@ -684,14 +684,14 @@ primRemainder(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 		printf("#primRem: receiver or arg not integer");
 		return (Oop::nil());
 	}
-	if (b.as<SmiOop>().smi() == 0) {
+	if (b.as<Smi>().smi() == 0) {
 		printf("#primRem: division by zero");
 		return (Oop::nil());
 	}
-	longresult = a.as<SmiOop>().smi();
-	longresult %= b.as<SmiOop>().smi();
+	longresult = a.as<Smi>().smi();
+	longresult %= b.as<Smi>().smi();
 	if (1) // FIXME: boundscheck smi
-		return (SmiOop(longresult));
+		return (Smi(longresult));
 	else
 		return (Oop::nil());
 }
@@ -708,9 +708,9 @@ primBitAnd(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	long longresult;
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = a.as<SmiOop>().smi();
-	longresult &= b.as<SmiOop>().smi();
-	return (SmiOop(longresult));
+	longresult = a.as<Smi>().smi();
+	longresult &= b.as<Smi>().smi();
+	return (Smi(longresult));
 }
 
 /*
@@ -725,9 +725,9 @@ primBitXor(ObjectMemory &omem, ProcessOop &proc, Oop a, Oop b)
 	long longresult;
 	if (!a.isSmi() || !b.isSmi())
 		return (Oop::nil());
-	longresult = a.as<SmiOop>().smi();
-	longresult ^= b.as<SmiOop>().smi();
-	return (SmiOop(longresult));
+	longresult = a.as<Smi>().smi();
+	longresult ^= b.as<Smi>().smi();
+	return (Smi(longresult));
 }
 
 /*
@@ -743,12 +743,12 @@ primBitShift(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	long longresult;
 	if (!args->basicAt(1).isSmi() || !args->basicAt(2).isSmi())
 		return (Oop::nil());
-	longresult = args->basicAt(1).as<SmiOop>().smi();
-	if (args->basicAt(2).as<SmiOop>().smi() < 0)
-		longresult >>= -args->basicAt(2).as<SmiOop>().smi();
+	longresult = args->basicAt(1).as<Smi>().smi();
+	if (args->basicAt(2).as<Smi>().smi() < 0)
+		longresult >>= -args->basicAt(2).as<Smi>().smi();
 	else
-		longresult <<= args->basicAt(2).as<SmiOop>().smi();
-	return (SmiOop(longresult));
+		longresult <<= args->basicAt(2).as<Smi>().smi();
+	return (Smi(longresult));
 }
 
 /*
@@ -760,7 +760,7 @@ Oop
 primStringSize(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
 	return (
-	    SmiOop(strlen((char *)args->basicAt(1).as<StringOop>()->vns())));
+	    Smi(strlen((char *)args->basicAt(1).as<StringOop>()->vns())));
 }
 
 int strHash(std::string str);
@@ -776,7 +776,7 @@ Oop
 primStringHash(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
 	return (
-	    SmiOop(strHash((char *)args->basicAt(1).as<StringOop>()->vns())));
+	    Smi(strHash((char *)args->basicAt(1).as<StringOop>()->vns())));
 }
 
 /*
@@ -802,7 +802,7 @@ Oop
 primHostCommand(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
 	return (
-	    SmiOop(system((char *)args->basicAt(1).as<StringOop>()->vns())));
+	    Smi(system((char *)args->basicAt(1).as<StringOop>()->vns())));
 }
 
 /*
@@ -864,8 +864,8 @@ primIntegerPart(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	}
 	j = (int)temp;
 	returnedObject = ArrayOopDesc::newWithSize(omem, 2);
-	returnedObject->basicAtPut(1, SmiOop(j));
-	returnedObject->basicAtPut(2, SmiOop(i));
+	returnedObject->basicAtPut(1, Smi(j));
+	returnedObject->basicAtPut(2, Smi(i));
 #ifdef trynew
 	/* if number is too big it can't be integer anyway */
 	if (args->basicAt(1).as<FloatOop>()->floatValue() > 2e9)
@@ -1043,7 +1043,7 @@ Called from File>>open
 Oop
 primFileOpen(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	int i = args->basicAt(1).as<SmiOop>().smi();
+	int i = args->basicAt(1).as<Smi>().smi();
 	char *p = (char *)args->basicAt(2).as<StringOop>()->vns();
 	if (!strcmp(p, "stdin"))
 		fp[i] = stdin;
@@ -1070,7 +1070,7 @@ primFileOpen(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 	if (fp[i] == NULL)
 		return (Oop::nil());
 	else
-		return (SmiOop(i));
+		return (Smi(i));
 }
 
 /*
@@ -1081,7 +1081,7 @@ Called from File>>close
 Oop
 primFileClose(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	int i = args->basicAt(1).as<SmiOop>().smi();
+	int i = args->basicAt(1).as<Smi>().smi();
 	if (fp[i])
 		(void)fclose(fp[i]);
 	fp[i] = NULL;
@@ -1123,7 +1123,7 @@ Called from File>>getString
 Oop
 primGetString(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	int i = args->basicAt(1).as<SmiOop>().smi();
+	int i = args->basicAt(1).as<Smi>().smi();
 	int j;
 	char buffer[4096];
 	if (!fp[i])
@@ -1159,7 +1159,7 @@ Called from File>>printNoReturn:
 Oop
 primPrintWithoutNL(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	int i = args->basicAt(1).as<SmiOop>().smi(); // smiOf
+	int i = args->basicAt(1).as<Smi>().smi(); // smiOf
 						     // (arg[0].val);
 	if (!fp[i])
 		return (Oop());
@@ -1177,7 +1177,7 @@ Called from File>>print:
 Oop
 primPrintWithNL(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	int i = args->basicAt(1).as<SmiOop>().smi();
+	int i = args->basicAt(1).as<Smi>().smi();
 	if (!fp[i])
 		return (Oop());
 	(void)fputs((char *)args->basicAt(2).as<ByteArrayOop>()->vns(), fp[i]);
@@ -1190,7 +1190,7 @@ primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 {
 	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
 	ContextOop ctx = (void*)&proc->stack->basicAt(newSI);
-	proc->stackIndex = SmiOop(newSI);
+	proc->stackIndex = Smi(newSI);
 	ctx->previousContext = proc->context;
 
 	ctx->initWithBlock(omem, args[0].as <BlockOop>());

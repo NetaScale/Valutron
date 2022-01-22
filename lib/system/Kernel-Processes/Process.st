@@ -1,13 +1,12 @@
 Object subclass: Process [
-	| "Points to the current context, which may be within i:stack or heap."
-	  (Context)context
-	 "Stack consisting of a sequence of inlined Context objects."
-	 (Array)stack
-	 "Index beginning topmost stack frame - 1-based index to i:stack."
-	 (Integer)stackIndex
-	 (id)accumulator
-	 (Boolean)overflowed
-	 (Process)link "Next process in list" |
+| 
+ (Process)link 		"Next process in list"
+ (Context)context	"Current context, which may be within :stack or heap."
+ (Array<id>)stack	"Stack of inlined Context objects."
+ (Integer)stackIndex	"1-based index into :stack of topmost stack frame."
+ (id)accumulator	"The accumulator register."
+ (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
+|
 
 	"below is old code"
 
@@ -42,11 +41,12 @@ Object subclass: Process [
 
 	execute  [
 		" execute for time slice, terminating if all over "
-		(overflowed isNil and: [(stack size > 8192)])
+		"(overflowed isNil and: [(stack size > 8192)])
 			ifTrue: [
 				overflowed <- true.
-				VM error: 'process stack overflowed'].
+				VM error: 'process stack overflowed']."
 		"<19 self> ifTrue: [] ifFalse: [ self terminate ]."
+		^ 42
 	]
 
 	method: x  [
@@ -74,8 +74,8 @@ Object subclass: Process [
 
 	trace [		| more link m r s |
 		" first yield scheduler, forceing store of linkPointer"
-		overflowed notNil ifTrue: [
-			^ self ].
+		"overflowed notNil ifTrue: [
+			^ self ]."
 		scheduler yield.
 		more <- 8.
 		link <- stack at: link+1.

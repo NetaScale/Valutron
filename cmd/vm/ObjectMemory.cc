@@ -9,6 +9,7 @@ extern "C" {
 }
 
 #include "ObjectMemory.hh"
+#include "Objects.hh"
 
 mps_arena_t ObjectMemory::m_arena = NULL;
 uint32_t ObjectMemory::s_hashCounter = 1;
@@ -223,8 +224,6 @@ MemOopDesc::mpsPad(mps_addr_t addr, size_t size)
 	obj->m_kind = kPad;
 }
 
-
-
 ObjectMemory::ObjectMemory(void *stackMarker)
 {
 	mps_res_t res;
@@ -396,6 +395,13 @@ ObjectMemory::setupInitialObjects()
 	for (int i = 0; i < sizeof(binOpStr) / sizeof(*binOpStr); i++)
 		symBin[i] = SymbolOopDesc::fromString(*this, binOpStr[i]);
 }
+
+ClassOop ObjectMemory::lookupClass(std::string name)
+{
+	return objGlobals->symbolLookup(SymbolOopDesc::fromString(*this, name)).
+		as<ClassOop>();
+}
+
 
 void
 ObjectMemory::poll()

@@ -1,7 +1,7 @@
 #include <cassert>
 
 #include "AST.hh"
-#include "Oops.hh"
+#include "Objects.hh"
 #include "Interpreter.hh"
 
 Var *
@@ -347,7 +347,7 @@ ClassNode::synthInNamespace(SynthContext &sctx, DictionaryOop ns)
 	cls->setupSuperclass(superCls);
 
 	classOopAddIvarsToScopeStartingFrom(cls, scope);
-	cls->nstSize = SmiOop(scope->iVars.size());
+	cls->nstSize = Smi(scope->iVars.size());
 
 	for (auto meth : cMethods)
 		meth->synthInClassScope(scope);
