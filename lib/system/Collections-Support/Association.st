@@ -1,4 +1,4 @@
-Magnitude subclass: Association [
+Magnitude subclass: Association<TKey, TVal> [
     | key value |
 
     class>>key: newKey value: newValue [

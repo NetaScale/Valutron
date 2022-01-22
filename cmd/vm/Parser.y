@@ -555,7 +555,7 @@ type_arg_parts(A) ::= type(t). {
 }
 type_arg_parts(A) ::= type_arg_parts(a) COMMA type(t). {
 	A = std::move(a);
-	a.push_back(t);
+	A.push_back(t);
 }
 
 type_params_opt(P) ::= LCARET type_param_parts(p) RCARET. {

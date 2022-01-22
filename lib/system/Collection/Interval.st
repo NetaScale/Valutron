@@ -1,4 +1,4 @@
-Collection subclass: Interval [
+Collection<Magnitude> subclass: Interval [
 	| lower upper step |
 
 	class>>lower: lValue upper: uValue step: sValue [

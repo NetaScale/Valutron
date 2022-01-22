@@ -1,4 +1,4 @@
-IndexedCollection subclass: Array [
+IndexedCollection<T> subclass: Array<T> [
 
 	class>>basicNew [
 		^ self basicNew: 0

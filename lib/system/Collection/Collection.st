@@ -1,4 +1,4 @@
-Magnitude subclass: Collection [
+Magnitude subclass: Collection<T> [
 
 	(Integer) < (Magnitude) coll [
 		(coll respondsTo: #includes:)
@@ -38,6 +38,10 @@ Magnitude subclass: Collection [
 		^ self asByteArray asString
 	]
 
+	collect: aBlock [
+		self subclassResponsibility.
+	]
+
 	display [
 		self do: [:x | x print ]
 	]
@@ -55,6 +59,10 @@ Magnitude subclass: Collection [
 
 	isEmpty [
 		^ self size == 0
+	]
+
+	notEmpty [
+		^ (self isEmpty) not
 	]
 
 	occurrencesOf: anObject [

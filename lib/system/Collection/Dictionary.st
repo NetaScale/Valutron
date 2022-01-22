@@ -1,4 +1,4 @@
-IndexedCollection subclass: Dictionary [
+IndexedCollection<Association<TKey, TVal>> subclass: Dictionary<TKey, TVal> [
     | hashTable |
 
     class>>new [
@@ -89,7 +89,7 @@ IndexedCollection subclass: Dictionary [
 
 ]
 
-Dictionary subclass: SymbolTable [
+Dictionary<Symbol, TKey> subclass: SymbolTable<TKey> [
     hash: aKey [
 		^ 3 * ((aKey hash) rem: ((hashTable size) quo: 3))
     ]
@@ -99,7 +99,7 @@ Dictionary subclass: SymbolTable [
     ]
 ]
 
-SymbolTable subclass: SystemDictionary [
+SymbolTable<id> subclass: SystemDictionary [
 	at: key [
 		<#dumpVariable key>.
 		^ super at: key ifAbsent: [ <#fatal key> ]

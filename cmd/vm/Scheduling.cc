@@ -86,10 +86,10 @@ void run(ObjectMemory & omem)
 	ClassOop cls = ObjectMemory::objGlobals->symbolLookup(
 	    SymbolOopDesc::fromString(omem, "Scheduler")).as<ClassOop>();
 	SchedulerOop sched;
-	
+
 	assert(!cls.isNil());
 	sched = omem.newOopObj<SchedulerOop>(SchedulerOopDesc::clstNstLength);
-	
+
 	sched.setIsa(cls);
 
 	ProcessOop proc1 = makeProc(omem, "doStuff1"), proc2 = makeProc(omem, "doStuff2");
@@ -99,10 +99,10 @@ void run(ObjectMemory & omem)
 	loop:
 	ProcessOop proc = sched->getNextForRunning();
 	if (proc.isNil()) {
-			std::cout <<"All processes finished";
+			std::cout <<"All processes finished\n";
 			return;
 		}
-	if (execute(omem, proc, 1000000) == 0) {
+	if (execute(omem, proc, 2000000) == 0) {
 		std::cout << "Process "<< proc.m_ptr << " finished\n";
 	} else {
 		std::cout <<"Returning process " << proc.m_ptr << " to run-queue\n";

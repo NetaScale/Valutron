@@ -24,7 +24,6 @@ Object subclass: Process [
 		^ self basicNew
 			stack: sArray
 			stackIndex: 10
-			linkPointer: 2
 	]
 
 
@@ -61,8 +60,7 @@ Object subclass: Process [
 
 	stack: sArray stackIndex: sInt linkPointer: lInt [
 		stack <- sArray.
-		stackIndex <- sInt.
-		linkPointer <- lInt
+		stackIndex <- sInt
 	]
 
 	startAt: x [
@@ -80,7 +78,6 @@ Object subclass: Process [
 			^ self ].
 		scheduler yield.
 		more <- 8.
-		link <- linkPointer.
 		link <- stack at: link+1.
 		" then trace back chain "
 		[ more > 0 and: [link ~= 0] ] whileTrue:

@@ -1,4 +1,4 @@
-Array subclass: ByteArray [
+Array<Integer> subclass: ByteArray [
 
 	class>>basicNew: size [
 		^ self primBytes: size

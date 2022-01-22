@@ -1,4 +1,4 @@
-Collection subclass: List [
+Collection<T> subclass: List<T> [
     | links |
 
 	add: aValue [

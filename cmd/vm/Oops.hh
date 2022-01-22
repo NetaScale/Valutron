@@ -619,7 +619,9 @@ class SchedulerOopDesc : public OopOopDesc {
 	 */
 	ProcessOop getNextForRunning();
 	/**
-	 * Suspend a process. Must not be the current process.
+	 * Suspend a process.
+	 *
+	 * \pre proc is in the runnable list
 	 */
 	void suspendProcess(ProcessOop proc);
 };

@@ -464,10 +464,14 @@ Type::typeInInvocation(Invocation &invocation)
 		return type;
 	}
 
+	case kAsYetUnspecified:
+		return this;
+
 	case kSuper:
 	case kIdent:
-	case kAsYetUnspecified:
 	case kMax:
+		std::cout << "Internal error: Bad type in invocation: " <<
+		    *this << "\n";
 		abort();
 	}
 }
@@ -636,7 +640,7 @@ Type::niceName(std::ostream &os) const
 				if (isFirst)
 					isFirst = false;
 				else
-					os << " ,";
+					os << ", ";
 				os << *arg;
 			}
 			os << ">";

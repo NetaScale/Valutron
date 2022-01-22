@@ -27,7 +27,7 @@ Object subclass: Tester [
 Object subclass: INITIAL [
 
 	doStuff1 [
-		(1 to: 2) do: [ :i |
+		(1 to: 1) do: [ :i |
 		
 		<#debugMsg ((34 fib) printString)> ]
 	]
@@ -35,7 +35,7 @@ Object subclass: INITIAL [
 
 	doStuff2 [
 		(1 to: 2) do: [ :i |
-		<#debugMsg (70 asLongInteger factorial printString )> ]
+		<#debugMsg (65 asLongInteger factorial printString )> ]
 	]
 
 	initial [ | fac |

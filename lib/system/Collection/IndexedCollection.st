@@ -1,4 +1,4 @@
-Collection subclass: IndexedCollection [
+Collection<T> subclass: IndexedCollection<T> [
 
 	addAll: aCollection [
 		aCollection binaryDo: [:i :x | self at: i put: x ]
