@@ -84,7 +84,6 @@ class ObjectMemory {
 		X(ClassOop, clsVM)		\
 		X(ClassOop, clsCharacter)	\
 		X(ClassOop, clsProcessor)	\
-		X(ClassOop, clsNativeCode)	\
 		X(ClassOop, clsNativePointer)
 
 #define X(TYPE, NAME) static TYPE NAME;

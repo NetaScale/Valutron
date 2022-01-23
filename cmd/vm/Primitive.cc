@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cmath>
 #include <csetjmp>
 #include <cstdint>
@@ -5,6 +6,7 @@
 #include "Interpreter.hh"
 #include "ObjectMemory.hh"
 #include "Objects.hh"
+#include "Oops.hh"
 
 Oop
 unsupportedPrim(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
@@ -1274,6 +1276,64 @@ Primitive::named(std::string name)
 	return NULL;
 }
 
+/**
+ * \defgroup File stream manipulation
+ * @{
+ */
+
+Oop
+primFileDescToFileStar(ObjectMemory &omem, ProcessOop &proc, Oop fileDesc,
+    Oop mode)
+{
+	assert(fileDesc.isSmi());
+	assert(mode.isa() == ObjectMemory::clsSymbol);
+
+	NativePointerOop ptr;
+	FILE *file;
+
+	file = fdopen(fileDesc.smi(), (char *)mode.as<SymbolOop>()->vns());
+	if (file == NULL) {
+		std::cout << "Failed to open file: " << strerror(errno) << "\n";
+		return Oop::nil();
+	}
+
+	return NativePointerOopDesc::new0(omem, file);
+}
+
+Oop
+primFileStarPut(ObjectMemory &omem, ProcessOop &proc, Oop stream, Oop obj)
+{
+	assert(stream.isa() == ObjectMemory::clsNativePointer);
+
+	NativePointerOop fileStar = stream.as<NativePointerOop>();
+	FILE *file = (FILE *)fileStar->vns();
+	int r;
+
+	if (obj.isa() == ObjectMemory::clsSymbol ||
+	    obj.isa() == ObjectMemory::clsString ||
+	    obj.isa() == ObjectMemory::clsByteArray) {
+	printBytes:
+		ByteArrayOop bytes = obj.as<ByteArrayOop>();
+		r = fwrite(bytes->vns(), sizeof(char), bytes->size(), file);
+	} else if (obj.isa() == ObjectMemory::clsCharacter) {
+		r = putc(obj.as<OopOop>()->vns()[0].smi(), file);
+	} else {
+		std::cout << "Invalid type for putting on stream: "
+			  << obj.isa()->nameCStr() << "\n";
+		return Oop::nil();
+	}
+
+	if (r < 0)
+		std::cout << "Failed to put to file: " << strerror(errno)
+			  << "\n";
+
+	return Oop::nil();
+}
+
+/**
+ * @}
+ */
+
 #pragma GCC diagnostic ignored "-Wc99-designator"
 
 Primitive Primitive::primitives[] = {
@@ -1337,5 +1397,9 @@ Primitive Primitive::primitives[] = {
 	{ true, kMonadic, "dumpVariable", .fnp = primDumpVariable },
 	{ true, kMonadic, "debugMsg", .fnp = primMsg },
 	{ true, kMonadic, "fatal", .fnp = primFatal },
+
+	{ false, kDiadic, "fileDescToFileStar", .fn2 = primFileDescToFileStar },
+	{ false, kDiadic, "fileStarPut", .fn2 = primFileStarPut },
+
 	{ true, kMonadic, NULL, .fnp = NULL },
 };

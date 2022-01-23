@@ -375,7 +375,7 @@ ObjectMemory::setupInitialObjects()
 	CreateClass(Float);
 	CreateClass(VM);
 	CreateClass(Character);
-	CreateClass(NativeCode);
+	CreateClass(NativePointer);
 	CreateClass(NativePointer);
 
 #define AddGlobal(name, obj)            				       \

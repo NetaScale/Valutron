@@ -583,6 +583,8 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID recvReg,
 void
 CascadeExprNode::generateOn(CodeGen &gen)
 {
+	print(10);
+
 	if (messages.size() == 1) {
 		receiver->generateOn(gen);
 		 messages.front()->generateOn(gen, -1,

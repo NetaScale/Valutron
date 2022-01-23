@@ -34,7 +34,7 @@ class ContextOopDesc;
 class DictionaryOopDesc;
 class FloatOopDesc;
 class LinkOopDesc;
-class NativeCodeOopDesc;
+class NativePointerOopDesc;
 class SmiOopDesc;
 class StringOopDesc;
 class SymbolOopDesc;
@@ -55,19 +55,20 @@ typedef OopRef   <OopOopDesc> 		OopOop;
 typedef OopRef    <ArrayOopDesc>	ArrayOop;
 typedef OopRef    <BlockOopDesc>	BlockOop;
 typedef OopRef    <CacheOopDesc>	CacheOop;
-typedef OopRef    <CharOopDesc>		CharOop;
 typedef OopRef    <ClassOopDesc>	ClassOop;
-typedef OopRef    <NativeCodeOopDesc>	NativeCodeOop;
+typedef OopRef    <CharOopDesc>		CharOop;
 typedef OopRef    <ContextOopDesc>	ContextOop;
 typedef OopRef    <DictionaryOopDesc>	DictionaryOop;
 typedef OopRef    <LinkOopDesc> 	LinkOop;
 typedef OopRef    <MethodOopDesc>	MethodOop;
 typedef OopRef    <ProcessOopDesc>	ProcessOop;
 typedef OopRef    <SchedulerOopDesc>	SchedulerOop;
-typedef OopRef    <StringOopDesc>	StringOop;
-typedef OopRef    <SymbolOopDesc>	SymbolOop;
 typedef OopRef   <ByteOopDesc>		ByteOop;
 typedef OopRef    <ByteArrayOopDesc>	ByteArrayOop;
+typedef OopRef     <StringOopDesc>	StringOop;
+typedef OopRef     <SymbolOopDesc>	SymbolOop;
+typedef OopRef     <NativePointerOopDesc> NativePointerOop;
+
 /* clang-format on */
 
 template <class T> class OopRef {

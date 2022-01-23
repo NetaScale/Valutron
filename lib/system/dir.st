@@ -8,6 +8,7 @@
 @include 'Kernel-Native/dir.st'
 @include 'Kernel-Processes/dir.st'
 @include 'Numeric-Numbers/dir.st'
+@include 'Arch-Unix/dir.st'
 
 Object subclass: Tester [
 	class>>doNothing [
@@ -27,15 +28,19 @@ Object subclass: Tester [
 Object subclass: INITIAL [
 
 	doStuff1 [
-		(1 to: 1) do: [ :i |
+		"(1 to: 1) do: [ :i |
 		
-		<#debugMsg ((34 fib) printString)> ]
+		<#debugMsg ((34 fib) printString)> ]"
+		| file |
+		file <- File new initWithDescriptor: 1 mode: #w.
+		file << 'Hello, world! ' << #test ; cr.
 	]
 
 
 	doStuff2 [
-		(1 to: 2) do: [ :i |
-		<#debugMsg (10 asLongInteger factorial printString )> ]
+		"(1 to: 2) do: [ :i |
+		<#debugMsg (10 asLongInteger factorial printString )> ]"
+		^42
 	]
 
 	initial [ | fac |

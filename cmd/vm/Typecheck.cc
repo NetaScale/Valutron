@@ -847,6 +847,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 	GLOBAL("scheduler", "Scheduler");
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");
+	GLOBAL("stdOut", "File");
 	TYPE(m_charType, "Character");
 	TYPE(m_floatType, "Float");
 	TYPE(m_smiType, "Integer");

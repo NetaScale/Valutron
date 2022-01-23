@@ -507,6 +507,16 @@ DictionaryOopDesc::symbolLookup(ObjectMemory &omem, std::string aString)
  * @}
  */
 
+NativePointerOop
+NativePointerOopDesc::new0(ObjectMemory &omem, void *pointer)
+{
+	NativePointerOop oop = omem.newByteObj<NativePointerOop>(
+	    sizeof(void *));
+	oop->isa() = ObjectMemory::clsNativePointer;
+	oop->vns() = pointer;
+	return oop;
+}
+
 int
 strTest(Oop key, std::string aString)
 {

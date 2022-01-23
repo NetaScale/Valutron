@@ -1,6 +1,10 @@
 Magnitude subclass: Character [
 	| value |
 
+	class>>lf [
+		^ Character value: 10
+	]
+
 	class>>	value: aValue [
 		^ self new value: aValue
 	]

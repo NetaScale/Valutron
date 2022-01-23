@@ -309,6 +309,13 @@ class ContextOopDesc : public OopOopDesc {
 	Smi programCounter;
 	Oop reg0;
 
+	/**
+	 * These allocate Contexts on the heap - not currently used.
+	 */
+	static ContextOop newWithBlock(ObjectMemory &omem, BlockOop aMethod);
+	static ContextOop newWithMethod(ObjectMemory &omem, Oop receiver,
+	    MethodOop aMethod);
+
 	/* Initialise all fields that need to be (i.e. the SmiOops) */
 	void init();
 	void initWithBlock(ObjectMemory &omem, BlockOop aMethod);
@@ -329,9 +336,15 @@ class ContextOopDesc : public OopOopDesc {
 
 	void print(int in);
 
-	static ContextOop newWithBlock(ObjectMemory &omem, BlockOop aMethod);
-	static ContextOop newWithMethod(ObjectMemory &omem, Oop receiver,
-	    MethodOop aMethod);
+
+};
+
+class NativePointerOopDesc : public ByteArrayOopDesc {
+
+public:
+	static NativePointerOop new0(ObjectMemory &omem, void * pointer);
+
+	void *&vns() { return (void*&)m_bytes; }
 };
 
 class ProcessOopDesc : public OopOopDesc {
