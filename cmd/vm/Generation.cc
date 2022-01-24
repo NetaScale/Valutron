@@ -163,6 +163,12 @@ CodeGen::genLoadThisContext()
 }
 
 void
+CodeGen::genLoadThisProcess()
+{
+	gen(Op::kLdaThisProcess);
+}
+
+void
 CodeGen::genLoadLiteral(uint8_t num)
 {
 	gen(Op::kLdaLiteral,num);
@@ -306,6 +312,12 @@ CodeGen::genPrimitive(uint8_t primNum, std::vector<RegisterID> args)
 
 	for (auto arg: args)
 		genCode(arg);
+}
+
+void
+CodeGen::genPrimitive0(uint8_t primNum)
+{
+	gen(Op::kPrimitive0, primNum);
 }
 
 void

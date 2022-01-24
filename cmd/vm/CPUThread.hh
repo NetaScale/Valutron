@@ -14,6 +14,8 @@
  */
 class CPUThreadPair {
 	volatile bool m_interruptFlag = false;	/** pending VM interrupt? */
+	bool m_otherInterruptFlag = false; /**< pending int if intr disabled */
+	bool m_interruptsDisabled = false; /**< are interrupts disabled? */
 	bool m_wantExit = false;	/**< causes loop to exit on next wake */
 
 	ObjectMemory	&m_omem;	/**< Thread's object memory. */
@@ -55,8 +57,22 @@ class CPUThreadPair {
 	/** Interpreter loop - the scheduler. */
 	void scheduleLoop();
 
+	/**
+	 * Raise an interrupt with the interpreter thread (unless interrupts are
+	 * disabled; if so, the interrupt is stored for delivery after enabling
+	 * interrupts again.
+	 */
+	void interrupt();
+
     public:
+	//static thread_local CPUThreadPair *curpair;
+
 	CPUThreadPair(ObjectMemory &omem);
+
+	static CPUThreadPair *curpair();
+
+	void disableInterrupts();
+	void enableInterrupts();
 };
 
 #endif /* OSTHREAD_HH_ */

@@ -26,20 +26,38 @@ Object subclass: Tester [
 ]
 
 Object subclass: INITIAL [
-
 	doStuff1 [
 		"(1 to: 1) do: [ :i |
-		
 		<#debugMsg ((34 fib) printString)> ]"
-		| file |
+		| testa  testb file ctx method |
+		testa <- 25.
+		25 fib.
 		file <- File new initWithDescriptor: 1 mode: #w.
-		file << 'Hello, world! ' << #test ; cr.
+		file << 'Process list:'; cr.
+		scheduler critical: [
+			scheduler allProcessesDo: [ :proc |
+				ctx <- proc = thisProcess ifTrue: [
+					thisContext
+				] ifFalse: [
+					proc context
+				].
+				ctx isNil ifFalse: [
+					file << ctx shortName; cr
+				] ifTrue: [
+					file << 'dead process' ; cr
+				]
+				"file << 'aProcess' ; cr"
+				"<#dumpVariable (proc context receiver)>"
+			]
+		].
+		file << 28 fib printString ; cr.
+		file << 25 asLongInteger factorial printString; cr.
 	]
 
-
 	doStuff2 [
-		"(1 to: 2) do: [ :i |
-		<#debugMsg (10 asLongInteger factorial printString )> ]"
+		(1 to: 2) do: [ :i |
+		(24 fib).
+		<#debugMsg ('dostuff2 done' printString)> ].
 		^42
 	]
 
@@ -50,10 +68,10 @@ Object subclass: INITIAL [
 				ifFalse: [n * (fac value: n - 1)]
 			].
 			^ fac value: 3 asLongInteger."
-	<#debugMsg (9164713 radix:16)>.
+	"<#debugMsg (9164713 radix:16)>.
 	<#debugMsg (20 fib printString)>.
 	<#debugMsg ((10 asLongInteger + 2) printString)>.
-	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>.
+	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>."
 	^ 10 asLongInteger factorial printString
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ Tester blockRetWith: 1 and: 2 and: 3"

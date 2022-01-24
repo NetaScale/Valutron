@@ -370,11 +370,11 @@ class ProcessOopDesc : public OopOopDesc {
 
 class SchedulerOopDesc : public OopOopDesc {
 	public:
-	static const int clstNstLength = 2;
+	static const int clstNstLength = 3;
 
 	ProcessOop runnable;
 	ProcessOop waiting;
-	//ProcessOop current;
+	ProcessOop curProc;
 
 	/**
 	 * Add a process to the runnable list. Process must NOT already be in

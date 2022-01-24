@@ -285,22 +285,19 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	Oop * lits;
 	volatile int counter = 0;
 
-#if 1
+#ifdef TRACE_DISASM_ON_EXEC
 	std::cout <<"\n\nInterpreter will now run:\n";
 	disassemble(CTX->bytecode->vns(), CTX->bytecode->size());
 	std::cout << "\n\n";
 #endif
 
-	{
-		pc = &proc->context->bytecode->basicAt0(0) +
-		    proc->context->programCounter.smi();
-		regs = &proc->context->reg0;
-		lits = &proc->context->method()->literals()->basicAt0(0);
-	};
+	UNSPILL();
 	ac = proc->accumulator;
 	ninstr=0;
 
+#ifdef TRACE_STACK_INDEX
 	std::cout << "Stack Index " << proc->stackIndex.smi() << "\n";
+#endif
 
 	#define DISPATCH ninstr++; goto *opTable[FETCH]
 	loop:
@@ -332,6 +329,10 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 	opLdaThisContext:
 		ac = CTX;
+		DISPATCH;
+
+	opLdaThisProcess:
+		ac = proc;
 		DISPATCH;
 
 	opLdaSmalltalk:
@@ -386,7 +387,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		block->m_kind = MemOopDesc::kBlock;
 		block->parentHeapVars() = proc->context->heapVars;
 		block->receiver() = RECEIVER;
-		block->homeMethodContext() = CTX;
+		block->homeMethodContext() = CTX->isBlockContext() ? CTX->homeMethodContext : CTX;
 		ac = block;
 		DISPATCH;
 	}
@@ -585,6 +586,16 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	}
 
 	/** ac arg, u8 prim-num */
+	opPrimitive0 : {
+		TESTCOUNTER();
+		unsigned prim = FETCH;
+		SPILL();
+		ac = Primitive::primitives[prim].fn0(omem, proc);
+		UNSPILL();
+		DISPATCH;
+	}
+
+	/** ac arg, u8 prim-num */
 	opPrimitive1 : {
 		TESTCOUNTER();
 		unsigned prim = FETCH;
@@ -631,6 +642,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 		if (CTX->previousContext.isNil()) {
 			proc->accumulator = ac;
+			proc->context = ContextOop::nil();
 			return 0;
 		} else {
 			proc->stackIndex = stackIndexOfContext(CTX->previousContext, proc->stack);
@@ -653,6 +665,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 		if (CTX.isNil()) {
 			proc->accumulator = ac;
+			proc->context = ContextOop::nil();
 			return 0;
 		} else {
 #ifdef CALLTRACE

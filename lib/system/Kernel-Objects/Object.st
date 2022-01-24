@@ -114,6 +114,7 @@ nil subclass: Object [
 		^ (self basicAt: 1)
 	]
 
+
 	class>>name: aString [
 		name <- aString
 	]

@@ -78,6 +78,7 @@ class CodeGen {
 	void genLoadFalse();
 	void genLoadSmalltalk();
 	void genLoadThisContext();
+	void genLoadThisProcess();
 	void genLoadLiteral(uint8_t num);
 	void genLoadLiteralObject(Oop anObj);
 	void genLoadInteger(int val);
@@ -102,6 +103,7 @@ class CodeGen {
 	void genMessage(bool isSuper,std::string selector,
 	    std::vector<RegisterID> args);
 	void genPrimitive(uint8_t primNum, std::vector<RegisterID> args);
+	void genPrimitive0(uint8_t primNum);
 	void genPrimitive1(uint8_t primNum);
 	void genPrimitive2(uint8_t primNum, RegisterID arg1reg);
 	void genPrimitive3(uint8_t primNum, RegisterID arg1reg);

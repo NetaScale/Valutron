@@ -40,28 +40,30 @@ struct Primitive {
 	X(LdaTrue)                       \
 	X(LdaFalse)                      \
 	X(LdaThisContext)      /* 5 */   \
+	X(LdaThisProcess)                \
 	X(LdaSmalltalk)                  \
 	X(LdaParentHeapVar)              \
 	X(LdaMyHeapVar)                  \
-	X(LdaGlobal)                     \
-	X(LdaNstVar)           /* 10 */  \
+	X(LdaGlobal)           /* 10 */  \
+	X(LdaNstVar)                     \
 	X(LdaLiteral)                    \
 	X(LdaBlockCopy)                  \
 	X(Ldar)                          \
-	X(StaNstVar)                     \
-	X(StaGlobal)           /* 15 */  \
+	X(StaNstVar)           /* 15 */  \
+	X(StaGlobal)                     \
 	X(StaParentHeapVar)              \
 	X(StaMyHeapVar)                  \
 	X(Star)                          \
-	X(Move)                          \
-	X(And)                 /* 20 */  \
+	X(Move)                /* 20 */  \
+	X(And)                           \
 	X(Jump)                          \
 	X(BranchIfFalse)                 \
-	X(BranchIfTrue)                  \
+	X(BranchIfTrue)        /* 25 */  \
 	X(BinOp)                         \
-	X(Send)                /* 25 */  \
+	X(Send)                          \
 	X(SendSuper)                     \
 	X(Primitive)                     \
+	X(Primitive0)                    \
 	X(Primitive1)                    \
 	X(Primitive2)                    \
 	X(Primitive3)                    \

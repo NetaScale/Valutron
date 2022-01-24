@@ -3,6 +3,7 @@
 #include <csetjmp>
 #include <cstdint>
 
+#include "CPUThread.hh"
 #include "Interpreter.hh"
 #include "ObjectMemory.hh"
 #include "Objects.hh"
@@ -1334,6 +1335,22 @@ primFileStarPut(ObjectMemory &omem, ProcessOop &proc, Oop stream, Oop obj)
  * @}
  */
 
+Oop
+primDisableInterrupts(ObjectMemory &omem, ProcessOop &proc)
+{
+	CPUThreadPair::curpair()->disableInterrupts();
+
+	return Oop::nil();
+}
+
+Oop
+primEnableInterrupts(ObjectMemory &omem, ProcessOop &proc)
+{
+	CPUThreadPair::curpair()->enableInterrupts();
+
+	return Oop::nil();
+}
+
 #pragma GCC diagnostic ignored "-Wc99-designator"
 
 Primitive Primitive::primitives[] = {
@@ -1400,6 +1417,9 @@ Primitive Primitive::primitives[] = {
 
 	{ false, kDiadic, "fileDescToFileStar", .fn2 = primFileDescToFileStar },
 	{ false, kDiadic, "fileStarPut", .fn2 = primFileStarPut },
+
+	{ false, kNiladic, "disableInterrupts", .fn0 = primDisableInterrupts },
+	{ false, kNiladic, "enableInterrupts", .fn0 = primEnableInterrupts },
 
 	{ true, kMonadic, NULL, .fnp = NULL },
 };

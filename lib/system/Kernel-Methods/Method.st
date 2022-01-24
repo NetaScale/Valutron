@@ -1,5 +1,5 @@
 Object subclass: Method [
-	| text message bytecodes literals stackSize temporarySize class watch |
+	| bytecodes literals argumentCount temporarySize heapVarsSize stackSize text message class watch |
 
 	display [
 		('Method ', message) print.
@@ -20,6 +20,10 @@ Object subclass: Method [
 			arguments: arguments
 			temporaries: (Array new: temporarySize) )
 		   returnToBlock: 1
+	]
+
+	message [
+		^ message
 	]
 
 	message: aSymbol [

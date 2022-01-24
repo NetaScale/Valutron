@@ -357,6 +357,11 @@ PrimitiveExprNode::generateOn(CodeGen &gen)
 	}
 
 	switch (num->kind) {
+	case Primitive::kNiladic: {
+		assert(args.size() == 0);
+		return gen.genPrimitive0(num->index);
+	}
+
 	case Primitive::kMonadic: {
 		assert(args.size() == 1);
 		args[0]->generateOn(gen);
@@ -418,6 +423,8 @@ IdentExprNode::generateOn(CodeGen &gen)
 		return gen.genLoadSmalltalk();
 	else if (id == "thisContext")
 		return gen.genLoadThisContext();
+	else if (id == "thisProcess")
+		return gen.genLoadThisProcess();
 	else
 		return var->generateOn(gen);
 }
@@ -583,8 +590,6 @@ MessageExprNode::generateSpecialOn(CodeGen &gen, RegisterID recvReg,
 void
 CascadeExprNode::generateOn(CodeGen &gen)
 {
-	print(10);
-
 	if (messages.size() == 1) {
 		receiver->generateOn(gen);
 		 messages.front()->generateOn(gen, -1,

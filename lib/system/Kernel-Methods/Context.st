@@ -6,9 +6,27 @@ Object subclass: Context [
 	  (Array)heapVars
 	  (Array)parentHeapVars
 	  (Integer)programCounter
-	  (id)accumulator
-	  (Boolean)isOnStack
 	  (id)reg0 |
+
+	shortName [
+		| className |
+		className <- reg0 class name asString.
+		^ self isBlockContext ifTrue: [
+			'[] in ', className, '>>', homeMethodContext methodOrBlock message
+		] ifFalse: [
+			className, '>>', methodOrBlock message
+		]
+	]
+
+	homeMethodContext [
+		^ homeMethodContext
+	]
+
+	receiver [
+		^ reg0.
+	]
+
+	"old methods follow below"
 
 	"class>>method: aMeth arguments: aVec temporaries: tVec [
 		^ self new method: aMeth arguments: aVec temporaries: tVec

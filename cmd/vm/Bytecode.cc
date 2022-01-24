@@ -48,6 +48,10 @@ disassemble(uint8_t *code, int length) noexcept
 			std::cout << "ac <- thisContext.\n";
 			break;
 
+		case Op::kLdaThisProcess:
+			std::cout << "ac <- thisProcess.\n";
+			break;
+
 		case Op::kLdaSmalltalk:
 			std::cout << "ac <- smalltalk.\n";
 			break;
@@ -248,8 +252,15 @@ disassemble(uint8_t *code, int length) noexcept
 		}
 
 		/** a arg, u8 prim-num */
+		case Op::kPrimitive0: {
+			unsigned prim = FETCH;
+			std::cout << "self primitive" << prim << ".\n";
+			break;
+		}
+
+		/** a arg, u8 prim-num */
 		case Op::kPrimitive1: {
-			unsigned prim = FETCH, arg2 = FETCH;
+			unsigned prim = FETCH;
 			std::cout << "self primitive" << prim <<
 			    "with: ac.\n";
 			break;

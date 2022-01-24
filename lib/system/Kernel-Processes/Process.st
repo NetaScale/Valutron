@@ -8,6 +8,10 @@ Object subclass: Process [
  (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
 |
 
+	link [
+		^ link
+	]
+
 	"below is old code"
 
 	class>>context: cObj startAt: sInt [
@@ -27,7 +31,7 @@ Object subclass: Process [
 
 
 	context [
-		^ stack at: 3
+		^ context
 	]
 
 	context: ctx [

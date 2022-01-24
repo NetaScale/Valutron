@@ -844,6 +844,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 	GLOBAL("symbols", "SymbolTable");
 	GLOBAL("smalltalk", "Smalltalk");
 	GLOBAL("systemProcess", "Process");
+	GLOBAL("thisProcess", "Process");
 	GLOBAL("scheduler", "Scheduler");
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");

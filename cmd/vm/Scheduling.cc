@@ -7,6 +7,8 @@
 #include "ObjectMemory.hh"
 #include "Objects.hh"
 
+static thread_local CPUThreadPair *g_curpair = NULL;
+
 template <typename T>
 void
 addToListLast(T &list, T obj)
@@ -50,6 +52,7 @@ SchedulerOopDesc::addProcToRunnables(ProcessOop proc)
 void
 SchedulerOopDesc::suspendCurrentProcess()
 {
+	abort();
 }
 
 void
@@ -134,6 +137,10 @@ CPUThreadPair::scheduleLoop()
 
 	sched.setIsa(cls);
 
+	/** to be moved away */
+	m_omem.objGlobals->symbolInsert(m_omem,
+	    SymbolOopDesc::fromString(m_omem, "scheduler"), sched);
+
 	ProcessOop proc1 = makeProc(m_omem, "doStuff1"),
 		   proc2 = makeProc(m_omem, "doStuff2");
 	sched->addProcToRunnables(proc1);
@@ -147,6 +154,8 @@ CPUThreadPair::scheduleLoop()
 
 loop:
 	ProcessOop proc = sched->getNextForRunning();
+	sched->curProc = proc;
+
 	if (proc.isNil()) {
 		std::cout << "All processes finished\n";
 		pthread_mutex_lock(&m_evLock);
@@ -156,6 +165,7 @@ loop:
 		pthread_mutex_unlock(&m_evLock);
 		return;
 	}
+
 	if (execute(m_omem, proc, m_interruptFlag) == 0) {
 		std::cout << "Process " << proc.m_ptr << " finished\n";
 	} else {
@@ -165,8 +175,41 @@ loop:
 			  << proc->stackIndex.smi() << "\n";
 		sched->addProcToRunnables(proc);
 	}
+
 	m_interruptFlag = false;
 	goto loop;
+}
+
+void CPUThreadPair::interrupt()
+{
+	if (m_interruptsDisabled)
+		m_otherInterruptFlag = true;
+	else m_interruptFlag = true;
+}
+
+void
+CPUThreadPair::disableInterrupts()
+{
+	bool oldVal;
+	m_interruptsDisabled = true;
+	oldVal = __atomic_exchange_n(&m_interruptFlag, 0, __ATOMIC_ACQ_REL);
+	m_otherInterruptFlag = m_otherInterruptFlag ? true : oldVal;
+}
+
+void
+CPUThreadPair::enableInterrupts()
+{
+	bool oldVal;
+	m_interruptsDisabled = false;
+	if (m_otherInterruptFlag)
+		m_interruptFlag = true;
+	m_otherInterruptFlag = false;
+}
+
+CPUThreadPair *
+CPUThreadPair::curpair()
+{
+	return g_curpair;
 }
 
 CPUThreadPair::CPUThreadPair(ObjectMemory &omem)
@@ -175,6 +218,7 @@ CPUThreadPair::CPUThreadPair(ObjectMemory &omem)
 	int r;
 
 	m_interpThread = pthread_self();
+	g_curpair = this;
 	pthread_mutex_init(&m_evLock, 0);
 
 	ev_set_userdata(m_loop, this);
