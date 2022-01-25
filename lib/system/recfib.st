@@ -8,6 +8,8 @@
 @include 'Kernel-Native/dir.st'
 @include 'Kernel-Processes/dir.st'
 @include 'Numeric-Numbers/dir.st'
+@include 'Arch-Unix/dir.st'
+
 
 Object subclass: INITIAL [
 

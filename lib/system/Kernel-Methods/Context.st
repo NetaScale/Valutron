@@ -1,5 +1,5 @@
 Object subclass: Context [
-	| (Context | Integer)prevContext
+	| (Integer)prevBP
 	  (Method | Block)methodOrBlock
 	  (Context) homeMethodContext
 	  (ByteArray)bytecode
@@ -34,9 +34,9 @@ Object subclass: Context [
 
 	"accessing"
 
-	prevContext [
+	"prevContext [
 		^ prevContext
-	]
+	]"
 
 	literals [
 		"^ literals"

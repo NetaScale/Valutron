@@ -1,12 +1,15 @@
 Object subclass: Process [
-| 
+|
  (Process)link 		"Next process in list"
- (Context)context	"Current context, which may be within :stack or heap."
  (Array<id>)stack	"Stack of inlined Context objects."
  (Integer)stackIndex	"1-based index into :stack of topmost stack frame."
  (id)accumulator	"The accumulator register."
  (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
 |
+
+	context [
+		VM error: 'fixme'
+	]
 
 	link [
 		^ link
@@ -29,10 +32,6 @@ Object subclass: Process [
 			stackIndex: 10
 	]
 
-
-	context [
-		^ context
-	]
 
 	context: ctx [
 		stack at: 3 put: ctx.

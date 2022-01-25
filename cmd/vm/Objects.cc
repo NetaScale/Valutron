@@ -616,7 +616,7 @@ ProcessOopDesc::allocate(ObjectMemory &omem)
 	ProcessOop proc = omem.newOopObj<ProcessOop>(ProcessOopDesc::clsNstLength);
 	proc->setIsa(ObjectMemory::clsProcess);
 	proc->stack = ArrayOopDesc::newWithSize(omem, 2000000);
-	proc->stackIndex = (intptr_t)1;
+	proc->bp = (intptr_t)1;
 	proc->stack->m_kind = kStack;
 	return proc;
 }

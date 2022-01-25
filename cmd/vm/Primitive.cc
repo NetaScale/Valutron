@@ -70,16 +70,19 @@ Oop
 primReturnInto(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
 	/* FIXME: this is ugly */
+	#if 0
 	ContextOop ctx = args->basicAt(1).as<ContextOop>();
 	Oop rVal = args->basicAt(2);
 	proc->context = ctx;
+	#endif
+	abort();
 	// printf("Activating return continuation:\n");
 	// printf("-----------INTO %s>>%s-------------\n",
 	//    ctx->receiver.isa()->name()->asCStr(),
 	//    ctx->isBlockContext() ?
 	//	      "<block>" :
 	//	      ctx->methodOrBlock.as<MethodOop>()->selector()->asCStr());
-	return rVal;
+	return Oop::nil();
 }
 
 /*
@@ -1190,43 +1193,28 @@ primPrintWithNL(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 Oop
 primExecBlock(ObjectMemory &omem, ProcessOop &proc, size_t nArgs, Oop args[])
 {
-	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
-	ContextOop ctx = (void*)&proc->stack->basicAt(newSI);
-	proc->stackIndex = Smi(newSI);
-	ctx->previousContext = proc->context;
+	size_t newBP = proc->bp.smi() + proc->context()->fullSize();
+	ContextOop ctx = (void*)&proc->stack->basicAt(newBP);
+	ctx->prevBP = proc->context()->prevBP;
+	proc->bp = Smi(newBP);
 
 	ctx->initWithBlock(omem, args[0].as <BlockOop>());
 
 	for (int i = 1; i < nArgs; i++)
 		ctx->regAt0(i) =  args[i];
 
-	ctx->previousContext = proc->context->previousContext;
-	proc->context = ctx;
 	return Oop();
 }
 
 Oop
 primDumpVariable(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	ContextOop ctx = proc->context;
+	ContextOop ctx = proc->context();
 
 	printf("Dump variable:\n");
 
 	args->basicAt(1).print(20);
 	args->basicAt(1).isa()->print(20);
-	printf("          --> %s>>%s\n",
-	    ctx->reg0.isa()->nameCStr(),
-	    ctx->isBlockContext() ?
-		      "<block>" :
-		      ctx->methodOrBlock.as<MethodOop>()->selector()->asCStr());
-	while ((ctx = ctx->previousContext) != Oop::nil())
-		printf("          --> %s>>%s\n",
-		    ctx->reg0.isa()->nameCStr(),
-		    ctx->isBlockContext() ? "<block>" :
-						  ctx->methodOrBlock
-						.as<MethodOop>()
-						->selector()
-						->asCStr());
 	return Oop();
 }
 

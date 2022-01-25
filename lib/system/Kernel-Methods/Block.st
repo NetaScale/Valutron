@@ -93,7 +93,7 @@ Object subclass: Block [
 
 		<#debugMsg 'Begin non local returnage.\n'>.
 
-		i <- 1.
+		"i <- 1.
 		tempHomeContext <- homeContext.
 		prevContext <- thisContext.
 
@@ -110,12 +110,13 @@ Object subclass: Block [
 				  (prevContext <- prevContext prevContext) == homeContext
 					or: [ homeContext isNil ]
 				] whileFalse
-			].
+			]."
 
 		"Now escape the method context. "
-		prevContext <- prevContext prevContext.
+		"prevContext <- prevContext prevContext.
 		prevContext isNil ifTrue: [ <#fatal 'PrevContext is nil'> ].
-		<#returnInto prevContext returnValue>
+		<#returnInto prevContext returnValue>"
+		"FIXME"
 	]
 
 	testBlock [

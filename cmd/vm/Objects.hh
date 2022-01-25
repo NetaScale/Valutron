@@ -255,7 +255,7 @@ class BlockOopDesc : public OopOopDesc {
 	AccessorPair(StringOop, sourceText, setSourceText, 6);
 	AccessorPair(Oop, receiver, setReceiver, 7);
 	AccessorPair(ArrayOop, parentHeapVars, setParentHeapVars, 8);
-	AccessorPair(ContextOop, homeMethodContext, setHomeMethodContext, 9);
+	AccessorPair(Smi, homeMethodContext, setHomeMethodContext, 9);
 	/* This is either:
 	 * A) an Association<Class, Block>;
 	 * B) a HandlerCollection;
@@ -282,7 +282,7 @@ class ContextOopDesc : public OopOopDesc {
 
     public:
 	/**
-	 * The previous context, usually the one in which a message send invoked
+	 * The previous BP, usually the one in which a message send invoked
 	 * this context.
 	 *
 	 * n.b. in the case of a Block, as an optimisation, the (value[:])*
@@ -290,16 +290,16 @@ class ContextOopDesc : public OopOopDesc {
 	 * context is effectively abolished, as it's of no real interest to
 	 * anyone.
 	 */
-	ContextOop previousContext;
+	Smi prevBP;
 	/**
 	 * The Method or Block this Context is running.
 	 */
 	OopOop methodOrBlock;
 	/**
-	 * If isBlockContext() true: The Context in which this block was
+	 * If isBlockContext() true: BP of the context in which this block was
 	 * instantiated; otherwise nil.
 	 */
-	ContextOop homeMethodContext;
+	Smi homeMethodBP;
 	/**
 	 * Convenience pointer to #methodOrBlock's bytecode array.
 	 */
@@ -359,13 +359,15 @@ class ProcessOopDesc : public OopOopDesc {
 	};
 
 	ProcessOop link;
-	ContextOop context;
 	ArrayOop stack;
-	Smi stackIndex; /* 1-based */
+	Smi bp; /* 1-based */
 	Oop accumulator;
 	Smi state;
 
 	static ProcessOop allocate(ObjectMemory &omem);
+
+	ContextOop context() { return &stack->basicAt(bp.smi()); }
+	ContextOop contextAt(size_t offset) { return &stack->basicAt(offset); }
 };
 
 class SchedulerOopDesc : public OopOopDesc {

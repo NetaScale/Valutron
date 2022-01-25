@@ -83,7 +83,6 @@ makeProc(ObjectMemory &omem, std::string sel)
 	ProcessOop firstProcess = ProcessOopDesc::allocate(omem);
 	ContextOop ctx = (void *)&firstProcess->stack->basicAt0(0);
 	ctx->initWithMethod(omem, Oop(), start);
-	firstProcess->context = ctx;
 
 	return firstProcess;
 }
@@ -172,7 +171,7 @@ loop:
 		std::cout << "Returning process " << proc.m_ptr
 			  << " to run-queue\n";
 		std::cout << proc.m_ptr << " stack size "
-			  << proc->stackIndex.smi() << "\n";
+			  << proc->bp.smi() << "\n";
 		sched->addProcToRunnables(proc);
 	}
 

@@ -34,7 +34,7 @@ Object subclass: INITIAL [
 		25 fib.
 		file <- File new initWithDescriptor: 1 mode: #w.
 		file << 'Process list:'; cr.
-		scheduler critical: [
+		"scheduler critical: [
 			scheduler allProcessesDo: [ :proc |
 				ctx <- proc = thisProcess ifTrue: [
 					thisContext
@@ -46,12 +46,10 @@ Object subclass: INITIAL [
 				] ifTrue: [
 					file << 'dead process' ; cr
 				]
-				"file << 'aProcess' ; cr"
-				"<#dumpVariable (proc context receiver)>"
 			]
-		].
-		"file << 28 fib printString ; cr.
-		file << 25 asLongInteger factorial printString; cr."
+		]."
+		file << 34 fib printString ; cr.
+		file << 25 asLongInteger factorial printString; cr.
 	]
 
 	doStuff2 [

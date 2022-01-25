@@ -32,7 +32,7 @@ void ContextOopDesc::initWithMethod(ObjectMemory &omem, Oop aReceiver,
 	setIsa(ObjectMemory::clsContext);
 	bytecode = aMethod->bytecode();
 	methodOrBlock = aMethod.as<OopOop>();
-	homeMethodContext = ContextOop::nil();
+	homeMethodBP = ContextOop::nil();
 	heapVars = heapVarsSize ?
 		      ArrayOopDesc::newWithSize(omem, heapVarsSize) :
 		      ArrayOop::nil();
@@ -62,7 +62,7 @@ ContextOopDesc::initWithBlock(ObjectMemory &omem, BlockOop aMethod)
 		      ArrayOop::nil();
 	parentHeapVars = aMethod->parentHeapVars();
 	programCounter = (intptr_t)0;
-	homeMethodContext = aMethod->homeMethodContext();
+	homeMethodBP = aMethod->homeMethodContext();
 	reg0 = aMethod->receiver();
 }
 
@@ -114,17 +114,22 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 
 #define FETCH (*pc++)
 
-#define CTX proc->context
-#define HEAPVAR(x) proc->context->heapVars->basicAt(x)
-#define PARENTHEAPVAR(x) proc->context->parentHeapVars->basicAt(x)
-#define NSTVAR(x) proc->context->reg0.as<OopOop>()->basicAt(x)
-#define RECEIVER proc->context->reg0
+#define CTX proc->context()
+#define HEAPVAR(x) CTX->heapVars->basicAt(x)
+#define PARENTHEAPVAR(x) CTX->parentHeapVars->basicAt(x)
+#define NSTVAR(x) CTX->reg0.as<OopOop>()->basicAt(x)
+#define RECEIVER CTX->reg0
 
-/** Fetch the class in which the current method scope was defined. */
-#define METHODCLASS								\
-	((CTX->isBlockContext()) ?						\
-	    CTX->homeMethodContext->method()->methodClass() :			\
-	    CTX->methodOrBlock.as<MethodOop>()->methodClass())
+/** Fetch the class in which the current method scope was defined. TODO: move to ProcessOop */
+inline ClassOop methodClass(ProcessOop proc)
+{
+	if (proc->context()->isBlockContext())
+		return proc->contextAt(proc->context()->homeMethodBP.smi())->
+		    method()->methodClass();
+	else
+		return proc->context()->method()->methodClass();
+}
+
 /**
  * Spills the contents of the changeable cached members of Context and Process.
  */
@@ -138,8 +143,8 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
  */
 #define UNSPILL() {								\
 	pc = &CTX->bytecode->basicAt0(0) + CTX->programCounter.smi();		\
-	regs = &proc->context->reg0;						\
-	lits = &proc->context->method()->literals()->basicAt0(0);		\
+	regs = &CTX->reg0;							\
+	lits = &CTX->method()->literals()->basicAt0(0);				\
 }
 
 /**
@@ -154,26 +159,22 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 #define OUT in--
 
 /**
- * Returns a pointer to a new context within a process stack, and sets the
- * process' stackIndex to the appropriate new value.
- *
- * n.b. does NOT set process' context pointer to the new context!
+ * Returns a pointer to a new context within a process stack, and puts the BP
+ * of the new context into \p newBP.
  */
 static inline ContextOop
-newContext(ProcessOop &proc)
+newContext(ProcessOop &proc, size_t &newBP)
 {
-	size_t newSI = proc->stackIndex.smi() + proc->context->fullSize();
-	//std::cout << proc.m_ptr << " stack size " << newSI << "\n";
-	if (newSI > proc->stack->size()) {
-		std::cout << "New stack index " << newSI << " overflows stack\n";
-		std::cout << "Previous stack size: " << proc->stackIndex.smi() << "\n";
-		std::cout << "Top frame size: " << proc->context->fullSize() << "\n";
+	newBP = proc->bp.smi() + proc->context()->fullSize();
+	if (newBP > proc->stack->size()) {
+		std::cout << "New stack index " << newBP << " overflows stack\n";
+		std::cout << "Previous stack size: " << proc->bp.smi() << "\n";
+		std::cout << "Top frame size: " << proc->context()->fullSize() << "\n";
 		std::cout << "Process: " << proc.m_ptr << "\n";
 		abort();
 	}
-	ContextOop newCtx = (void *)&proc->stack->basicAt(newSI);
-	proc->stackIndex = Smi(newSI);
-	newCtx->previousContext = proc->context;
+	ContextOop newCtx = (void *)&proc->stack->basicAt(newBP);
+	newCtx->prevBP = proc->bp;
 	return newCtx;
 }
 
@@ -205,9 +206,8 @@ lookupCached(Oop obj, ClassOop cls, CacheOop cache)
 static inline size_t
 stackIndexOfContext(ContextOop ctx, ArrayOop stack)
 {
-	ssize_t r = (((uintptr_t) (ctx.m_ptr)) - ((uintptr_t) &(stack)->basicAt0(0))) /
-	    sizeof(Oop) + 1;
-	//std::cout <<"r:" << r;
+	ssize_t r = (((uintptr_t)(ctx.m_ptr)) -
+	    ((uintptr_t)&(stack)->basicAt0(0))) / sizeof(Oop) + 1;
 	if (r > 8000000)
 		abort();
 	return r;
@@ -215,19 +215,17 @@ stackIndexOfContext(ContextOop ctx, ArrayOop stack)
 
 void blockReturn(ProcessOop proc)
 {
-	ContextOop home = CTX->methodOrBlock.as<BlockOop>()->
-	    homeMethodContext();
+	ContextOop home = proc->contextAt(proc->context()->methodOrBlock.as<BlockOop>()->
+	    homeMethodContext().smi());
 
 	/*
 	 * TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
 	 * implemented block return there?
 	 */
 	home->setIsa(ClassOop::nil());
-	proc->context = home->previousContext;
-	if (proc->context.isNil())
+	proc->bp = home->prevBP;
+	if (proc->bp.isNil())
 		return;
-	else
-		proc->stackIndex = stackIndexOfContext(proc->context, proc->stack);
 
 #if 0
 	/* TODO: execute ifCurtailed: blocks - maybe fall back to Smalltalk-
@@ -242,6 +240,7 @@ void blockReturn(ProcessOop proc)
 #endif
 }
 
+#if 0
 void dumpRegs(ContextOop ctx)
 {
 	for (int i = 0; i < ctx->size()-7;  i++)
@@ -268,6 +267,7 @@ void stackTrace(ContextOop ctx, bool regs = false)
 		ctx = ctx->previousContext;
 	}
 }
+#endif
 
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexcept
@@ -296,8 +296,9 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	ninstr=0;
 
 #ifdef TRACE_STACK_INDEX
-	std::cout << "Stack Index " << proc->stackIndex.smi() << "\n";
+	std::cout << "Stack Index " << proc->bp.smi() << "\n";
 #endif
+	uint8_t opcode;
 
 	#define DISPATCH ninstr++; goto *opTable[FETCH]
 	loop:
@@ -385,9 +386,9 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		block = omem.copyObj<BlockOop>(constructor.m_ptr);
 		UNSPILL();
 		block->m_kind = MemOopDesc::kBlock;
-		block->parentHeapVars() = proc->context->heapVars;
+		block->parentHeapVars() = proc->context()->heapVars;
 		block->receiver() = RECEIVER;
-		block->homeMethodContext() = CTX->isBlockContext() ? CTX->homeMethodContext : CTX;
+		block->homeMethodContext() = CTX->isBlockContext() ? CTX->homeMethodBP : proc->bp;
 		ac = block;
 		DISPATCH;
 	}
@@ -492,15 +493,16 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 			MethodOop meth = lookupMethod(arg1, arg1.isa(),
 			    ObjectMemory::symBin[op]);
 			ContextOop newCtx;
+			size_t newBP;
 
 			assert(!meth.isNil());
 
-			newCtx = newContext(proc);
+			newCtx = newContext(proc, newBP);
 			newCtx->initWithMethod(omem, arg1, meth);
 			newCtx->regAt0(1) = arg2;
 
 			SPILL();
-			CTX = newCtx;
+			proc->bp = newBP;
 			UNSPILL();
 			IN;
 		}
@@ -518,18 +520,21 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		ClassOop cls = ac.isa();
 		MethodOop meth = lookupCached(ac, cls, cache);
 		ContextOop newCtx;
+		size_t newBP;
 
 		assert(!meth.isNil());
+
 		proc->accumulator = ac;
-		newCtx = newContext(proc);
+		newCtx = newContext(proc, newBP);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++)
 			newCtx->regAt0(i + 1) = regs[FETCH];
 
 		SPILL();
-		CTX = newCtx;
+		proc->bp = newBP;
 		UNSPILL();
 		IN;
+
 #ifdef TRACE_CALLS
 		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
 			  << cache->selector()->asCStr() << "\n";
@@ -544,23 +549,27 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	opSendSuper : {
 		TESTCOUNTER();
 		unsigned selIdx = FETCH, nArgs = FETCH;
-		ClassOop cls = METHODCLASS->superClass;
+		ClassOop cls = methodClass(proc)->superClass;
 		CacheOop cache = lits[selIdx].as<CacheOop>();
 		MethodOop meth;
 		ContextOop newCtx;
+		size_t newBP;
 
 		meth = lookupCached(ac, cls, cache);
 		assert(!meth.isNil());
-		newCtx = newContext(proc);
+
+
+		newCtx = newContext(proc, newBP);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++) {
 			newCtx->regAt0(i + 1) = regs[FETCH];
 		}
 
 		SPILL();
-		CTX = newCtx;
+		proc->bp = newBP;
 		UNSPILL();
 		IN;
+
 #ifdef TRACE_CALLS
 		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
 			  << cache->selector()->asCStr() << "\n";
@@ -640,18 +649,14 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	opReturn : {
 		TESTCOUNTER();
 
-		if (CTX->previousContext.isNil()) {
+		if (CTX->prevBP.isNil()) {
 			proc->accumulator = ac;
-			proc->context = ContextOop::nil();
+			proc->bp = Smi::nil();
 			return 0;
 		} else {
-			proc->stackIndex = stackIndexOfContext(CTX->previousContext, proc->stack);
-			CTX->setIsa(ClassOop::nil());
-			CTX = CTX->previousContext;
-#ifdef CALLTRACE
-			std::cout << "Return to " << methodOf(CTX) << "\n";
-#endif
+			proc->bp = CTX->prevBP;
 		}
+
 		UNSPILL();
 		OUT;
 		DISPATCH;
@@ -661,18 +666,15 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		ac = RECEIVER;
 		CTX->setIsa(ClassOop::nil());
-		CTX = CTX->previousContext;
 
-		if (CTX.isNil()) {
+		if (CTX->prevBP.isNil()) {
 			proc->accumulator = ac;
-			proc->context = ContextOop::nil();
+			proc->bp = Smi::nil();
 			return 0;
 		} else {
-#ifdef CALLTRACE
-			proc->stackIndex = stackIndexOfContext(CTX, proc->stack);
-			std::cout << "Return to " << methodOf(CTX) << "\n";
-#endif
+			proc->bp = CTX->prevBP;
 		}
+
 		UNSPILL();
 		OUT;
 		DISPATCH;
@@ -682,7 +684,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		SPILL();
 		blockReturn(proc);
-		if (CTX.isNil()) {
+		if (proc->bp.isNil()) {
 			ac.print(2);
 			return 0;
 		}
