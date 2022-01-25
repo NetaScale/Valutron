@@ -112,7 +112,7 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 		return meth;
 }
 
-#define FETCH (*pc++)
+#define FETCH() (*pc++)
 
 #define CTX proc->context()
 #define HEAPVAR(x) CTX->heapVars->basicAt(x)
@@ -120,7 +120,7 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 #define NSTVAR(x) CTX->reg0.as<OopOop>()->basicAt(x)
 #define RECEIVER CTX->reg0
 
-/** Fetch the class in which the current method scope was defined. TODO: move to ProcessOop */
+/** FETCH() the class in which the current method scope was defined. TODO: move to ProcessOop */
 inline ClassOop methodClass(ProcessOop proc)
 {
 	if (proc->context()->isBlockContext())
@@ -300,80 +300,80 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 #endif
 	uint8_t opcode;
 
-	#define DISPATCH ninstr++; goto *opTable[FETCH]
+	#define DISPATCH() ninstr++; goto *opTable[FETCH()]
 	loop:
-	DISPATCH;
+	DISPATCH();
 	/* u8 index/reg, u8 dest */
 	opMoveParentHeapVarToMyHeapVars : {
-		unsigned src = FETCH, dst = FETCH;
+		unsigned src = FETCH(), dst = FETCH();
 		HEAPVAR(dst) = PARENTHEAPVAR(src);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opMoveMyHeapVarToParentHeapVars : {
-		unsigned src = FETCH, dst = FETCH;
+		unsigned src = FETCH(), dst = FETCH();
 		PARENTHEAPVAR(dst) = HEAPVAR(src);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaNil:
 		ac = Oop();
-		DISPATCH;
+		DISPATCH();
 
 	opLdaTrue:
 		ac = ObjectMemory::objTrue;
-		DISPATCH;
+		DISPATCH();
 
 	opLdaFalse:
 		ac = ObjectMemory::objFalse;
-		DISPATCH;
+		DISPATCH();
 
 	opLdaThisContext:
 		ac = CTX;
-		DISPATCH;
+		DISPATCH();
 
 	opLdaThisProcess:
 		ac = proc;
-		DISPATCH;
+		DISPATCH();
 
 	opLdaSmalltalk:
 		ac = ObjectMemory::objsmalltalk;
-		DISPATCH;
+		DISPATCH();
 
 	/* u8 index*/
 	opLdaParentHeapVar : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		ac = PARENTHEAPVAR(src);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaMyHeapVar : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		ac = HEAPVAR(src);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaGlobal : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		SymbolOop name = lits[src].as<SymbolOop>();
 		ac = omem.objGlobals->symbolLookup(name);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaNstVar : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		ac = NSTVAR(src);
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaLiteral : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		ac = lits[src];
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdaBlockCopy : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		MemOop constructor = lits[src].as<MemOop>();
 		BlockOop block;
 
@@ -385,106 +385,105 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		SPILL(); //FIXME: I don't think this is required.
 		block = omem.copyObj<BlockOop>(constructor.m_ptr);
 		UNSPILL();
-		block->m_kind = MemOopDesc::kBlock;
 		block->parentHeapVars() = proc->context()->heapVars;
 		block->receiver() = RECEIVER;
 		block->homeMethodContext() = CTX->isBlockContext() ? CTX->homeMethodBP : proc->bp;
 		ac = block;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opLdar : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		ac = regs[src];
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/* u8 index */
 	opStaNstVar : {
-		unsigned dst = FETCH;
+		unsigned dst = FETCH();
 		NSTVAR(dst) = ac;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opStaGlobal : {
-		unsigned dst = FETCH;
+		unsigned dst = FETCH();
 		printf("UNIMPLEMENTED StaGlobal\n");
 		abort();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opStaParentHeapVar : {
-		unsigned dst = FETCH;
+		unsigned dst = FETCH();
 		PARENTHEAPVAR(dst) = ac;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opStaMyHeapVar : {
-		unsigned dst = FETCH;
+		unsigned dst = FETCH();
 		HEAPVAR(dst) = ac;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opStar : {
-		unsigned dst = FETCH;
+		unsigned dst = FETCH();
 		regs[dst] = ac;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opMove : {
-		unsigned dst = FETCH, src = FETCH;
+		unsigned dst = FETCH(), src = FETCH();
 		regs[dst] = regs[src];
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/* ac value, u8 src-reg */
 	opAnd : {
-		unsigned src = FETCH;
+		unsigned src = FETCH();
 		if (ac != ObjectMemory::objTrue ||
 		    regs[src] != ObjectMemory::objTrue)
 			ac = ObjectMemory::objFalse;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/* ac value, i16 pc-offset */
 	opJump : {
-		uint8_t b1 = FETCH;
-		uint8_t b2 = FETCH;
+		uint8_t b1 = FETCH();
+		uint8_t b2 = FETCH();
 		int16_t offs = (b1 << 8) | b2;
 		pc = pc + offs;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/* a value, i16 pc-offset */
 	opBranchIfFalse : {
 		TESTCOUNTER();
-		uint8_t b1 = FETCH;
-		uint8_t b2 = FETCH;
+		uint8_t b1 = FETCH();
+		uint8_t b2 = FETCH();
 		int16_t offs = (b1 << 8) | b2;
 		assert(ac == ObjectMemory::objFalse ||
 		    ac == ObjectMemory::objTrue);
 		if (ac == ObjectMemory::objFalse)
 			pc = pc + offs;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/* a value, i16 pc-offset */
 	opBranchIfTrue : {
 		TESTCOUNTER();
-		uint8_t b1 = FETCH;
-		uint8_t b2 = FETCH;
+		uint8_t b1 = FETCH();
+		uint8_t b2 = FETCH();
 		int16_t offs = (b1 << 8) | b2;
 		assert(ac == ObjectMemory::objFalse ||
 		    ac == ObjectMemory::objTrue);
 		if (ac == ObjectMemory::objTrue)
 			pc = pc + offs;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opBinOp : {
 		TESTCOUNTER();
-		uint8_t src = FETCH;
-		uint8_t op = FETCH;
+		uint8_t src = FETCH();
+		uint8_t op = FETCH();
 		Oop arg1 = regs[src];
 		Oop arg2 = ac;
 
@@ -506,7 +505,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 			UNSPILL();
 			IN;
 		}
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/**
@@ -515,7 +514,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	 */
 	opSend : {
 		TESTCOUNTER();
-		unsigned selIdx = FETCH, nArgs = FETCH;
+		unsigned selIdx = FETCH(), nArgs = FETCH();
 		CacheOop cache = lits[selIdx].as<CacheOop>();
 		ClassOop cls = ac.isa();
 		MethodOop meth = lookupCached(ac, cls, cache);
@@ -528,7 +527,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		newCtx = newContext(proc, newBP);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++)
-			newCtx->regAt0(i + 1) = regs[FETCH];
+			newCtx->regAt0(i + 1) = regs[FETCH()];
 
 		SPILL();
 		proc->bp = newBP;
@@ -539,7 +538,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
 			  << cache->selector()->asCStr() << "\n";
 #endif
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/**
@@ -548,7 +547,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	 */
 	opSendSuper : {
 		TESTCOUNTER();
-		unsigned selIdx = FETCH, nArgs = FETCH;
+		unsigned selIdx = FETCH(), nArgs = FETCH();
 		ClassOop cls = methodClass(proc)->superClass;
 		CacheOop cache = lits[selIdx].as<CacheOop>();
 		MethodOop meth;
@@ -562,7 +561,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		newCtx = newContext(proc, newBP);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++) {
-			newCtx->regAt0(i + 1) = regs[FETCH];
+			newCtx->regAt0(i + 1) = regs[FETCH()];
 		}
 
 		SPILL();
@@ -574,76 +573,76 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
 			  << cache->selector()->asCStr() << "\n";
 #endif
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/** u8 prim-num, u8 num-args, (u8 arg-reg)+ */
 	opPrimitive : {
 		TESTCOUNTER();
-		unsigned prim = FETCH, nArgs = FETCH;
+		unsigned prim = FETCH(), nArgs = FETCH();
 		ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
 		for (int i = 0; i < nArgs; i++)
-			args->basicAt0(i) = regs[FETCH];
+			args->basicAt0(i) = regs[FETCH()];
 
 		SPILL();
 		ac = Primitive::primitives[prim].fnp(omem, proc, args);
 		if (proc.isNil()) /* yielded */
 			return -1;
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/** ac arg, u8 prim-num */
 	opPrimitive0 : {
 		TESTCOUNTER();
-		unsigned prim = FETCH;
+		unsigned prim = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fn0(omem, proc);
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/** ac arg, u8 prim-num */
 	opPrimitive1 : {
 		TESTCOUNTER();
-		unsigned prim = FETCH;
+		unsigned prim = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fn1(omem, proc, ac);
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/** ac arg2, u8 prim-num, u8 arg1-reg */
 	opPrimitive2 : {
 		TESTCOUNTER();
-		unsigned prim = FETCH, arg1reg = FETCH;
+		unsigned prim = FETCH(), arg1reg = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fn2(omem, proc, regs[arg1reg],
 		    ac);
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	/** ac arg3, u8 prim-num, u8 arg1-reg */
 	opPrimitive3 : {
 		TESTCOUNTER();
-		unsigned prim = FETCH, arg1reg = FETCH;
+		unsigned prim = FETCH(), arg1reg = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fn3(omem, proc, regs[arg1reg],
 		    regs[arg1reg + 1], ac);
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opPrimitiveV : {
 		TESTCOUNTER();
-		unsigned prim = FETCH, nArgs = FETCH, arg1reg = FETCH;
+		unsigned prim = FETCH(), nArgs = FETCH(), arg1reg = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
 		    &regs[arg1reg]);
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opReturn : {
@@ -659,7 +658,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 		UNSPILL();
 		OUT;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opReturnSelf : {
@@ -677,7 +676,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 		UNSPILL();
 		OUT;
-		DISPATCH;
+		DISPATCH();
 	}
 
 	opBlockReturn : {
@@ -689,7 +688,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 			return 0;
 		}
 		UNSPILL();
-		DISPATCH;
+		DISPATCH();
 	}
 
 timesliceDone:

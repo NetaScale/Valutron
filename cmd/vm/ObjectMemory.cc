@@ -88,22 +88,10 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size);
 			break;
 
-		basic:
 		case kOops: {
 			FIXOOP(obj->isa());
-			if (obj->isa() == ObjectMemory::clsProcess)
-			{
-			/* skip Context */
-			for (int i = 1; i < obj->m_size; i++) {
-				printf("fixing %d of process %p\n", i, obj);
-				FIXOOP(obj->m_oops[i]);
-			}
-			printf("stack index %d\n", obj->m_oops[2].smi());
-			}
-			else {
 			for (int i = 0; i < obj->m_size; i++)
 				FIXOOP(obj->m_oops[i]);
-			}
 			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
 			    obj->m_size);
 			break;
@@ -116,18 +104,13 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 			FIXOOP(obj->isa())
 
 			while (!ctx->m_isa.isNil()) {
-				// TODO: fix prevContext if it's heap
-
 				FIXOOP(ctx->isa());
 
-				/* start at 1 to skip prevContext */
-				for (int i = 1; i < ctx->m_size - 1; i++) {
-					//printf("fixing %p\n", ctx->basicAt0(i).m_ptr);
-					if (i != 2) /* skip homeMethodContext */
+				for (int i = 0; i < ctx->m_size ; i++) {
 					FIXOOP(ctx->basicAt0(i));
 				}
 
-				ctx = (ContextOopDesc *) ((char*) ctx +
+				ctx = (ContextOopDesc *) ((char *)ctx +
 				    sizeof(MemOopDesc) + ctx->m_size *
 				    sizeof(Oop));
 				if ((char *)ctx > end)
@@ -136,18 +119,6 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 
 			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size *
 			    sizeof(Oop));
-			break;
-		}
-
-		case kBlock: {
-			FIXOOP(obj->isa());
-			for (int i = 0; i < obj->m_size; i++)
-				/* skip offset of Context within Block! */
-				if (i != 9)
-					FIXOOP(obj->m_oops[i]);
-
-			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
-			    obj->m_size);
 			break;
 		}
 
@@ -186,7 +157,6 @@ MemOopDesc::mpsSkip(mps_addr_t base)
 		break;
 
 	case kOops:
-	case kBlock:
 	case kStack:
 		return addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
 		    obj->m_size);

@@ -165,7 +165,6 @@ class MemOopDesc : public OopDesc {
 		kOops,
 		kStack,
 		kStackAllocatedContext, /* musn't be scanned */
-		kBlock, /* needs skipping of Context pointer */
 	};
 
 	union {

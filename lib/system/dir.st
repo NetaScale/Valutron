@@ -49,7 +49,7 @@ Object subclass: INITIAL [
 			]
 		]."
 		file << 34 fib printString ; cr.
-		file << 25 asLongInteger factorial printString; cr.
+		file << 60 asLongInteger factorial printString; cr.
 	]
 
 	doStuff2 [
