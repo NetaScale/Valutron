@@ -29,13 +29,17 @@ Object subclass: INITIAL [
 	doStuff1 [
 		"(1 to: 1) do: [ :i |
 		<#debugMsg ((34 fib) printString)> ]"
-		| testa  testb file ctx method |
-		testa <- 25.
+		| testa  testb file ctx method newblk newblk2 |
 		"26 fib."
 		file <- File new initWithDescriptor: 1 mode: #w.
-		file << 'PID    NAME                    METHOD'; cr.
-		[ 24 fib. ^ 55 ] fork resume.
+		newblk <- [ 30 fib. ^ 55 ] fork.
+		newblk name: 'fib block'.
+		newblk resume.
+		newblk <- Process newWithReceiver: 45 asLongInteger selector: #factorial args: nil.
+		newblk name: 'factorial'.
+		newblk resume.
 		scheduler critical: [
+			file << 'PID    NAME                    METHOD'; cr.
 			scheduler allProcessesDo: [ :proc |
 				ctx <- proc = thisProcess ifTrue: [
 					thisContext
@@ -44,7 +48,11 @@ Object subclass: INITIAL [
 				].
 				ctx isNil ifFalse: [
 					file << (proc pid printString copyTruncateOrPadTo: 6 with: $ ); << ' '.
-					file << '<unnamed>               '.
+					(proc name isNil) ifTrue: [
+						file << '<unnamed>               '
+					] ifFalse: [
+						file << (proc name copyTruncateOrPadTo: 24 with: $ )
+					].
 					file << (ctx shortName copyTruncateOrPadTo: 40 with: $.); cr
 				] ifTrue: [
 					file << 'dead process' ; cr
@@ -55,15 +63,16 @@ Object subclass: INITIAL [
 		file << 60 asLongInteger factorial printString; cr."
 	]
 
-	doStuff2 [
+	"doStuff2 [
 		|newproc|
 		newproc <- Process newWithReceiver: INITIAL new selector: #initial args: nil.
+		newproc name: 'integral'.
 		newproc resume.
-		(29 fib).
+		(30 fib).
 		(1 to: 2) do: [ :i |
 		<#debugMsg ('dostuff2 done' printString)> ].
 		^42
-	]
+	]"
 
 	initial [ | fac |
 		"fac <- [:n |
@@ -76,7 +85,7 @@ Object subclass: INITIAL [
 	<#debugMsg (20 fib printString)>.
 	<#debugMsg ((10 asLongInteger + 2) printString)>.
 	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>."
-	^ 5 asLongInteger factorial printString
+	^ 55 asLongInteger factorial printString
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ (20 fib)"

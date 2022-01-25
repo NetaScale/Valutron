@@ -150,8 +150,8 @@ inline ClassOop methodClass(ProcessOop proc)
 }
 
 /**
- * Test if the major operations counter (sends, primitives, branches, etc)
- * exceeds the given timeslice; if so, spills registers and returns 1.
+ * Test if an interrupt occurred before carrying out a major operation (sends,
+ * primitives, branches, etc;) if so, spills registers and returns 1.
  *
  * n.b. extraneous setting of ac in proc object seems to enhance performance.
  */
@@ -268,10 +268,13 @@ void currentMethod(ProcessOop proc, ContextOop ctx)
 void stackTrace(ProcessOop proc, bool regs = false)
 {
 	ContextOop ctx = proc->context();
-	while (!ctx.isNil()) {
+	while (true) {
 		currentMethod(proc, ctx);
 		dumpRegs(ctx);
-		ctx = proc->contextAt(ctx->prevBP.smi());
+		if (ctx->prevBP.isNil())
+			break;
+		else
+			ctx = proc->contextAt(ctx->prevBP.smi());
 	}
 }
 #pragma GCC pop_options
@@ -292,7 +295,6 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	uint8_t * pc = &CTX->bytecode->basicAt0(0);
 	Oop * regs;
 	Oop * lits;
-	volatile int counter = 0;
 
 #ifdef TRACE_DISASM_ON_EXEC
 	std::cout <<"\n\nInterpreter will now run:\n";
@@ -388,17 +390,19 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 	opLdaBlockCopy : {
 		unsigned src = FETCH();
-		MemOop constructor = lits[src].as<MemOop>();
+		volatile MemOop constructor = lits[src].as<MemOop>();
 		BlockOop block;
 
 		/*
+		 * declaring 'constructor' volatile seems sufficient for now;
+		 * but previously the commented-out lines below were needed:
 		 * try to prevent optimisations from making constructor
 		 * invisible to the MPS. this has been a frequent bug
 		 */
-		ac = constructor;
-		SPILL(); //FIXME: I don't think this is required.
+		//ac = constructor.m_ptr;
+		//SPILL();
 		block = omem.copyObj<BlockOop>(constructor.m_ptr);
-		UNSPILL();
+		//UNSPILL();
 		block->parentHeapVars() = proc->context()->heapVars;
 		block->receiver() = RECEIVER;
 		block->homeMethodContext() = CTX->isBlockContext() ?

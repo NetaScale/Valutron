@@ -24,6 +24,14 @@ Object subclass: Process [
 		^ pid
 	]
 
+	name [
+		^ name
+	]
+
+	name: aString [
+		name <- aString
+	]
+
 	context [
 		^ StackFrame new initWithProcess: self bp: stackIndex
 	]

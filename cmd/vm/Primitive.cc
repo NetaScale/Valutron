@@ -1357,7 +1357,7 @@ primNewProcessMessage(ObjectMemory &omem, ProcessOop &aProc, Oop aReceiver,
 
 	ContextOop ctx = proc->context();
 	proc->pid = nextPid++;
-	ctx->initWithMethod(omem, Oop(), meth);
+	ctx->initWithMethod(omem, aReceiver, meth);
 
 	return proc;
 }

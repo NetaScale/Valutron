@@ -22,8 +22,11 @@ class CPUThreadPair {
 	bool m_interruptsDisabled = false; /**< are interrupts disabled? */
 	bool m_wantExit = false;	/**< causes loop to exit on next wake */
 
+	mps_thr_t	m_interpMps;	/**< MPS thread for interpreter. */
 	mps_thr_t	m_evloopMps;	/**< MPS thread for event loop. */
 	mps_root_t	m_mpsRoot;	/**< MPS root. */
+	mps_root_t	m_interpRoot;	/**< MPS thread root for interpreter */
+	mps_root_t	m_evloopRoot;	/**< MPS thread root for evloop. */
 
 	ObjectMemory	&m_omem;	/**< Thread's object memory. */
 	SchedulerOop	m_sched;	/**< Thread's Smalltalk Scheduler. */

@@ -87,6 +87,8 @@ makeProc(ObjectMemory &omem, std::string sel)
 	ProcessOop firstProcess = ProcessOopDesc::allocate(omem);
 	ContextOop ctx = (void *)&firstProcess->stack->basicAt0(0);
 	firstProcess->pid = nextPid++;
+	firstProcess->name = StringOopDesc::fromString(omem,
+	    "Valutron init");
 	ctx->initWithMethod(omem, Oop(), start);
 
 	return firstProcess;
@@ -151,10 +153,8 @@ CPUThreadPair::scheduleLoop()
 	m_omem.objGlobals->symbolInsert(m_omem,
 	    SymbolOopDesc::fromString(m_omem, "scheduler"), m_sched);
 
-	ProcessOop proc1 = makeProc(m_omem, "doStuff1"),
-		   proc2 = makeProc(m_omem, "doStuff2");
+	ProcessOop proc1 = makeProc(m_omem, "doStuff1");
 	m_sched->addProcToRunnables(proc1);
-	m_sched->addProcToRunnables(proc2);
 
 	pthread_mutex_lock(&m_evLock);
 	m_timeSliceTimer.again();

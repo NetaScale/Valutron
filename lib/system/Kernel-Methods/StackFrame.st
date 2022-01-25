@@ -11,7 +11,8 @@ Object subclass: StackFrame [
 		| className |
 		className <- self receiver class name asString.
 		^ self isBlockContext ifTrue: [
-			'[] in ', className, '>>', self homeMethodFrame methodOrBlock message
+			'[] in ', self homeMethodFrame receiver class name, '>>',
+			    self homeMethodFrame methodOrBlock message
 		] ifFalse: [
 			className, '>>', self methodOrBlock message
 		]
@@ -41,7 +42,7 @@ Object subclass: StackFrame [
 		]
 
 	homeMethodFrame [
-		^ StackFrame new initWithProcess: process bp: self prevBP
+		^ StackFrame new initWithProcess: process bp: self homeMethodContext
 	]
 
 	receiver [
