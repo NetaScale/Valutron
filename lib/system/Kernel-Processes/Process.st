@@ -1,14 +1,23 @@
 Object subclass: Process [
 |
  (Process)link 		"Next process in list"
- (Array<id>)stack	"Stack of inlined Context objects."
+ (Integer)pid		"Process ID"
+ (Array<id>)stack	"Stack of inlined context objects."
  (Integer)stackIndex	"1-based index into :stack of topmost stack frame."
  (id)accumulator	"The accumulator register."
  (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
 |
 
+	pid [
+		^ pid
+	]
+
 	context [
-		VM error: 'fixme'
+		^ StackFrame new initWithProcess: self bp: stackIndex
+	]
+
+	stack [
+		^ stack
 	]
 
 	link [

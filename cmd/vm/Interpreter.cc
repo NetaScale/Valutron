@@ -8,6 +8,7 @@
 #include "ObjectMemory.hh"
 #include "Objects.hh"
 #include "Generation.hh"
+#include "Oops.hh"
 
 volatile int ninstr = 0;
 
@@ -328,9 +329,14 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		ac = ObjectMemory::objFalse;
 		DISPATCH();
 
-	opLdaThisContext:
-		ac = CTX;
+	opLdaThisContext: {
+		OopOop frame = omem.newOopObj<OopOop>(2);
+		frame.setIsa(ObjectMemory::clsStackFrame);
+		frame->basicAt0(0) = proc;
+		frame->basicAt0(1) = proc->bp;
+		ac = frame;
 		DISPATCH();
+	}
 
 	opLdaThisProcess:
 		ac = proc;

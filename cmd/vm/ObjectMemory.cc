@@ -340,6 +340,7 @@ ObjectMemory::setupInitialObjects()
 	CreateClass(Dictionary);
 	CreateClass(Block);
 	CreateClass(Context);
+	CreateClass(StackFrame);
 	CreateClass(SymbolTable);
 	CreateClass(SystemDictionary);
 	CreateClass(Float);

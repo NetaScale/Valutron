@@ -359,6 +359,7 @@ class ProcessOopDesc : public OopOopDesc {
 	};
 
 	ProcessOop link;
+	Smi pid;
 	ArrayOop stack;
 	Smi bp; /* 1-based */
 	Oop accumulator;

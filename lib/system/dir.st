@@ -33,8 +33,8 @@ Object subclass: INITIAL [
 		testa <- 25.
 		25 fib.
 		file <- File new initWithDescriptor: 1 mode: #w.
-		file << 'Process list:'; cr.
-		"scheduler critical: [
+		file << 'PID    NAME                    METHOD'; cr.
+		scheduler critical: [
 			scheduler allProcessesDo: [ :proc |
 				ctx <- proc = thisProcess ifTrue: [
 					thisContext
@@ -42,14 +42,16 @@ Object subclass: INITIAL [
 					proc context
 				].
 				ctx isNil ifFalse: [
-					file << (ctx shortName copyTruncateOrPadTo: 20 with: $.); cr
+					file << (proc pid printString copyTruncateOrPadTo: 6 with: $ ); << ' '.
+					file << '<unnamed>               '.
+					file << (ctx shortName copyTruncateOrPadTo: 40 with: $.); cr
 				] ifTrue: [
 					file << 'dead process' ; cr
 				]
 			]
-		]."
-		file << 34 fib printString ; cr.
-		file << 60 asLongInteger factorial printString; cr.
+		].
+		"file << 34 fib printString ; cr.
+		file << 60 asLongInteger factorial printString; cr."
 	]
 
 	doStuff2 [

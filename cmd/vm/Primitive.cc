@@ -289,6 +289,7 @@ primBasicAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index)
 	i = index.as<Smi>().smi();
 	if (i < 1 || i > obj.as<MemOop>()->size()) {
 		printf("#basicAt: argument out of bounds (%d)", i);
+		std::cout << obj.as<MemOop>()->size() << " : " << obj.isa()->nameCStr() << "\n";
 		return (Oop::nil());
 	}
 

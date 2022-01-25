@@ -84,7 +84,8 @@ class ObjectMemory {
 		X(ClassOop, clsVM)		\
 		X(ClassOop, clsCharacter)	\
 		X(ClassOop, clsProcessor)	\
-		X(ClassOop, clsNativePointer)
+		X(ClassOop, clsNativePointer)	\
+		X(ClassOop, clsStackFrame)
 
 #define X(TYPE, NAME) static TYPE NAME;
 	OMEM_STATICS

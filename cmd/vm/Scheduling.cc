@@ -7,6 +7,7 @@
 #include "ObjectMemory.hh"
 #include "Objects.hh"
 
+static int64_t nextPid = 0;
 static thread_local CPUThreadPair *g_curpair = NULL;
 
 template <typename T>
@@ -82,6 +83,7 @@ makeProc(ObjectMemory &omem, std::string sel)
 
 	ProcessOop firstProcess = ProcessOopDesc::allocate(omem);
 	ContextOop ctx = (void *)&firstProcess->stack->basicAt0(0);
+	firstProcess->pid = nextPid++;
 	ctx->initWithMethod(omem, Oop(), start);
 
 	return firstProcess;
