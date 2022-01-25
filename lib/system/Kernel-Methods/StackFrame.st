@@ -20,23 +20,35 @@ Object subclass: StackFrame [
 	"accessors - 2 is added to account for the header"
 
 	prevBP [
-		^ process stack basicAt: bpOffset + 2
+		^ bpOffset isNil ifFalse: [
+			process stack basicAt: bpOffset + 2
+		]
+		ifTrue: [ nil ]
 	]
 
 	methodOrBlock [
-		^ process stack basicAt: bpOffset + 3.
+		^ bpOffset isNil ifFalse: [
+			process stack basicAt: bpOffset + 3
+		]
+		ifTrue: [ nil ]
 	]
 
 	homeMethodContext [
-		^ process stack basicAt: bpOffset + 4.
-	]
+		^ bpOffset isNil ifFalse: [
+			process stack basicAt: bpOffset + 4
+		]
+		ifTrue: [ nil ]
+		]
 
 	homeMethodFrame [
 		^ StackFrame new initWithProcess: process bp: self prevBP
 	]
 
 	receiver [
-		^ process stack basicAt: bpOffset + 10.
+		^ bpOffset isNil ifFalse: [
+			process stack basicAt: bpOffset + 9
+		]
+		ifTrue: [ nil ]
 	]
 
 	"enquiries"

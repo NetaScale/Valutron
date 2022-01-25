@@ -85,4 +85,7 @@ class Op {
 extern "C" int execute(ObjectMemory &omem, ProcessOop proc,
    volatile bool &interruptFlag) noexcept;
 
+/** FIXME should be a member of ClassOop? */
+MethodOop lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector);
+
 #endif /* INTERPRETER_HH_ */

@@ -445,6 +445,8 @@ IdentExprNode::generateIntoReg(CodeGen & gen)
 		gen.genLoadSmalltalk();
 	else if (id == "thisContext")
 		gen.genLoadThisContext();
+	else if (id == "thisProcess")
+		gen.genLoadThisProcess();
 	else
 		return var->generateIntoReg(gen);
 	return gen.genStar();

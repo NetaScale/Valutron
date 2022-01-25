@@ -1,4 +1,5 @@
 #include <cassert>
+#include <csetjmp>
 #include <cstddef>
 #include <iostream>
 #include <unistd.h>
@@ -89,7 +90,7 @@ bool ContextOopDesc::isBlockContext()
 	return methodOrBlock.isa() == ObjectMemory::clsBlock;
 }
 
-static inline MethodOop
+MethodOop
 lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 {
 	ClassOop cls = startCls;
@@ -241,7 +242,8 @@ void blockReturn(ProcessOop proc)
 #endif
 }
 
-#if 0
+#pragma GCC push_options
+#pragma GCC optimize("O0")
 void dumpRegs(ContextOop ctx)
 {
 	for (int i = 0; i < ctx->size()-7;  i++)
@@ -249,26 +251,32 @@ void dumpRegs(ContextOop ctx)
 		    ctx->regAt0(i).isa().m_ptr);
 }
 
-void currentMethod(ContextOop ctx)
+void currentMethod(ProcessOop proc, ContextOop ctx)
 {
 	std::cout << ctx->reg0.isa()->nameCStr() << ">>";
 	if (ctx->isBlockContext())
-		std::cout << "<block>(" << ctx->block()->homeMethodContext()->
+	{
+		std::cout << "<block>(";
+		std::cout << proc->contextAt(ctx->block()->homeMethodContext().smi())->
 		    method()->selector()->asCStr() << ")";
+	}
 	else
 		 std::cout << "" << ctx->method()->selector()->asCStr();
 	std::cout <<"\n";
 }
 
-void stackTrace(ContextOop ctx, bool regs = false)
+void stackTrace(ProcessOop proc, bool regs = false)
 {
+	ContextOop ctx = proc->context();
 	while (!ctx.isNil()) {
-		currentMethod(ctx);
+		currentMethod(proc, ctx);
 		dumpRegs(ctx);
-		ctx = ctx->previousContext;
+		ctx = proc->contextAt(ctx->prevBP.smi());
 	}
 }
-#endif
+#pragma GCC pop_options
+
+extern void doWithBlock(volatile MemOopDesc * anObj);
 
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexcept
@@ -384,8 +392,8 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		BlockOop block;
 
 		/*
-		 * must do this to prevent optimisations from making constructor
-		 * invisible to the MPS
+		 * try to prevent optimisations from making constructor
+		 * invisible to the MPS. this has been a frequent bug
 		 */
 		ac = constructor;
 		SPILL(); //FIXME: I don't think this is required.
@@ -393,8 +401,20 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		UNSPILL();
 		block->parentHeapVars() = proc->context()->heapVars;
 		block->receiver() = RECEIVER;
-		block->homeMethodContext() = CTX->isBlockContext() ? CTX->homeMethodBP : proc->bp;
+		block->homeMethodContext() = CTX->isBlockContext() ?
+		    CTX->homeMethodBP : proc->bp;
 		ac = block;
+
+		/*
+		 * unfortunately, despite best efforts, the bug is not always
+		 * suppressed by the above. the best that can be done is to warn
+		 * if the bug appears to have been encountered.
+		 */
+		if (block->m_size == 112) {
+			std::cout << "Known bug with MPS integration encountered.\n";
+			abort();
+		}
+
 		DISPATCH();
 	}
 
@@ -541,8 +561,8 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		IN;
 
 #ifdef TRACE_CALLS
-		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
-			  << cache->selector()->asCStr() << "\n";
+		std::cout << "=> " << cls->nameCStr() << ">>"
+			  << cache->selector->asCStr() << "\n";
 #endif
 		DISPATCH();
 	}

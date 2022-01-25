@@ -31,9 +31,10 @@ Object subclass: INITIAL [
 		<#debugMsg ((34 fib) printString)> ]"
 		| testa  testb file ctx method |
 		testa <- 25.
-		25 fib.
+		"26 fib."
 		file <- File new initWithDescriptor: 1 mode: #w.
 		file << 'PID    NAME                    METHOD'; cr.
+		[ 24 fib. ^ 55 ] fork resume.
 		scheduler critical: [
 			scheduler allProcessesDo: [ :proc |
 				ctx <- proc = thisProcess ifTrue: [
@@ -55,8 +56,11 @@ Object subclass: INITIAL [
 	]
 
 	doStuff2 [
+		|newproc|
+		newproc <- Process newWithReceiver: INITIAL new selector: #initial args: nil.
+		newproc resume.
+		(29 fib).
 		(1 to: 2) do: [ :i |
-		(24 fib).
 		<#debugMsg ('dostuff2 done' printString)> ].
 		^42
 	]
@@ -72,7 +76,7 @@ Object subclass: INITIAL [
 	<#debugMsg (20 fib printString)>.
 	<#debugMsg ((10 asLongInteger + 2) printString)>.
 	<#debugMsg ((Tester blockRetWith: 1 and: 2 and: 3) printString)>."
-	^ 10 asLongInteger factorial printString
+	^ 5 asLongInteger factorial printString
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ Tester blockRetWith: 1 and: 2 and: 3"
 	"^ (20 fib)"

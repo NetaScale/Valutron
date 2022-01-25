@@ -4,6 +4,10 @@
 #include <pthread.h>
 #include <ev++.h>
 
+extern "C" {
+	#include "mps.h"
+}
+
 #include "Oops.hh"
 
 /**
@@ -18,8 +22,11 @@ class CPUThreadPair {
 	bool m_interruptsDisabled = false; /**< are interrupts disabled? */
 	bool m_wantExit = false;	/**< causes loop to exit on next wake */
 
+	mps_thr_t	m_evloopMps;	/**< MPS thread for event loop. */
+	mps_root_t	m_mpsRoot;	/**< MPS root. */
+
 	ObjectMemory	&m_omem;	/**< Thread's object memory. */
-	SchedulerOop	m_scheduler;	/**< Thread's Smalltalk Scheduler. */
+	SchedulerOop	m_sched;	/**< Thread's Smalltalk Scheduler. */
 
 	pthread_t	m_interpThread;	/**< Interpreter thread. */
 	pthread_t	m_evThread;	/**< Event loop thread. */
@@ -71,8 +78,11 @@ class CPUThreadPair {
 
 	static CPUThreadPair *curpair();
 
+	SchedulerOop scheduler() { return m_sched; };
+
 	void disableInterrupts();
 	void enableInterrupts();
+
 };
 
 #endif /* OSTHREAD_HH_ */

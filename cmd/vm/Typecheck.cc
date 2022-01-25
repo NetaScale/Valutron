@@ -846,6 +846,7 @@ ProgramNode::typeReg(TyChecker &tyc)
 	GLOBAL("systemProcess", "Process");
 	GLOBAL("thisProcess", "Process");
 	GLOBAL("scheduler", "Scheduler");
+	GLOBAL("nil", "UndefinedObject");
 	GLOBAL("true", "True");
 	GLOBAL("false", "False");
 	GLOBAL("stdOut", "File");

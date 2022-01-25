@@ -9,6 +9,8 @@
 #include "Objects.hh"
 #include "Oops.hh"
 
+extern int64_t nextPid;
+
 Oop
 unsupportedPrim(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
@@ -277,18 +279,18 @@ primBasicAt(ObjectMemory &omem, ProcessOop &proc, Oop obj, Oop index)
 {
 	int i;
 	if (obj.isSmi()) {
-		printf("integer receiver of basicAt:");
+		printf("integer receiver of basicAt:\n");
 		return (Oop::nil());
 	}
 	/* if (!args->basicAt (1)->kind == OopsRefObj)
 	    return (Oop::nil ()); */
 	if (!index.isSmi()) {
-		printf("non-integer argument of basicAt:");
+		printf("non-integer argument of basicAt:\n");
 		return (Oop::nil());
 	}
 	i = index.as<Smi>().smi();
 	if (i < 1 || i > obj.as<MemOop>()->size()) {
-		printf("#basicAt: argument out of bounds (%d)", i);
+		printf("#basicAt: argument out of bounds (%d)\n", i);
 		std::cout << obj.as<MemOop>()->size() << " : " << obj.isa()->nameCStr() << "\n";
 		return (Oop::nil());
 	}
@@ -1339,6 +1341,56 @@ primEnableInterrupts(ObjectMemory &omem, ProcessOop &proc)
 	return Oop::nil();
 }
 
+Oop
+primNewProcessMessage(ObjectMemory &omem, ProcessOop &aProc, Oop aReceiver,
+    Oop selector, Oop anArgArray)
+{
+	assert(selector.isa() == ObjectMemory::clsSymbol);
+	assert(anArgArray.isNil() ||
+	    anArgArray.isa() == ObjectMemory::clsArray);
+
+	ProcessOop proc = ProcessOopDesc::allocate(omem);
+	MethodOop meth = lookupMethod(aReceiver, aReceiver.isa(),
+	    selector.as<SymbolOop>());
+
+	assert(!meth.isNil());
+
+	ContextOop ctx = proc->context();
+	proc->pid = nextPid++;
+	ctx->initWithMethod(omem, Oop(), meth);
+
+	return proc;
+}
+
+void doWithBlock(volatile MemOopDesc * anObj)
+{
+	anObj;
+}
+
+Oop
+primProcNewFork(ObjectMemory &omem, ProcessOop &proc, Oop blockToCall)
+{
+	assert(blockToCall.isa() == ObjectMemory::clsBlock);
+
+	ProcessOop newProc = omem.copyObj<ProcessOop>(proc.m_ptr);
+	newProc->pid = nextPid++;
+	newProc->stack = omem.copyObj<ArrayOop>(newProc->stack.m_ptr);
+
+	primExecBlock(omem, newProc, 1, &blockToCall);
+
+	return newProc;
+}
+
+Oop
+primProcResume(ObjectMemory &omem, ProcessOop &proc, Oop aProc)
+{
+	assert(aProc.isa() == ObjectMemory::clsProcess);
+	CPUThreadPair::curpair()->scheduler()->addProcToRunnables(
+	    aProc.as<ProcessOop>());
+	return aProc;
+}
+
+
 #pragma GCC diagnostic ignored "-Wc99-designator"
 
 Primitive Primitive::primitives[] = {
@@ -1408,6 +1460,9 @@ Primitive Primitive::primitives[] = {
 
 	{ false, kNiladic, "disableInterrupts", .fn0 = primDisableInterrupts },
 	{ false, kNiladic, "enableInterrupts", .fn0 = primEnableInterrupts },
+	{ false, kTriadic, "newProcessMessage", .fn3 = primNewProcessMessage },
+	{ false, kMonadic, "procNewFork", .fn1 = primProcNewFork },
+	{ false, kMonadic, "procResume", .fn1 = primProcResume },
 
 	{ true, kMonadic, NULL, .fnp = NULL },
 };

@@ -25,6 +25,8 @@ extern "C" {
 #define ALIGN(size) (((size) + ALIGNMENT - 1) & ~(ALIGNMENT - 1))
 
 class ObjectMemory {
+	friend class CPUThreadPair;
+
 	static uint32_t s_hashCounter;
 
 	/** Shared global arena. */
@@ -116,7 +118,7 @@ class ObjectMemory {
 	/**
 	 * Copies any object.
 	 */
-	template <class T> T copyObj(MemOopDesc * obj);
+	template <class T> T copyObj(volatile MemOopDesc * obj);
 
 	/** Generate a 24-bit number to be used as an object's hashcode. */
 	static inline uint32_t getHashCode();
@@ -174,7 +176,7 @@ ObjectMemory::getHashCode()
 }
 
 template <class T>
-T
+__attribute__((noinline)) T
 ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 {
 	typename T::PtrType * obj;
@@ -201,7 +203,7 @@ ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 }
 
 template <class T>
-T
+__attribute__((noinline)) T
 ObjectMemory::newByteObj(size_t len)
 {
 	typename T::PtrType * obj;
@@ -230,13 +232,13 @@ ObjectMemory::newByteObj(size_t len)
 }
 
 template <class T>
-T
-ObjectMemory::copyObj(MemOopDesc * oldObj)
+__attribute__((noinline)) T
+ObjectMemory::copyObj(volatile MemOopDesc * oldObj)
 {
 	mps_addr_t mem;
 	size_t size = ALIGN(sizeof(MemOopDesc) +
 	    (oldObj->m_kind == MemOopDesc::kBytes ? sizeof(uint8_t) :
-	    sizeof(Oop)) * oldObj->size());
+	    sizeof(Oop)) * ((MemOopDesc*)oldObj)->size());
 
 #if VT_GC == VT_GC_MPS
 	do {
@@ -249,7 +251,7 @@ ObjectMemory::copyObj(MemOopDesc * oldObj)
 	} while (!mps_commit(m_objAP, mem, size));
 #else
 	typename T::PtrType *obj = (typename T::PtrType*)calloc(1, size);
-	memcpy(obj, &*oldObj, size);
+	memcpy(obj, (void*)oldObj, size);
 	obj->m_hash = getHashCode();
 	return T((typename T::PtrType*)obj);
 #endif

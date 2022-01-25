@@ -16,7 +16,7 @@ Object subclass: Block [
 	]
 
 	fork [
-		self newProcess resume
+		^ Process newWithBlock: self
 	]
 
 	forkWith: args [

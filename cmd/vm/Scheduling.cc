@@ -7,7 +7,7 @@
 #include "ObjectMemory.hh"
 #include "Objects.hh"
 
-static int64_t nextPid = 0;
+int64_t nextPid = 0;
 static thread_local CPUThreadPair *g_curpair = NULL;
 
 template <typename T>
@@ -46,6 +46,9 @@ removeFromList(T &list, T obj)
 void
 SchedulerOopDesc::addProcToRunnables(ProcessOop proc)
 {
+#ifdef TRACE_PROCS
+	std::cout << "Placing " << proc->pid.smi() << " into runqueue.\n";
+#endif
 	assert(proc->link.isNil());
 	addToListLast(runnable, proc);
 }
@@ -131,21 +134,27 @@ void
 CPUThreadPair::scheduleLoop()
 {
 	ClassOop cls = m_omem.lookupClass("Scheduler");
-	SchedulerOop sched;
 
 	assert(!cls.isNil());
-	sched = m_omem.newOopObj<SchedulerOop>(SchedulerOopDesc::clstNstLength);
+	m_sched = SchedulerOop::nil();
 
-	sched.setIsa(cls);
+	mps_res_t res = mps_root_create_area(&m_mpsRoot, m_omem.m_arena,
+	    mps_rank_exact(), 0, &m_sched, &m_sched + 1, mps_scan_area, NULL);
+	if (res != MPS_RES_OK)
+		abort();
+
+	m_sched = m_omem.newOopObj<SchedulerOop>(SchedulerOopDesc::clstNstLength);
+
+	m_sched.setIsa(cls);
 
 	/** to be moved away */
 	m_omem.objGlobals->symbolInsert(m_omem,
-	    SymbolOopDesc::fromString(m_omem, "scheduler"), sched);
+	    SymbolOopDesc::fromString(m_omem, "scheduler"), m_sched);
 
 	ProcessOop proc1 = makeProc(m_omem, "doStuff1"),
 		   proc2 = makeProc(m_omem, "doStuff2");
-	sched->addProcToRunnables(proc1);
-	sched->addProcToRunnables(proc2);
+	m_sched->addProcToRunnables(proc1);
+	m_sched->addProcToRunnables(proc2);
 
 	pthread_mutex_lock(&m_evLock);
 	m_timeSliceTimer.again();
@@ -154,8 +163,8 @@ CPUThreadPair::scheduleLoop()
 	pthread_mutex_unlock(&m_evLock);
 
 loop:
-	ProcessOop proc = sched->getNextForRunning();
-	sched->curProc = proc;
+	ProcessOop proc = m_sched->getNextForRunning();
+	m_sched->curProc = proc;
 
 	if (proc.isNil()) {
 		std::cout << "All processes finished\n";
@@ -174,7 +183,7 @@ loop:
 			  << " to run-queue\n";
 		std::cout << proc.m_ptr << " stack size "
 			  << proc->bp.smi() << "\n";
-		sched->addProcToRunnables(proc);
+		m_sched->addProcToRunnables(proc);
 	}
 
 	m_interruptFlag = false;

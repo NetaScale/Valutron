@@ -2,11 +2,23 @@ Object subclass: Process [
 |
  (Process)link 		"Next process in list"
  (Integer)pid		"Process ID"
+ (String)name		"Process name"
  (Array<id>)stack	"Stack of inlined context objects."
  (Integer)stackIndex	"1-based index into :stack of topmost stack frame."
  (id)accumulator	"The accumulator register."
  (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
 |
+
+	"creation"
+	class>>newWithReceiver: anObject selector: aSymbol args: anArray  [
+		^ <#newProcessMessage anObject aSymbol anArray>
+	]
+
+	class>>newWithBlock: aBlock [
+		^ <#procNewFork aBlock>
+	]
+
+	"accessors and enqueries"
 
 	pid [
 		^ pid
@@ -22,6 +34,13 @@ Object subclass: Process [
 
 	link [
 		^ link
+	]
+
+	"management"
+
+	"unsuspends a process. adds it to the scheduler runqueue of the current system thread"
+	resume [
+		^ <#procResume self>
 	]
 
 	"below is old code"
@@ -63,11 +82,6 @@ Object subclass: Process [
 
 	method: x  [
 		stack at: 5 put: x.
-	]
-
-	resume [
-		" resume current process "
-		scheduler addProcess: self
 	]
 
 	stack: sArray stackIndex: sInt linkPointer: lInt [
