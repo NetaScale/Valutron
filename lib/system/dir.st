@@ -42,7 +42,7 @@ Object subclass: INITIAL [
 					proc context
 				].
 				ctx isNil ifFalse: [
-					file << ctx shortName; cr
+					file << (ctx shortName copyTruncateOrPadTo: 20 with: $.); cr
 				] ifTrue: [
 					file << 'dead process' ; cr
 				]
@@ -50,8 +50,8 @@ Object subclass: INITIAL [
 				"<#dumpVariable (proc context receiver)>"
 			]
 		].
-		file << 28 fib printString ; cr.
-		file << 25 asLongInteger factorial printString; cr.
+		"file << 28 fib printString ; cr.
+		file << 25 asLongInteger factorial printString; cr."
 	]
 
 	doStuff2 [

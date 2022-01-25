@@ -1,5 +1,5 @@
 Object subclass: Context [
-	| (Context)prevContext
+	| (Context | Integer)prevContext
 	  (Method | Block)methodOrBlock
 	  (Context) homeMethodContext
 	  (ByteArray)bytecode

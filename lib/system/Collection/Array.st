@@ -35,6 +35,12 @@ IndexedCollection<T> subclass: Array<T> [
 				'illegal index to at:put: for array' ]
 	]
 
+	basicAtAllPut: value [
+		(1 to: self basicSize) do: [ :i |
+			self basicAt: i put: value
+		]
+	]
+
 	binaryDo: aBlock [
 		(1 to: self size) do:
 			[:i | aBlock value: i value: (self at: i) ]

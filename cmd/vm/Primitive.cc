@@ -392,7 +392,7 @@ primCopyFromTo(ObjectMemory &omem, ProcessOop proc, ArrayOop args) /*fix*/
 		uint8_t *src = args->basicAt(1).as<StringOop>()->vns();
 		size_t len = strlen((char *)src);
 		int pos1 = args->basicAt(2).as<Smi>().smi();
-		int pos2 = args->basicAt(2).as<Smi>().smi();
+		int pos2 = args->basicAt(3).as<Smi>().smi();
 		int req = pos2 + 1 - pos1;
 		size_t act;
 		StringOop ans;
@@ -762,8 +762,7 @@ Called from String>>size
 Oop
 primStringSize(ObjectMemory &omem, ProcessOop proc, ArrayOop args)
 {
-	return (
-	    Smi(strlen((char *)args->basicAt(1).as<StringOop>()->vns())));
+	return Smi(strlen((char *)args->basicAt(1).as<StringOop>()->vns()));
 }
 
 int strHash(std::string str);

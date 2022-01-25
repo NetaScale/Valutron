@@ -8,6 +8,14 @@ ByteArray subclass: String [
 		^ self primBytes: size + 1
 	]
 
+	class>>new: size with: aCharacter [
+		| new |
+		new <- self primBytes: size + 1.
+		(1 to: size) do: [ :i |
+			new basicAt: i put: aCharacter
+		].
+		^ new
+	]
 
 	, value [
 		(value isMemberOf: String)
@@ -64,6 +72,22 @@ ByteArray subclass: String [
 
 	copyFrom: position1 to: position2 [
 		^ <#copyFromTo self position1 position2>
+	]
+
+	"Make a copy of the string, truncating or padding to length size."
+	copyTruncateOrPadTo: size with: aCharacter [
+		(self size > size) ifTrue: [
+			^ self copyFrom: 1 to: size
+		].
+		(self size = size) ifTrue: [ ^ self copy ].
+		"otherwise, pad"
+		^ self copyPaddingTo: size with: aCharacter.
+	]
+
+	"Make a copy of the string, padding to length size."
+	copyPaddingTo: size with: aCharacter [
+		| copy |
+		^ self, (String new: (size - self size max: 0) with: aCharacter)
 	]
 
 	edit [	| file text |
@@ -144,6 +168,4 @@ ByteArray subclass: String [
 			  text <- text copyFrom: index to: text size ].
 		^ list asArray
 	]
-
-
 ]
