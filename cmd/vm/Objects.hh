@@ -348,7 +348,7 @@ public:
 };
 
 class ProcessOopDesc : public OopOopDesc {
-	static const int clsNstLength = 6;
+	static const int clsNstLength = 7;
 
     public:
 	enum State { 

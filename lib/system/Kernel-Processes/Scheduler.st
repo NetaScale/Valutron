@@ -22,6 +22,13 @@ Object subclass: Scheduler [
 		aBlock value: curProc.
 	]
 
+	disableInterrupts [
+		<#disableInterrupts >
+	]
+
+	enableInterrupts [
+		<#enableInterrupts >
+	]
 
 	(T) critical: ([^T]) aBlock <T> [
 		| result |
@@ -29,6 +36,10 @@ Object subclass: Scheduler [
 		result <- aBlock value.
 		<#enableInterrupts >.
 		^ result
+	]
+
+	yield [
+		^ <#yield >.
 	]
 
 ]

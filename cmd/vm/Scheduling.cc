@@ -43,6 +43,19 @@ removeFromList(T &list, T obj)
 	obj->link = T::nil();
 }
 
+template <typename T>
+bool
+containedInList(T &list, T obj)
+{
+	T link = list;
+	while (!link.isNil()) {
+		if (link == obj)
+			return true;
+		link = link->link;
+	}
+	return false;
+}
+
 void
 SchedulerOopDesc::addProcToRunnables(ProcessOop proc)
 {
@@ -50,6 +63,7 @@ SchedulerOopDesc::addProcToRunnables(ProcessOop proc)
 	std::cout << "Placing " << proc->pid.smi() << " into runqueue.\n";
 #endif
 	assert(proc->link.isNil());
+	assert(!containedInList(runnable, proc));
 	addToListLast(runnable, proc);
 }
 
@@ -178,6 +192,8 @@ loop:
 
 	if (execute(m_omem, proc, m_interruptFlag) == 0) {
 		std::cout << "Process " << proc.m_ptr << " finished\n";
+	} else if (proc->state == Smi(3)) {
+		std::cout << "Letting process " << proc.m_ptr << " wait.\n";
 	} else {
 		std::cout << "Returning process " << proc.m_ptr
 			  << " to run-queue\n";
@@ -214,6 +230,13 @@ CPUThreadPair::enableInterrupts()
 	if (m_otherInterruptFlag)
 		m_interruptFlag = true;
 	m_otherInterruptFlag = false;
+}
+
+void
+CPUThreadPair::yield()
+{
+	assert(!m_interruptsDisabled);
+	interrupt();
 }
 
 CPUThreadPair *

@@ -1381,13 +1381,27 @@ primProcNewFork(ObjectMemory &omem, ProcessOop &proc, Oop blockToCall)
 	return newProc;
 }
 
-Oop
-primProcResume(ObjectMemory &omem, ProcessOop &proc, Oop aProc)
+/*Oop
+primProcCurrentWait(ObjectMemory &omem, ProcessOop &proc)
 {
-	assert(aProc.isa() == ObjectMemory::clsProcess);
-	CPUThreadPair::curpair()->scheduler()->addProcToRunnables(
-	    aProc.as<ProcessOop>());
-	return aProc;
+	proc->state = 3;
+	return proc;
+}*/
+
+Oop
+primProcResume(ObjectMemory &omem, ProcessOop &proc, Oop anObj)
+{
+	assert(anObj.isa() == ObjectMemory::clsProcess);
+	ProcessOop aProc = anObj.as<ProcessOop>();
+	aProc->state = 1;
+	CPUThreadPair::curpair()->scheduler()->addProcToRunnables(aProc);
+	return anObj;
+}
+
+Oop
+primYield(ObjectMemory &omem, ProcessOop &proc) {
+	CPUThreadPair::curpair()->yield();
+	return proc;
 }
 
 
@@ -1463,6 +1477,8 @@ Primitive Primitive::primitives[] = {
 	{ false, kTriadic, "newProcessMessage", .fn3 = primNewProcessMessage },
 	{ false, kMonadic, "procNewFork", .fn1 = primProcNewFork },
 	{ false, kMonadic, "procResume", .fn1 = primProcResume },
+	{ false, kNiladic, "yield", .fn0 = primYield },
+
 
 	{ true, kMonadic, NULL, .fnp = NULL },
 };

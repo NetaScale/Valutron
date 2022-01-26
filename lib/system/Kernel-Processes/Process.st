@@ -44,6 +44,14 @@ Object subclass: Process [
 		^ link
 	]
 
+	state [
+		^state
+	]
+
+	state: anInteger [
+		state <- anInteger.
+	]
+
 	"management"
 
 	"unsuspends a process. adds it to the scheduler runqueue of the current system thread"

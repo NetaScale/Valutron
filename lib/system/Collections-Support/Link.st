@@ -87,7 +87,7 @@ Object subclass: Link [
 		(aValue = value)
 			ifTrue: [ ^ nextLink ]
 			ifFalse: [ (nextLink notNil)
-				ifTrue: [ nextLink <- nextLink removeValue: aValue]]
+				ifTrue: [ nextLink <- nextLink removeValue: aValue]].
 	]
 
 	reverseDo: aBlock [

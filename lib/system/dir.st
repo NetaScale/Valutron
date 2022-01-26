@@ -29,10 +29,11 @@ Object subclass: INITIAL [
 	doStuff1 [
 		"(1 to: 1) do: [ :i |
 		<#debugMsg ((34 fib) printString)> ]"
-		| testa  testb file ctx method newblk newblk2 |
+		| file ctx newblk sem |
 		"26 fib."
+		sem <- Semaphore forMutualExclusion.
 		file <- File new initWithDescriptor: 1 mode: #w.
-		newblk <- [ file << (32 fib printString); cr. ^ 55 ] fork.
+		"newblk <- [ file << (32 fib printString); cr. ^ 55 ] fork.
 		newblk name: 'fib block'.
 		newblk resume.
 		newblk <- Process newWithReceiver: 95 asLongInteger selector: #factorial args: nil.
@@ -58,7 +59,33 @@ Object subclass: INITIAL [
 					file << 'dead process' ; cr
 				]
 			]
-		].
+		]."
+		newblk <- [ true whileTrue: [
+			sem critical: [
+			24 fib.
+			file << 'a'.
+			file << 46 asLongInteger factorial printString.
+			file << 'b'.
+			file cr
+			]
+			]
+		] fork.
+		newblk name: 'a'.
+		newblk resume.
+
+		newblk <- [ true whileTrue: [
+			sem critical: [
+			24 fib.
+			file << 'A'.
+			file << 46 asLongInteger factorial printString.
+			file << 'B'.
+			file cr
+			]
+			]
+		] fork.
+		newblk name: 'a'.
+		newblk resume.
+
 		"file << 34 fib printString ; cr.
 		file << 60 asLongInteger factorial printString; cr."
 	]

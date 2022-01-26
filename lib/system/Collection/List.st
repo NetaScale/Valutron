@@ -56,7 +56,7 @@ Collection<T> subclass: List<T> [
 	]
 
 	removeFirst [
-		self remove: self first
+		self remove: self first value
 	]
 
 	reverseDo: aBlock [

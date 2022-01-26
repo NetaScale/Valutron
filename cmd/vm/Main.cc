@@ -59,6 +59,5 @@ main(int argc, char * argv[])
 #endif
 
 	CPUThreadPair mainThread(omem, marker);
-
 	return 0;
 }

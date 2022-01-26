@@ -79,6 +79,7 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 		case kPad:
 			break;
 
+		case kWords:
 		case kBytes:
 			FIXOOP(obj->isa());
 			break;

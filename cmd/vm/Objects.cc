@@ -151,7 +151,7 @@ void LinkOopDesc::print (int in)
     std::cout << blanks (in) << "Two:\n";
     two ().print (in + 2);
     std::cout << blanks (in) << "nextLink:\n";
-    nextLink ()->print (in + 2);
+    nextLink().print (in + 2);
     std::cout << blanks (in) << "}\n";
 }
 

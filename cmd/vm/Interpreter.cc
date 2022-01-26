@@ -96,6 +96,8 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 	ClassOop cls = startCls;
 	MethodOop meth;
 
+	assert(!cls.isNil() && !cls.isSmi());
+
 	if (!cls->methods.isNil())
 		meth = cls->methods->symbolLookup(selector).as<MethodOop>();
 
@@ -104,7 +106,7 @@ lookupMethod(Oop receiver, ClassOop startCls, SymbolOop selector)
 		if (cls.isNil() || cls == startCls) {
 			std::cout <<"Failed to find method " <<
 			    selector->asCStr() << " in class " <<
-			    receiver.isa()->nameCStr() << "\n"; 
+			    receiver.isa()->nameCStr() << "\n";
 			abort();
 			return MethodOop::nil();
 		}

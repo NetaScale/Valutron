@@ -88,6 +88,9 @@ class CPUThreadPair : ObjectAllocator<CPUThreadPair> {
 	void disableInterrupts();
 	void enableInterrupts();
 
+	/** Let the current process yield its timeslice. */
+	void yield();
+
 };
 
 #endif /* OSTHREAD_HH_ */
