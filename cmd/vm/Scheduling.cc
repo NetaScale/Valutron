@@ -4,7 +4,7 @@
 #include <unistd.h>
 
 #include "CPUThread.hh"
-#include "ObjectMemory.hh"
+#include "ObjectMemory.inl.hh"
 #include "Objects.hh"
 
 int64_t nextPid = 0;
@@ -222,7 +222,7 @@ CPUThreadPair::curpair()
 	return g_curpair;
 }
 
-CPUThreadPair::CPUThreadPair(ObjectMemory &omem)
+CPUThreadPair::CPUThreadPair(ObjectMemory &omem, void * stackMarker)
     : m_omem(omem), m_loop(ev::default_loop()), m_loopWake(m_loop), m_timeSliceTimer(m_loop)
 {
 	int r;
@@ -237,6 +237,17 @@ CPUThreadPair::CPUThreadPair(ObjectMemory &omem)
 	m_loopWake.start();
 	m_timeSliceTimer.set(0., 0.1);
 	m_timeSliceTimer.set<CPUThreadPair, &CPUThreadPair::timeSliceCb>(this);
+
+	mps_res_t res = mps_thread_reg(&m_interpMps, omem.m_arena);
+	if (res != MPS_RES_OK)
+		FATAL("Couldn't register thread");
+
+	res = mps_root_create_thread(&m_interpRoot, omem.m_arena, m_interpMps,
+	    stackMarker);
+	if (res != MPS_RES_OK)
+		FATAL("Couldn't create root");
+
+	ObjectAllocator::init(omem.m_amcPool, omem.m_amczPool);
 
 	r = pthread_create(&m_evThread, NULL, startEvThread, this);
 

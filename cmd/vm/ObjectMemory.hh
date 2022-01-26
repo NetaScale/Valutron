@@ -24,7 +24,33 @@ extern "C" {
 #define ALIGNMENT 16
 #define ALIGN(size) (((size) + ALIGNMENT - 1) & ~(ALIGNMENT - 1))
 
-class ObjectMemory {
+template <class T> class ObjectAllocator {
+    protected:
+	/** Allocation point for regular objects. */
+	mps_ap_t m_objAP;
+	/** Allocation point for leaf objects. */
+	mps_ap_t m_leafAp;
+
+	/** Must be called to setup the allocation point. */
+	void init(mps_pool_t amcPool, mps_pool_t amczPool);
+
+    public:
+	/**
+	 * Allocates an object composed of object pointers.
+	 */
+	template <class TObj>
+	TObj newOopObj(size_t len, MemOopDesc::Kind = MemOopDesc::kOops);
+	/**
+	 * Allocates an object composed of bytes.
+	 */
+	template <class TObj> TObj newByteObj(size_t len);
+	/**
+	 * Copies any object.
+	 */
+	template <class TObj> TObj copyObj(volatile MemOopDesc *obj);
+};
+
+class ObjectMemory : public ObjectAllocator<ObjectMemory> {
 	friend class CPUThreadPair;
 
 	static uint32_t s_hashCounter;
@@ -40,10 +66,6 @@ class ObjectMemory {
 	/** AMCZ pool for PrimOopDescs (leaf objects). */
 	mps_pool_t m_amczPool;
 
-	/** Allocation point for regular objects. */
-	mps_ap_t m_objAP;
-	/** Allocation point for leaf objects. */
-	mps_ap_t m_leafAp;
 	/** Root for this thread's stack */
 	mps_root_t m_threadRoot;
 	/** Root for globals */
@@ -106,20 +128,6 @@ class ObjectMemory {
 
 	ObjectMemory(void *stackMarker);
 
-	/**
-	 * Allocates an object composed of object pointers.
-	 */
-	template <class T> T newOopObj(size_t len,
-	    MemOopDesc::Kind = MemOopDesc::kOops);
-	/**
-	 * Allocates an object composed of bytes.
-	 */
-	template <class T> T newByteObj(size_t len);
-	/**
-	 * Copies any object.
-	 */
-	template <class T> T copyObj(volatile MemOopDesc * obj);
-
 	/** Generate a 24-bit number to be used as an object's hashcode. */
 	static inline uint32_t getHashCode();
 
@@ -176,10 +184,11 @@ ObjectMemory::getHashCode()
 }
 
 template <class T>
-__attribute__((noinline)) T
-ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
+template <class TObj>
+__attribute__((noinline)) TObj
+ObjectAllocator<T>::newOopObj(size_t len, MemOopDesc::Kind kind)
 {
-	typename T::PtrType * obj;
+	typename TObj::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
 
 #if VT_GC == VT_GC_MPS
@@ -189,12 +198,12 @@ ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 			FATAL("out of memory in newOopObj");
 		obj->m_isa = Oop::nil().as<ClassOop>();
 		obj->m_kind = kind;
-		obj->m_hash = getHashCode();
+		obj->m_hash = T::getHashCode();
 		obj->m_size = len;
 		memset(obj->m_oops, 0, len * sizeof(Oop));
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
-	obj = (typename T::PtrType*)calloc(1, size);
+	obj = (typename TObj::PtrType*)calloc(1, size);
 		obj->m_kind = kind;
 		obj->m_hash = getHashCode();
 		obj->m_size = len;
@@ -203,10 +212,11 @@ ObjectMemory::newOopObj(size_t len, MemOopDesc::Kind kind)
 }
 
 template <class T>
-__attribute__((noinline)) T
-ObjectMemory::newByteObj(size_t len)
+template <class TObj>
+__attribute__((noinline)) TObj
+ObjectAllocator<T>::newByteObj(size_t len)
 {
-	typename T::PtrType * obj;
+	typename TObj::PtrType * obj;
 	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(uint8_t) * len);
 
 #if VT_GC == VT_GC_MPS
@@ -216,24 +226,24 @@ ObjectMemory::newByteObj(size_t len)
 			FATAL("out of memory in newByteObj");
 		obj->m_isa = Oop::nil().as<ClassOop>();
 		obj->m_kind = MemOopDesc::kBytes;
-		obj->m_hash = getHashCode();
+		obj->m_hash = T::getHashCode();
 		obj->m_size = len;
 		memset(obj->m_bytes, 0, len);
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
-	obj = (typename T::PtrType*)calloc(1, size);
+	obj = (typename TObj::PtrType*)calloc(1, size);
 	obj->m_kind = MemOopDesc::kBytes;
 	obj->m_hash = getHashCode();
 	obj->m_size = len;
 #endif
 
-
 	return obj;
 }
 
-template <class T>
-__attribute__((noinline)) T
-ObjectMemory::copyObj(volatile MemOopDesc * oldObj)
+template<class T>
+template <class TObj>
+__attribute__((noinline)) TObj
+ObjectAllocator<T>::copyObj(volatile MemOopDesc * oldObj)
 {
 	mps_addr_t mem;
 	size_t size = ALIGN(sizeof(MemOopDesc) +
@@ -247,16 +257,16 @@ ObjectMemory::copyObj(volatile MemOopDesc * oldObj)
 			FATAL("out of memory in copyObj");
 		memcpy((void*)mem, (void*)oldObj, size);
 		MemOopDesc * obj = (MemOopDesc*)mem;
-		obj->m_hash = getHashCode();
+		obj->m_hash = T::getHashCode();
 	} while (!mps_commit(m_objAP, mem, size));
 #else
-	typename T::PtrType *obj = (typename T::PtrType*)calloc(1, size);
+	typename TObj::PtrType *obj = (typename TObj::PtrType*)calloc(1, size);
 	memcpy(obj, (void*)oldObj, size);
 	obj->m_hash = getHashCode();
-	return T((typename T::PtrType*)obj);
+	return TObj((typename TObj::PtrType*)obj);
 #endif
 
-	return T((typename T::PtrType*)mem);
+	return TObj((typename TObj::PtrType*)mem);
 }
 
 #endif /* OBJECTMEMORY_HH_ */

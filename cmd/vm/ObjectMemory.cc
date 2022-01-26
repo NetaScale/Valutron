@@ -8,7 +8,7 @@ extern "C" {
 #include "mpscams.h"
 }
 
-#include "ObjectMemory.hh"
+#include "ObjectMemory.inl.hh"
 #include "Objects.hh"
 
 mps_arena_t ObjectMemory::m_arena = NULL;
@@ -270,22 +270,7 @@ ObjectMemory::ObjectMemory(void *stackMarker)
 	if (res != MPS_RES_OK)
 		FATAL("Couldn't create AMC pool");
 
-	res = mps_ap_create_k(&m_objAP, m_amcPool, mps_args_none);
-	if (res != MPS_RES_OK)
-		FATAL("Couldn't create allocation point!");
-
-	res = mps_ap_create_k(&m_leafAp, m_amczPool, mps_args_none);
-	if (res != MPS_RES_OK)
-		FATAL("Couldn't create allocation point!");
-
-	res = mps_thread_reg(&m_mpsThread, m_arena);
-	if (res != MPS_RES_OK)
-		FATAL("Couldn't register thread");
-
-	res = mps_root_create_thread(&m_threadRoot, m_arena, m_mpsThread,
-	    stackMarker);
-	if (res != MPS_RES_OK)
-		FATAL("Couldn't create root");
+	ObjectAllocator::init(m_amcPool, m_amczPool);
 
 	res = mps_root_create(&m_globalRoot, m_arena, mps_rank_exact(), 0,
 	    scanGlobals, NULL, 0);

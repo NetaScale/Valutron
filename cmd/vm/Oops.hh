@@ -150,6 +150,7 @@ static mps_res_t scanGlobals(mps_ss_t ss, void *p, size_t s);
 
 class MemOopDesc : public OopDesc {
     protected:
+	template <class T> friend class ObjectAllocator;
 	friend class ObjectMemory;
 	friend class OopRef<OopDesc>;
 	friend class ProcessOopDesc;

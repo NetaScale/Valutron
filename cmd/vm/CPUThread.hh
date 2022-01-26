@@ -9,6 +9,7 @@ extern "C" {
 }
 
 #include "Oops.hh"
+#include "ObjectMemory.hh"
 
 /**
  * Defines the pair of threads associated with each CPU thread of the
@@ -16,17 +17,18 @@ extern "C" {
  * event loop, and communicates with the interpreter thread by setting the
  * interrupt flag.
  */
-class CPUThreadPair {
+class CPUThreadPair : ObjectAllocator<CPUThreadPair> {
 	volatile bool m_interruptFlag = false;	/** pending VM interrupt? */
-	bool m_otherInterruptFlag = false; /**< pending int if intr disabled */
+	bool m_otherInterruptFlag = false; /**< pending int if intr disabled? */
 	bool m_interruptsDisabled = false; /**< are interrupts disabled? */
 	bool m_wantExit = false;	/**< causes loop to exit on next wake */
 
+	void		*m_stackMarker;	/**< Stack begin marker for MPS. */
 	mps_thr_t	m_interpMps;	/**< MPS thread for interpreter. */
 	mps_thr_t	m_evloopMps;	/**< MPS thread for event loop. */
-	mps_root_t	m_mpsRoot;	/**< MPS root. */
 	mps_root_t	m_interpRoot;	/**< MPS thread root for interpreter */
 	mps_root_t	m_evloopRoot;	/**< MPS thread root for evloop. */
+	mps_root_t	m_mpsRoot;	/**< MPS root for this object */
 
 	ObjectMemory	&m_omem;	/**< Thread's object memory. */
 	SchedulerOop	m_sched;	/**< Thread's Smalltalk Scheduler. */
@@ -77,7 +79,7 @@ class CPUThreadPair {
     public:
 	//static thread_local CPUThreadPair *curpair;
 
-	CPUThreadPair(ObjectMemory &omem);
+	CPUThreadPair(ObjectMemory &omem, void *stackMarker);
 
 	static CPUThreadPair *curpair();
 
