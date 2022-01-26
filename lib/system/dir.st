@@ -86,6 +86,43 @@ Object subclass: INITIAL [
 		newblk name: 'a'.
 		newblk resume.
 
+		newblk <- [ true whileTrue: [
+			sem critical: [
+			24 fib.
+			file << 'Bravo'.
+			file << 46 asLongInteger factorial printString.
+			file << 'Charlie'.
+			file cr
+			]
+			]
+		] fork.
+		newblk name: 'c'.
+		newblk resume.
+
+		24 fib.
+
+		scheduler critical: [
+			file << 'PID    NAME                    METHOD'; cr.
+			scheduler allProcessesDo: [ :proc |
+				ctx <- proc = thisProcess ifTrue: [
+					thisContext
+				] ifFalse: [
+					proc context
+				].
+				ctx isNil ifFalse: [
+					file << (proc pid printString copyTruncateOrPadTo: 6 with: $ ); << ' '.
+					(proc name isNil) ifTrue: [
+						file << '<unnamed>               '
+					] ifFalse: [
+						file << (proc name copyTruncateOrPadTo: 24 with: $ )
+					].
+					file << (ctx shortName copyTruncateOrPadTo: 40 with: $.); cr
+				] ifTrue: [
+					file << 'dead process' ; cr
+				]
+			]
+		].
+
 		"file << 34 fib printString ; cr.
 		file << 60 asLongInteger factorial printString; cr."
 	]

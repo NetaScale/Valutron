@@ -351,7 +351,7 @@ class ProcessOopDesc : public OopOopDesc {
 	static const int clsNstLength = 7;
 
     public:
-	enum State { 
+	enum State {
 		kSuspended,
 		kRunning,
 		kWaiting,

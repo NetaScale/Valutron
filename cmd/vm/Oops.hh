@@ -72,7 +72,6 @@ typedef OopRef     <NativePointerOopDesc> NativePointerOop;
 /* clang-format on */
 
 template <class T> class OopRef {
-    //protected:
     public:
 	friend class OopRef<OopDesc>;
 
@@ -122,10 +121,20 @@ template <class T> class OopRef {
 	T *operator->() const { return m_ptr; }
 	inline T &operator*() const { return *m_ptr; }
 	inline operator Oop() const { return m_ptr; }
-} __attribute__((packed));
+};
 
 class OopDesc {
-
+    public:
+	/**
+	 * These logically belong in MemOopDesc, but if OopDesc is empty, then
+	 * the alignment of Oop can be 1 with gcc. This hides Oops from the MPS
+	 * stack scanner. These variables are therefore moved up here, even
+	 * though e.g. an SmiOop obviously hasn't got these.
+	 */
+	union {
+		ClassOop m_isa;
+		MemOop m_fwd;
+	};
 };
 
 class Klass {
@@ -170,10 +179,6 @@ class MemOopDesc : public OopDesc {
 		kStackAllocatedContext, /* musn't be scanned */
 	};
 
-	union {
-		ClassOop m_isa;
-		MemOop m_fwd;
-	};
 	struct {
 		int32_t m_size;	 /**< number of bytes/words/oops/etc */
 		Kind m_kind : 8; /**< kind of object */

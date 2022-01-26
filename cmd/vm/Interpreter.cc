@@ -147,7 +147,6 @@ inline ClassOop methodClass(ProcessOop proc)
  */
 #define UNSPILL() {								\
 	pc = &CTX->bytecode->basicAt0(0) + CTX->programCounter.smi();		\
-	regs = &CTX->reg0;							\
 	lits = &CTX->method()->literals()->basicAt0(0);				\
 }
 
@@ -281,8 +280,6 @@ void stackTrace(ProcessOop proc, bool regs = false)
 }
 #pragma GCC pop_options
 
-extern void doWithBlock(volatile MemOopDesc * anObj);
-
 extern "C" int
 execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexcept
 {
@@ -295,8 +292,8 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	uint64_t nsends = 0;
 	Oop ac;
 	uint8_t * pc = &CTX->bytecode->basicAt0(0);
-	Oop * regs;
-	Oop * lits;
+	Oop *lits;
+	ninstr = 0;
 
 #ifdef TRACE_DISASM_ON_EXEC
 	std::cout <<"\n\nInterpreter will now run:\n";
@@ -426,7 +423,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 	opLdar : {
 		unsigned src = FETCH();
-		ac = regs[src];
+		ac = CTX->regAt0(src);
 		DISPATCH();
 	}
 
@@ -458,13 +455,13 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 	opStar : {
 		unsigned dst = FETCH();
-		regs[dst] = ac;
+		CTX->regAt0(dst) = ac;
 		DISPATCH();
 	}
 
 	opMove : {
 		unsigned dst = FETCH(), src = FETCH();
-		regs[dst] = regs[src];
+		CTX->regAt0(dst) = CTX->regAt0(src);
 		DISPATCH();
 	}
 
@@ -472,7 +469,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	opAnd : {
 		unsigned src = FETCH();
 		if (ac != ObjectMemory::objTrue ||
-		    regs[src] != ObjectMemory::objTrue)
+		    CTX->regAt0(src) != ObjectMemory::objTrue)
 			ac = ObjectMemory::objFalse;
 		DISPATCH();
 	}
@@ -516,7 +513,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		uint8_t src = FETCH();
 		uint8_t op = FETCH();
-		Oop arg1 = regs[src];
+		Oop arg1 = CTX->regAt0(src);
 		Oop arg2 = ac;
 
 		ac = Primitive::primitives[op].fn2(omem, proc, arg1, arg2);
@@ -548,6 +545,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		unsigned selIdx = FETCH(), nArgs = FETCH();
 		CacheOop cache = lits[selIdx].as<CacheOop>();
+		assert(ac.isNil() || ac.isSmi() || ac.as<MemOop>()->m_kind != MemOopDesc::kFwd);
 		ClassOop cls = ac.isa();
 		MethodOop meth = lookupCached(ac, cls, cache);
 		ContextOop newCtx;
@@ -557,9 +555,10 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 		proc->accumulator = ac;
 		newCtx = newContext(proc, newBP);
+		assert(meth->m_kind != MemOopDesc::kFwd);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++)
-			newCtx->regAt0(i + 1) = regs[FETCH()];
+			newCtx->regAt0(i + 1) = CTX->regAt0(FETCH());
 
 		SPILL();
 		proc->bp = newBP;
@@ -593,7 +592,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		newCtx = newContext(proc, newBP);
 		newCtx->initWithMethod(omem, ac, meth);
 		for (int i = 0; i < nArgs; i++) {
-			newCtx->regAt0(i + 1) = regs[FETCH()];
+			newCtx->regAt0(i + 1) = CTX->regAt0(FETCH());
 		}
 
 		SPILL();
@@ -615,7 +614,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		ArrayOop args = ArrayOopDesc::newWithSize(omem, nArgs);
 
 		for (int i = 0; i < nArgs; i++)
-			args->basicAt0(i) = regs[FETCH()];
+			args->basicAt0(i) = CTX->regAt0(FETCH());
 
 		SPILL();
 		ac = Primitive::primitives[prim].fnp(omem, proc, args);
@@ -650,7 +649,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		unsigned prim = FETCH(), arg1reg = FETCH();
 		SPILL();
-		ac = Primitive::primitives[prim].fn2(omem, proc, regs[arg1reg],
+		ac = Primitive::primitives[prim].fn2(omem, proc, CTX->regAt0(arg1reg),
 		    ac);
 		UNSPILL();
 		DISPATCH();
@@ -661,8 +660,8 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		TESTCOUNTER();
 		unsigned prim = FETCH(), arg1reg = FETCH();
 		SPILL();
-		ac = Primitive::primitives[prim].fn3(omem, proc, regs[arg1reg],
-		    regs[arg1reg + 1], ac);
+		ac = Primitive::primitives[prim].fn3(omem, proc, CTX->regAt0(arg1reg),
+		    CTX->regAt0(arg1reg + 1), ac);
 		UNSPILL();
 		DISPATCH();
 	}
@@ -672,7 +671,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 		unsigned prim = FETCH(), nArgs = FETCH(), arg1reg = FETCH();
 		SPILL();
 		ac = Primitive::primitives[prim].fnv(omem, proc, nArgs,
-		    &regs[arg1reg]);
+		    &CTX->regAt0(arg1reg));
 		UNSPILL();
 		DISPATCH();
 	}
