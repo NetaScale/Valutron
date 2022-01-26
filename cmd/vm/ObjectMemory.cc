@@ -74,26 +74,19 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 	loop:
 		MemOopDesc *obj = (MemOopDesc *)addr;
 
-		switch (obj->m_kind)
-		case kFwd: {
-			addr = addr + obj->m_size;
-			break;
-
+		switch (obj->m_kind) {
+		case kFwd:
 		case kPad:
-			addr = addr + obj->m_size;
 			break;
 
 		case kBytes:
 			FIXOOP(obj->isa());
-			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size);
 			break;
 
 		case kOops: {
 			FIXOOP(obj->isa());
 			for (int i = 0; i < obj->m_size; i++)
 				FIXOOP(obj->m_oops[i]);
-			addr = addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
-			    obj->m_size);
 			break;
 		}
 
@@ -116,9 +109,6 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 				if ((char *)ctx > end)
 					break;
 			}
-
-			addr = addr + ALIGN(sizeof(MemOopDesc) + obj->m_size *
-			    sizeof(Oop));
 			break;
 		}
 
@@ -127,8 +117,7 @@ MemOopDesc::mpsScan(mps_ss_t ss, mps_addr_t base, mps_addr_t limit)
 		}
 		}
 
-		if ((char*)obj == addr)
-			sleep(1);
+		addr = ((char*)obj + obj->fullSizeInBytes());
 
 		if (addr < limit)
 			goto loop;
@@ -141,30 +130,8 @@ mps_addr_t
 MemOopDesc::mpsSkip(mps_addr_t base)
 {
 	MemOopDesc *obj = (MemOopDesc *)base;
-	char *addr = (char *)base;
+	return (char *)base + obj->fullSizeInBytes();
 
-	switch (obj->m_kind)
-	case kFwd: {
-		return addr + obj->m_size;
-		break;
-
-	case kPad:
-		return addr + obj->m_size;
-		break;
-
-	case kBytes:
-		return addr + ALIGN(sizeof(MemOopDesc) + obj->m_size);
-		break;
-
-	case kOops:
-	case kStack:
-		return addr + ALIGN(sizeof(MemOopDesc) + sizeof(Oop) *
-		    obj->m_size);
-
-	case kStackAllocatedContext:
-	default:
-		FATAL("mpsSkip: Bad object!!");
-	}
 }
 
 void

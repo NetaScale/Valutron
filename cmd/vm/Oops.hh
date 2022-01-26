@@ -162,8 +162,10 @@ class MemOopDesc : public OopDesc {
 	enum Kind {
 		kPad,
 		kFwd,
-		kBytes,
-		kOops,
+		kBytes, /**< array of bytes */
+		kWords, /**< array of platform-native words */
+		kPointers, /**< array of pointers to be scanned by GC */
+		kOops, /**< array of object-oriented pointers */
 		kStack,
 		kStackAllocatedContext, /* musn't be scanned */
 	};
@@ -173,8 +175,8 @@ class MemOopDesc : public OopDesc {
 		MemOop m_fwd;
 	};
 	struct {
-		int32_t m_size;	 /**< number of bytes or Oops */
-		Kind m_kind : 8; /**< kind of object - byte or Oops bearer? */
+		int32_t m_size;	 /**< number of bytes/words/oops/etc */
+		Kind m_kind : 8; /**< kind of object */
 		int32_t m_hash : 24; /**< hashcode (in place of address) */
 	};
 	union {
@@ -184,7 +186,16 @@ class MemOopDesc : public OopDesc {
 
     public:
 	/**
-	 * Return the size of the object's von Neumann space in Oops or bytes.
+	 * Full aligned size in bytes for an object of length n.
+	 */
+	static size_t fullSizeInBytesForLength(Kind kind, size_t length);
+
+	/**
+	 * Full aligned size in bytes of this object.
+	 */
+	size_t fullSizeInBytes();
+	/**
+	 * Return the size of the object's von Neumann space in bytes/words/oops.
 	 */
 	size_t size() { return m_size; }
 	inline ClassOop &isa() { return m_isa; }

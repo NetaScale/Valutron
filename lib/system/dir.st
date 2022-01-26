@@ -32,10 +32,10 @@ Object subclass: INITIAL [
 		| testa  testb file ctx method newblk newblk2 |
 		"26 fib."
 		file <- File new initWithDescriptor: 1 mode: #w.
-		newblk <- [ 30 fib. ^ 55 ] fork.
+		newblk <- [ file << (32 fib printString); cr. ^ 55 ] fork.
 		newblk name: 'fib block'.
 		newblk resume.
-		newblk <- Process newWithReceiver: 45 asLongInteger selector: #factorial args: nil.
+		newblk <- Process newWithReceiver: 95 asLongInteger selector: #factorial args: nil.
 		newblk name: 'factorial'.
 		newblk resume.
 		scheduler critical: [

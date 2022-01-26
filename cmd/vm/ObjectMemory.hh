@@ -1,6 +1,7 @@
 #ifndef OBJECTMEMORY_HH_
 #define OBJECTMEMORY_HH_
 
+#include <cstddef>
 #include <stdexcept>
 
 #include "Oops.hh"
@@ -34,9 +35,11 @@ template <class T> class ObjectAllocator {
 	/** Must be called to setup the allocation point. */
 	void init(mps_pool_t amcPool, mps_pool_t amczPool);
 
+	MemOopDesc *newObjInternal(MemOopDesc::Kind, size_t len);
+
     public:
 	/**
-	 * Allocates an object composed of object pointers.
+	 * Allocates a new object of a given kind.
 	 */
 	template <class TObj>
 	TObj newOopObj(size_t len, MemOopDesc::Kind = MemOopDesc::kOops);
@@ -153,6 +156,38 @@ hash(uint32_t x)
 	return x >> 8;
 }
 
+inline size_t
+MemOopDesc::fullSizeInBytesForLength(MemOopDesc::Kind kind, size_t length)
+{
+	switch (kind) {
+		case MemOopDesc::kPad:
+		case MemOopDesc::kFwd:
+			return length;
+
+		case MemOopDesc::kBytes:
+			return ALIGN(sizeof(MemOopDesc) + length);
+
+		case MemOopDesc::kWords:
+		case MemOopDesc::kPointers:
+		case MemOopDesc::kOops:
+		case MemOopDesc::kStack:
+			return ALIGN(sizeof(MemOopDesc) + length *
+			    sizeof(intptr_t));
+
+		case MemOopDesc::kStackAllocatedContext:
+			abort();
+	}
+	std::cout << "bad type in fullSizeInBytesForLength\n";
+	abort();
+}
+
+inline size_t
+MemOopDesc::fullSizeInBytes()
+{
+	return fullSizeInBytesForLength(m_kind, m_size);
+}
+
+
 template <class T>
 inline ClassOop &
 OopRef<T>::isa()
@@ -184,31 +219,58 @@ ObjectMemory::getHashCode()
 }
 
 template <class T>
-template <class TObj>
-__attribute__((noinline)) TObj
-ObjectAllocator<T>::newOopObj(size_t len, MemOopDesc::Kind kind)
+MemOopDesc *
+ObjectAllocator<T>::newObjInternal(MemOopDesc::Kind kind, size_t len)
 {
-	typename TObj::PtrType * obj;
-	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(Oop) * len);
+	MemOopDesc *obj;
+	size_t size = MemOopDesc::fullSizeInBytesForLength(kind, len);
+	mps_ap_t ap;
+
+	switch (kind) {
+	case MemOopDesc::kBytes:
+	case MemOopDesc::kWords:
+		ap = m_objAP;
+		break;
+
+	case MemOopDesc::kPointers:
+	case MemOopDesc::kOops:
+	case MemOopDesc::kStack:
+		ap = m_leafAp;
+		break;
+
+	case MemOopDesc::kPad:
+	case MemOopDesc::kFwd:
+	case MemOopDesc::kStackAllocatedContext:
+		abort();
+	}
 
 #if VT_GC == VT_GC_MPS
 	do {
 		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
 		if (res != MPS_RES_OK)
-			FATAL("out of memory in newOopObj");
+			FATAL("out of memory in newObjInternal");
 		obj->m_isa = Oop::nil().as<ClassOop>();
 		obj->m_kind = kind;
 		obj->m_hash = T::getHashCode();
 		obj->m_size = len;
-		memset(obj->m_oops, 0, len * sizeof(Oop));
+		memset(obj->m_bytes, 0, size - sizeof(MemOopDesc));
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
-	obj = (typename TObj::PtrType*)calloc(1, size);
-		obj->m_kind = kind;
-		obj->m_hash = getHashCode();
-		obj->m_size = len;
+	obj = (typename TObj::PtrType *)calloc(1, size);
+	obj->m_kind = kind;
+	obj->m_hash = getHashCode();
+	obj->m_size = len;
 #endif
+
 	return obj;
+}
+
+template <class T>
+template <class TObj>
+__attribute__((noinline)) TObj
+ObjectAllocator<T>::newOopObj(size_t len, MemOopDesc::Kind kind)
+{
+	return newObjInternal(kind, len);
 }
 
 template <class T>
@@ -216,28 +278,7 @@ template <class TObj>
 __attribute__((noinline)) TObj
 ObjectAllocator<T>::newByteObj(size_t len)
 {
-	typename TObj::PtrType * obj;
-	size_t size =  ALIGN(sizeof(MemOopDesc) + sizeof(uint8_t) * len);
-
-#if VT_GC == VT_GC_MPS
-	do {
-		mps_res_t res = mps_reserve(((void **)&obj), m_objAP, size);
-		if (res != MPS_RES_OK)
-			FATAL("out of memory in newByteObj");
-		obj->m_isa = Oop::nil().as<ClassOop>();
-		obj->m_kind = MemOopDesc::kBytes;
-		obj->m_hash = T::getHashCode();
-		obj->m_size = len;
-		memset(obj->m_bytes, 0, len);
-	} while (!mps_commit(m_objAP, ((void *)obj), size));
-#else
-	obj = (typename TObj::PtrType*)calloc(1, size);
-	obj->m_kind = MemOopDesc::kBytes;
-	obj->m_hash = getHashCode();
-	obj->m_size = len;
-#endif
-
-	return obj;
+	return newObjInternal(MemOopDesc::kBytes, len);
 }
 
 template<class T>
@@ -246,9 +287,7 @@ __attribute__((noinline)) TObj
 ObjectAllocator<T>::copyObj(volatile MemOopDesc * oldObj)
 {
 	mps_addr_t mem;
-	size_t size = ALIGN(sizeof(MemOopDesc) +
-	    (oldObj->m_kind == MemOopDesc::kBytes ? sizeof(uint8_t) :
-	    sizeof(Oop)) * ((MemOopDesc*)oldObj)->size());
+	size_t size = ((MemOopDesc*)oldObj)->fullSizeInBytes();
 
 #if VT_GC == VT_GC_MPS
 	do {
