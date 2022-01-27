@@ -101,7 +101,7 @@ class ObjectMemory : public ObjectAllocator<ObjectMemory> {
 		X(ClassOop, clsUndefinedObject)	\
 		X(ClassOop, clsTrue)		\
 		X(ClassOop, clsFalse)		\
-		X(ClassOop, clsLink)		\
+		X(ClassOop, clsAssociationLink)		\
 		X(ClassOop, clsDictionary)	\
 		X(ClassOop, clsBlock)		\
 		X(ClassOop, clsContext)		\

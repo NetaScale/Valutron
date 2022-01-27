@@ -26,7 +26,7 @@ IndexedCollection<Association<TKey, TVal>> subclass: Dictionary<TKey, TVal> [
 			(link notNil)
 				ifTrue: [ link at: aKey put: aValue ]
 				ifFalse: [ hashTable at: hashPosition + 3
-					put: (Link key: aKey value: aValue)]]
+					put: (AssociationLink key: aKey value: aValue)]]
 	]
 
 	basicRemoveKey: aKey [		| hashPosition link |

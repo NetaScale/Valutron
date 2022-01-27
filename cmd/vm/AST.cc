@@ -743,10 +743,7 @@ MethodNode::generate(ObjectMemory &omem)
 void
 ClassNode::generate(ObjectMemory &omem)
 {
-	printf("CLASS %s/%p/%p\n", name.c_str(), cls.m_ptr, cls.isa().m_ptr);
-	for (auto m : cMethods)
-		cls->addClassMethod(omem, m->generate(omem));
-
+	//printf("CLASS %s/%p/%p\n", name.c_str(), cls.m_ptr, cls.isa().m_ptr);
 	for (auto m : cMethods)
 		cls->addClassMethod(omem, m->generate(omem));
 	for (auto m : iMethods)
@@ -766,4 +763,19 @@ ProgramNode::generate(ObjectMemory &omem)
 {
 	for (auto cls : decls)
 		cls->generate(omem);
+
+	for (auto cls : decls) {
+		ClassNode * acls = dynamic_cast<ClassNode*>(cls);
+		if (!acls)
+			continue;
+		std::cout << acls->name << "[shape=record label=\"";
+		std::cout << "" << acls->name << "";
+		if (acls->iVars.size())
+			std::cout <<"\\n--";
+		for (auto & var: acls->iVars)
+			std::cout << "\\n" << var.first;
+		std::cout << "\"];\n";
+		if (acls->superName != "nil")
+		std::cout << acls->name << " -> "  << acls->superName << "\n";
+	}
 }

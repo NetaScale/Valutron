@@ -289,7 +289,7 @@ ObjectMemory::setupInitialObjects()
 	CreateClass(UndefinedObject);
 	CreateClass(True);
 	CreateClass(False);
-	CreateClass(Link);
+	CreateClass(AssociationLink);
 	CreateClass(Dictionary);
 	CreateClass(Block);
 	CreateClass(Context);

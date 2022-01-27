@@ -32,7 +32,7 @@ void OopRef<T>::print(size_t in)
     Case (Method);
     Case (Context);
     Case (Block);
-    Case (Link);
+    Case (AssociationLink);
     /*else if ((anOop->index () > ObjectMemory::clsObject ().index ()) &&
              (anOop->index () < ObjectMemory::clsSystemDictionary ().index ()))
         anOop->asClassOop ()
@@ -133,19 +133,19 @@ CharOopDesc::newWith(ObjectMemory &omem, intptr_t value)
 	return newChar;
 }
 
-LinkOop
-LinkOopDesc::newWith(ObjectMemory &omem, Oop a, Oop b)
+AssociationLinkOop
+AssociationLinkOopDesc::newWith(ObjectMemory &omem, Oop a, Oop b)
 {
-	LinkOop newLink = omem.newOopObj<LinkOop>(3);
-	newLink.setIsa(ObjectMemory::clsLink);
+	AssociationLinkOop newLink = omem.newOopObj<AssociationLinkOop>(3);
+	newLink.setIsa(ObjectMemory::clsAssociationLink);
 	newLink->setOne(a);
 	newLink->setTwo(b);
 	return newLink;
 }
 
-void LinkOopDesc::print (int in)
+void AssociationLinkOopDesc::print (int in)
 {
-    std::cout << blanks (in) << "Link " << this << "{\n";
+    std::cout << blanks (in) << "AssociationLink " << this << "{\n";
     std::cout << blanks (in) << "One:\n";
     one ().print (in + 2);
     std::cout << blanks (in) << "Two:\n";
@@ -279,7 +279,7 @@ void
 DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 {
 	ArrayOop table;
-	LinkOop link, nwLink, nextLink;
+	AssociationLinkOop link, nwLink, nextLink;
 	Oop tablentry;
 
 	/* first get the hash table */
@@ -302,8 +302,8 @@ DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 			table->basicAtPut0(hash, key);
 			table->basicAtPut0(hash + 1, value);
 		} else {
-			nwLink = LinkOopDesc::newWith(omem, key, value);
-			link = table->basicAt0(hash + 2).as<LinkOop>();
+			nwLink = AssociationLinkOopDesc::newWith(omem, key, value);
+			link = table->basicAt0(hash + 2).as<AssociationLinkOop>();
 			if (link.isNil()) {
 				table->basicAtPut0(hash + 2, nwLink);
 			} else
@@ -311,7 +311,7 @@ DictionaryOopDesc::insert(ObjectMemory &omem, intptr_t hash, Oop key, Oop value)
 					/* ptrEq (orefOf (link, 1),
 					 * (objRef)key)) */
 					if (link->one() == key) {
-						/* get rid of unwanted Link */
+						/* get rid of unwanted AssociationLink */
 						// isVolatilePut (nwLink,
 						// false);
 						link->setTwo(value);
@@ -333,7 +333,7 @@ DictionaryOopDesc::findPairByFun(uint32_t hash, ExtraType extraVal,
 {
 	ArrayOop table = basicAt0(0).as<ArrayOop>();
 	Oop key, value;
-	LinkOop link;
+	AssociationLinkOop link;
 	Oop *hp;
 	int tablesize=table->size();
 
@@ -350,8 +350,8 @@ DictionaryOopDesc::findPairByFun(uint32_t hash, ExtraType extraVal,
 		if ((!key.isNil()) && (*fun)(key, extraVal))
 			return { key, value };
 		/* check for linked */
-		for (link = *(LinkOop *)hp; !link.isNil();
-		     link = *(LinkOop *)hp) {
+		for (link = *(AssociationLinkOop *)hp; !link.isNil();
+		     link = *(AssociationLinkOop *)hp) {
 			hp = (Oop *)link->vns();
 			key = *hp++;   /* link at: 1 */
 			value = *hp++; /* link at: 2 */
@@ -441,7 +441,7 @@ DictionaryOopDesc::print(int in)
 {
 	ArrayOop table = basicAt0(0).as<ArrayOop>();
 	Oop key, value;
-	LinkOop link;
+	AssociationLinkOop link;
 	Oop *hp;
 	int tablesize;
 
@@ -468,8 +468,8 @@ DictionaryOopDesc::print(int in)
 
 		std::cout << blanks(in + 1) + "}\n";
 
-		for (link = *(LinkOop *)hp; !link.isNil();
-		     link = *(LinkOop *)hp) {
+		for (link = *(AssociationLinkOop *)hp; !link.isNil();
+		     link = *(AssociationLinkOop *)hp) {
 			hp = (Oop *)link->vns();
 			key = *hp++;   /* link at: 1 */
 			value = *hp++; /* link at: 2 */

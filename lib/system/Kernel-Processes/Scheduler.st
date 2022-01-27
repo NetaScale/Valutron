@@ -38,6 +38,19 @@ Object subclass: Scheduler [
 		^ result
 	]
 
+	(List<Semaphore>) waitForObjects: (List<Semaphore>)objects [
+		"for each object: lock the object, check if it's ready
+		  - if so then return it in the list (should we try to do an
+		    'acquire' operation, i.e. `wait` on a semaphore here?)
+		  - else add this process to that object's waiters queue"
+		<#disableInterrupts >. "todo lock each object instead"
+		objects do: [ :obj |
+			obj acquire
+		]
+
+		<#enableInterrupts >.
+	]
+
 	yield [
 		^ <#yield >.
 	]

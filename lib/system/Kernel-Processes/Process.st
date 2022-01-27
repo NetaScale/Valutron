@@ -1,6 +1,5 @@
-Object subclass: Process [
+Link subclass: Process [
 |
- (Process)link 		"Next process in list"
  (Integer)pid		"Process ID"
  (String)name		"Process name"
  (Array<id>)stack	"Stack of inlined context objects."
@@ -41,7 +40,7 @@ Object subclass: Process [
 	]
 
 	link [
-		^ link
+		^ nextLink
 	]
 
 	state [

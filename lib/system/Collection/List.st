@@ -17,7 +17,7 @@ Collection<T> subclass: List<T> [
 	]
 
 	addFirst: aValue [
-		links <- Link value: aValue link: links
+		links <- AssociationLink value: aValue link: links
 	]
 
 	addLast: aValue [

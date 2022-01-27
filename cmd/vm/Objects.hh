@@ -44,15 +44,15 @@ class CharOopDesc : public OopOopDesc {
 	static CharOop newWith(ObjectMemory &omem, intptr_t value);
 };
 
-class LinkOopDesc : public OopOopDesc {
+class AssociationLinkOopDesc : public OopOopDesc {
     public:
 	AccessorPair(Oop, one, setOne, 0);
 	AccessorPair(Oop, two, setTwo, 1);
-	AccessorPair(LinkOop, nextLink, setNextLink, 2);
+	AccessorPair(AssociationLinkOop, nextLink, setNextLink, 2);
 
 	void print(int in);
 
-	static LinkOop newWith(ObjectMemory &omem, Oop a, Oop b);
+	static AssociationLinkOop newWith(ObjectMemory &omem, Oop a, Oop b);
 };
 
 class DictionaryOopDesc : public OopOopDesc {
@@ -348,7 +348,7 @@ public:
 };
 
 class ProcessOopDesc : public OopOopDesc {
-	static const int clsNstLength = 7;
+	static const int clsNstLength = 8;
 
     public:
 	enum State {
@@ -365,6 +365,7 @@ class ProcessOopDesc : public OopOopDesc {
 	Smi bp; /* 1-based */
 	Oop accumulator;
 	Smi state;
+	AssociationLinkOop events;
 
 	static ProcessOop allocate(ObjectMemory &omem);
 

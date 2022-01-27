@@ -60,6 +60,7 @@ Object subclass: INITIAL [
 				]
 			]
 		]."
+
 		newblk <- [ true whileTrue: [
 			sem critical: [
 			24 fib.
