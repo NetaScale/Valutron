@@ -46,6 +46,10 @@ Magnitude subclass: Collection<T> [
 		self do: [:x | x print ]
 	]
 
+	emptyCheck [
+		self isEmpty ifTrue: [ VM error: 'Empty collection' ]
+	]
+
 	includes: value [
 		self do: [:x | (x = value) ifTrue: [ ^ true ] ].
 		^ false
