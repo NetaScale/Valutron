@@ -61,7 +61,7 @@ Object subclass: INITIAL [
 			]
 		]."
 
-		"newblk <- [ true whileTrue: [
+		newblk <- [ true whileTrue: [
 			sem critical: [
 			24 fib.
 			file << 'a'.
@@ -100,7 +100,7 @@ Object subclass: INITIAL [
 		newblk name: 'c'.
 		newblk resume.
 
-		24 fib."
+		24 fib.
 
 		ctx <- LinkedList new.
 		ctx add: (ValueLink value: 15).

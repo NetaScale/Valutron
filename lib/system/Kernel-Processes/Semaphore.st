@@ -1,5 +1,5 @@
 Object subclass: Semaphore [
-	| count processList |
+	| (Integer)count (List)processList |
 
 	class>>new [
 		^ self basicNew

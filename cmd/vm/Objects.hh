@@ -335,12 +335,19 @@ class ContextOopDesc : public OopOopDesc {
 	}
 
 	void print(int in);
-
-
 };
 
-class NativePointerOopDesc : public ByteArrayOopDesc {
+#if 0
+class LinkedListOopDesc : public OopOopDesc {
+	public:
+	static const int clsNstLength = 1;
 
+	LinkOop firstLink;
+	LinkOop lastLink;
+};
+#endif
+
+class NativePointerOopDesc : public ByteArrayOopDesc {
 public:
 	static NativePointerOop new0(ObjectMemory &omem, void * pointer);
 

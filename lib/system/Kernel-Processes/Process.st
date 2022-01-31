@@ -39,10 +39,6 @@ Link subclass: Process [
 		^ stack
 	]
 
-	link [
-		^ nextLink
-	]
-
 	state [
 		^state
 	]

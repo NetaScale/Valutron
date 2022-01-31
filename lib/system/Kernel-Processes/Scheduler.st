@@ -10,13 +10,13 @@ Object subclass: Scheduler [
 		temp <- runnable.
 		temp notNil whileTrue: [
 			aBlock value: temp.
-			temp <- temp link
+			temp <- temp nextLink
 		].
 
 		temp <- waiting.
 		temp notNil whileTrue: [
 			aBlock value: temp.
-			temp <- temp link
+			temp <- temp nextLink
 		].
 
 		aBlock value: curProc.
