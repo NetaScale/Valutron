@@ -1,21 +1,21 @@
 Object subclass: Semaphore [
-	| (Integer)count (List)processList |
+	| (Integer)count (List)waiters |
 
 	class>>new [
 		^ self basicNew
 			count: 0
-			processList: List new
+			waiters: List new
 	]
 
 	class>>forMutualExclusion [
 		^ self basicNew
 			count: 1
-			processList: List new
+			waiters: List new
 	]
 
-	count: cInt processList: pList [
+	count: cInt waiters: pList [
 		count <- cInt.
-		processList <- pList
+		waiters <- pList
 	]
 
 	critical: aBlock [
@@ -28,26 +28,30 @@ Object subclass: Semaphore [
 		count <- aNumber
 	]
 
-	signal [ | firstProc |
+	signal [ | firstWaiter |
 		scheduler critical: [
 			count <- count + 1.
 			(count <= 0) ifTrue: [
-				firstProc <- processList first value.
-				firstProc state: 1.
-				firstProc resume.
-				processList removeFirst
+				firstWaiter <- waiters first value.
+				waiters removeFirst.
+				firstWaiter receiveEvent: self
 			]
 		]
 	]
 
+	"First checks if there are excess"
 	wait [
 		scheduler disableInterrupts.
 		count <- count - 1.
 		(count < 0) ifTrue: [
-			processList add: thisProcess.
+			waiters add: thisProcess.
 			thisProcess state: 3. "waiting"
 			scheduler enableInterrupts.
 			scheduler yield
 		] ifFalse: [ scheduler enableInterrupts ]
+	]
+
+	tryAcquire: anEventQueue [
+		^ nil
 	]
 ]

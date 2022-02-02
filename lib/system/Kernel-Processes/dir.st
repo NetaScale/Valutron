@@ -1,3 +1,4 @@
+@include 'EventQueue.st'
 @include 'Process.st'
 @include 'Scheduler.st'
 @include 'Semaphore.st'

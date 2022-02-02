@@ -46,8 +46,7 @@ Object subclass: Scheduler [
 		<#disableInterrupts >. "todo lock each object instead"
 		objects do: [ :obj |
 			obj acquire
-		]
-
+		].
 		<#enableInterrupts >.
 	]
 

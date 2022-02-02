@@ -5,7 +5,7 @@ Link subclass: Process [
  (Array<id>)stack	"Stack of inlined context objects."
  (Integer)stackIndex	"1-based index into :stack of topmost stack frame."
  (id)accumulator	"The accumulator register."
- (Integer)state		"Process state - 0 suspended, 1 active, 2 waiting, 3 done"
+ (Integer)state		"Process state - 0 suspended, 1 active, 2 done, 3+ waiting"
 |
 
 	"creation"
@@ -48,6 +48,11 @@ Link subclass: Process [
 	]
 
 	"management"
+
+	receiveEvent: anEvent [
+		state <- 1.
+		self resume
+	]
 
 	"unsuspends a process. adds it to the scheduler runqueue of the current system thread"
 	resume [
