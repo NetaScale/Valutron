@@ -146,6 +146,7 @@ inline ClassOop methodClass(ProcessOop proc)
  * Context objects with the values from those objects.
  */
 #define UNSPILL() {								\
+	bytecode.m_ptr = CTX->bytecode.m_ptr;						\
 	pc = &CTX->bytecode->basicAt0(0) + CTX->programCounter.smi();		\
 	lits = &CTX->method()->literals()->basicAt0(0);				\
 }
@@ -263,6 +264,7 @@ void currentMethod(ProcessOop proc, ContextOop ctx)
 	}
 	else
 		 std::cout << "" << ctx->method()->selector()->asCStr();
+	std::cout << "@" << ctx->programCounter.smi();
 	std::cout <<"\n";
 }
 
@@ -271,7 +273,8 @@ void stackTrace(ProcessOop proc, bool regs = false)
 	ContextOop ctx = proc->context();
 	while (true) {
 		currentMethod(proc, ctx);
-		dumpRegs(ctx);
+		if (regs)
+			dumpRegs(ctx);
 		if (ctx->prevBP.isNil())
 			break;
 		else
@@ -291,24 +294,24 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	uint64_t in = 0, maxin = 0;
 	uint64_t nsends = 0;
 	Oop ac;
-	uint8_t * pc = &CTX->bytecode->basicAt0(0);
+	volatile Oop bytecode;
 	Oop *lits;
+	uint8_t * pc;
 	ninstr = 0;
 
+#define TRACE_DISASM_ON_EXEC
+
 #ifdef TRACE_DISASM_ON_EXEC
-	std::cout <<"\n\nInterpreter will now run:\n";
 	disassemble(CTX->bytecode->vns(), CTX->bytecode->size());
-	std::cout << "\n\n";
 #endif
 
 	UNSPILL();
 	ac = proc->accumulator;
-	ninstr=0;
+	ninstr = 0;
 
 #ifdef TRACE_STACK_INDEX
 	std::cout << "Stack Index " << proc->bp.smi() << "\n";
 #endif
-	uint8_t opcode;
 
 	#define DISPATCH() ninstr++; goto *opTable[FETCH()]
 	loop:
@@ -602,7 +605,7 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 
 #ifdef TRACE_CALLS
 		std::cout << blanks(in) << "=> " << cls->nameCStr() << ">>"
-			  << cache->selector()->asCStr() << "\n";
+			  << cache->selector->asCStr() << "\n";
 #endif
 		DISPATCH();
 	}
@@ -726,5 +729,7 @@ timesliceDone:
 	pc--;
 	SPILL();
 	proc->accumulator = ac;
+	/* if untrue, bytecode probably moved. */
+	assert(proc->context()->programCounter.smi() < 10000);
 	return 1;
 }

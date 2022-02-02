@@ -256,9 +256,9 @@ ObjectAllocator<T>::newObjInternal(MemOopDesc::Kind kind, size_t len)
 		memset(obj->m_bytes, 0, size - sizeof(MemOopDesc));
 	} while (!mps_commit(m_objAP, ((void *)obj), size));
 #else
-	obj = (typename TObj::PtrType *)calloc(1, size);
+	obj = (MemOopDesc *)calloc(1, size);
 	obj->m_kind = kind;
-	obj->m_hash = getHashCode();
+	obj->m_hash = T::getHashCode();
 	obj->m_size = len;
 #endif
 
@@ -298,14 +298,14 @@ ObjectAllocator<T>::copyObj(volatile MemOopDesc * oldObj)
 		MemOopDesc * obj = (MemOopDesc*)mem;
 		obj->m_hash = T::getHashCode();
 	} while (!mps_commit(m_objAP, mem, size));
+
+	return TObj((typename TObj::PtrType*)mem);
 #else
 	typename TObj::PtrType *obj = (typename TObj::PtrType*)calloc(1, size);
 	memcpy(obj, (void*)oldObj, size);
 	obj->m_hash = getHashCode();
 	return TObj((typename TObj::PtrType*)obj);
 #endif
-
-	return TObj((typename TObj::PtrType*)mem);
 }
 
 #endif /* OBJECTMEMORY_HH_ */

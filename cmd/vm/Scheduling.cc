@@ -190,6 +190,8 @@ loop:
 		return;
 	}
 
+	std::cout <<"\nRunning "  << proc->name->asCStr() << ":\n";
+
 	if (execute(m_omem, proc, m_interruptFlag) == 0) {
 		std::cout << "Process " << proc.m_ptr << " finished\n";
 	} else if (proc->state == Smi(3)) {
