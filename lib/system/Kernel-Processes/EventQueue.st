@@ -17,23 +17,27 @@ Object subclass: EventQueue [
 	"Receive an event. Expects to be called with VM interrupts disabled."
 	receiveEvent: anEvent [
 		events addLast: (ValueLink value: anEvent).
-		waiter state == 3 ifTrue: [
+		(waiter notNil and: [ waiter state == 3 ]) ifTrue: [
 			waiter state: 1.
 			waiter resume
-		] ifFalse: [
-			VM error: 'Unexpected waiter state ', state asString
 		]
 	]
 
+	getEvent [
+		^ events removeFirst value
+	]
+
 	wait [	| acquired |
+		events size == 0 ifFalse: [ ^ self ].
 		eventSources do: [ :source |
-			((source value tryAcquire: self) isNil) ifFalse: [
-				VM error: 'Event source is already acquirable '.
-				nil failNow
-			] ifTrue: [
-				<#debugMsg 'Acquiring event'>.
-				nil failPlease
+			((source value tryAcquire: self) isNil) ifTrue: [
+				nil alreadyGot
 			]
+		].
+		events size == 0 ifTrue: [
+			"do the waiting"
+			scheduler critical: [ thisProcess state: 3. waiter <- thisProcess ].
+			scheduler yield
 		]
 	]
 ]

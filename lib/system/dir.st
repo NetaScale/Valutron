@@ -92,6 +92,7 @@ Object subclass: INITIAL [
 
 		newblk <- [ true whileTrue: [
 			evq wait.
+			evq getEvent.
 			24 fib.
 			file << 'Bravo'.
 			file << 46 asLongInteger factorial printString.

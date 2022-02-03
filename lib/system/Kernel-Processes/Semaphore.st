@@ -52,6 +52,18 @@ Object subclass: Semaphore [
 	]
 
 	tryAcquire: anEventQueue [
-		^ nil
+	"Try to acquire this semaphore as part of an event queue wait request.
+	 Essentially a variation of wait."
+		scheduler disableInterrupts.
+		count <- count - 1.
+		(count < 0) ifTrue: [
+			waiters add: anEventQueue.
+			scheduler enableInterrupts.
+			^ self
+		] ifFalse: [
+			anEventQueue receiveEvent: self.
+			scheduler enableInterrupts.
+			^ nil
+		]
 	]
 ]
