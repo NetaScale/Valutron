@@ -299,8 +299,6 @@ execute(ObjectMemory &omem, ProcessOop proc, volatile bool &interruptFlag) noexc
 	uint8_t * pc;
 	ninstr = 0;
 
-#define TRACE_DISASM_ON_EXEC
-
 #ifdef TRACE_DISASM_ON_EXEC
 	disassemble(CTX->bytecode->vns(), CTX->bytecode->size());
 #endif

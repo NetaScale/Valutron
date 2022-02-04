@@ -29,7 +29,7 @@ Object subclass: INITIAL [
 	doStuff1 [
 		"(1 to: 1) do: [ :i |
 		<#debugMsg ((34 fib) printString)> ]"
-		| file ctx newblk sem  evq|
+		| file ctx newblk sem evq |
 		"26 fib."
 		evq <- EventQueue new.
 		sem <- Semaphore forMutualExclusion.
@@ -90,16 +90,15 @@ Object subclass: INITIAL [
 
 		evq addSource: sem.
 
-		newblk <- [ true whileTrue: [
-			evq wait.
-			evq getEvent.
-			24 fib.
-			file << 'Bravo'.
-			file << 46 asLongInteger factorial printString.
-			file << 'Charlie'.
-			file cr.
-			sem signal
-		]
+		newblk <- [ | evs | true whileTrue: [
+				evs <- evq wait.
+				24 fib.
+				file << 'Bravo'.
+				file << 46 asLongInteger factorial printString.
+				file << 'Charlie'.
+				file cr.
+				sem signal
+			]
 		] fork.
 		newblk name: 'fib_2'.
 		newblk resume.

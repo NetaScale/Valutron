@@ -659,7 +659,8 @@ BlockExprNode::generateOn(CodeGen &gen)
 	block->setLiterals(ArrayOopDesc::fromVector(gen.omem(),
 	    blockGen.literals()));
 	block->setArgumentCount(Smi(args.size()));
-	block->setTemporarySize(Smi((intptr_t)0));
+	// FIXME!! locals can be greater if blocks inlined
+	block->setTemporarySize(Smi(locals.size()));
 	block->setHeapVarsSize(Smi(scope->myHeapVars.size()));
 	block->setStackSize(Smi(blockGen.nRegs()));
 
@@ -721,6 +722,7 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setBytecode(ByteArrayOopDesc::fromVector(omem, gen.bytecode()));
 	meth->setLiterals(ArrayOopDesc::fromVector(omem, gen.literals()));
 	meth->setArgumentCount(args.size());
+	// FIXME!! locals can be greater if blocks inlined
 	meth->setTemporarySize(locals.size());
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());

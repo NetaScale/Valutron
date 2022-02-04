@@ -596,10 +596,13 @@ struct BlockExprNode : public ExprNode {
 	BlockScope *scope = NULL;
 	Type *m_retType = NULL;
 	std::vector<VarDecl> args;
+	std::vector<VarDecl> locals;
 	std::vector<StmtNode *> stmts;
 
-	BlockExprNode(std::vector<VarDecl> args, std::vector<StmtNode *> stmts)
+	BlockExprNode(std::vector<VarDecl> args, std::vector<VarDecl> locals,
+	    std::vector<StmtNode *> stmts)
 	    : args(args)
+	    , locals(locals)
 	    , stmts(stmts)
 	{
 	}

@@ -92,6 +92,9 @@ BlockScope::lookup(std::string aName)
 	for (auto v : args)
 		if (v->name == aName)
 			return v;
+	for (auto v : locals)
+		if (v->name == aName)
+			return v;
 	return parent()->lookupFromBlock(aName);
 }
 
@@ -240,6 +243,9 @@ BlockExprNode::synthInScope(Scope *parentScope)
 	for (auto & arg : args)
 		scope->addArg(arg.first);
 
+	for (auto & local: locals)
+		scope->addLocal(local.first);
+
 	for (auto stmt : stmts)
 		stmt->synthInScope(scope);
 }
@@ -250,6 +256,18 @@ BlockExprNode::synthInlineInScope(Scope *parentScope)
 	assert(args.empty());
 
 	m_inlined = true;
+
+	if (locals.size()) {
+		std::cerr << m_pos.line() << ":" << m_pos.col() << ": ";
+		std::cerr << "Error: Valutron doesn't yet support locals in "
+		    "optimized blocks, sorry.\n";
+		abort();
+	}
+
+#if 0
+	for (auto & local: locals)
+		scope->addLocal(local.first);
+#endif
 
 	for (auto stmt : stmts)
 		stmt->synthInScope(parentScope);
