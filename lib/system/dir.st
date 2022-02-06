@@ -90,7 +90,7 @@ Object subclass: INITIAL [
 
 		evq addSource: sem.
 
-		newblk <- [ | evs | true whileTrue: [
+		newblk <- [ true whileTrue: [ | evs |
 				evs <- evq wait.
 				24 fib.
 				file << 'Bravo'.

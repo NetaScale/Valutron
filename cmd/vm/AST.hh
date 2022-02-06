@@ -670,6 +670,7 @@ struct MethodNode : public Node, public TyEnv {
 	std::vector<VarDecl> args;
 	std::vector<VarDecl> locals;
 	std::vector<StmtNode *> stmts;
+	size_t nPromotedLocals;
 
 	MethodNode(bool isClassMethod, Type *retType, std::string sel,
 	    std::vector<VarDecl> tyParams, std::vector<VarDecl> args,

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cassert>
 
 #include "AST.hh"
@@ -41,6 +42,20 @@ AbstractCodeScope::addArg(std::string name)
 void
 AbstractCodeScope::addLocal(std::string name)
 {
+	/*
+	 * This check is added principally for the benefit of optimised blocks,
+	 * whose local vars are registered in their parent scope. In the future,
+	 * this ought to be handled smartly, i.e. by maintaining optimised
+	 * blocks as a logical scope during synthesis but not at codegen, but
+	 * for now, this will do.
+	 */
+	for (auto & l : locals) {
+		if (l->name == name) {
+			std::cerr << "Error: Local variables (" << name
+				  << ") may not be shadowed.\n";
+			abort();
+		}
+	}
 	locals.push_back(new LocalVar(locals.size() + 1, name));
 }
 
@@ -253,21 +268,15 @@ BlockExprNode::synthInScope(Scope *parentScope)
 void
 BlockExprNode::synthInlineInScope(Scope *parentScope)
 {
+	auto parentCodeScope = dynamic_cast<AbstractCodeScope*>(parentScope);
+
 	assert(args.empty());
+	assert(parentCodeScope != NULL);
 
 	m_inlined = true;
 
-	if (locals.size()) {
-		std::cerr << m_pos.line() << ":" << m_pos.col() << ": ";
-		std::cerr << "Error: Valutron doesn't yet support locals in "
-		    "optimized blocks, sorry.\n";
-		abort();
-	}
-
-#if 0
 	for (auto & local: locals)
-		scope->addLocal(local.first);
-#endif
+		parentCodeScope->addLocal(local.first);
 
 	for (auto stmt : stmts)
 		stmt->synthInScope(parentScope);

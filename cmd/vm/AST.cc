@@ -632,7 +632,8 @@ BlockExprNode::generateOn(CodeGen &gen)
 		return generateInlineOn(gen);
 
 	BlockOop block = BlockOopDesc::new0(gen.omem());
-	CodeGen blockGen(gen.omem(), args.size(), 0, true);
+	/* scope's locals used instead of node's, as inline blocks add to it */
+	CodeGen blockGen(gen.omem(), args.size(), scope->locals.size(), true);
 
 	blockGen.pushCurrentScope(scope);
 
@@ -659,8 +660,7 @@ BlockExprNode::generateOn(CodeGen &gen)
 	block->setLiterals(ArrayOopDesc::fromVector(gen.omem(),
 	    blockGen.literals()));
 	block->setArgumentCount(Smi(args.size()));
-	// FIXME!! locals can be greater if blocks inlined
-	block->setTemporarySize(Smi(locals.size()));
+	block->setTemporarySize(Smi(scope->locals.size()));
 	block->setHeapVarsSize(Smi(scope->myHeapVars.size()));
 	block->setStackSize(Smi(blockGen.nRegs()));
 
@@ -704,7 +704,7 @@ MethodNode::generate(ObjectMemory &omem)
 {
 	bool finalIsReturn;
 	MethodOop meth = MethodOopDesc::new0(omem);
-	CodeGen gen(omem, args.size(), locals.size());
+	CodeGen gen(omem, args.size(), scope->locals.size());
 
 	gen.pushCurrentScope(scope);
 
@@ -722,8 +722,7 @@ MethodNode::generate(ObjectMemory &omem)
 	meth->setBytecode(ByteArrayOopDesc::fromVector(omem, gen.bytecode()));
 	meth->setLiterals(ArrayOopDesc::fromVector(omem, gen.literals()));
 	meth->setArgumentCount(args.size());
-	// FIXME!! locals can be greater if blocks inlined
-	meth->setTemporarySize(locals.size());
+	meth->setTemporarySize(scope->locals.size());
 	meth->setHeapVarsSize(scope->myHeapVars.size());
 	meth->setStackSize(gen.nRegs());
 
