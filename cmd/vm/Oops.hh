@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "Config.hh"
+
 #ifdef VT_GC_MPS
 extern "C" {
 #include "mps.h"
