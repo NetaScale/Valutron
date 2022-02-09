@@ -1,6 +1,9 @@
 #include <cassert>
 #include <unistd.h>
 
+#include "ObjectMemory.inl.hh"
+#include "Objects.hh"
+
 #ifdef VT_GC_MPS
 extern "C" {
 #include "mps.h"
@@ -9,9 +12,6 @@ extern "C" {
 #include "mpscams.h"
 }
 #endif
-
-#include "ObjectMemory.inl.hh"
-#include "Objects.hh"
 
 mps_arena_t ObjectMemory::m_arena = NULL;
 uint32_t ObjectMemory::s_hashCounter = 1;
