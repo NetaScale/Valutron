@@ -50,7 +50,6 @@ find_package(Threads REQUIRED)
 find_package(FLEX)
 #find_package(BISON)
 
-
 if (NOT FLEX_FOUND)
         set(FLEX_FOUND true)
         set(FLEX_EXECUTABLE ${PROJECT_SOURCE_DIR}/tools/win_flex/win_flex.exe)

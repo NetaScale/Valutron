@@ -8,9 +8,11 @@
 #include <string>
 #include <vector>
 
+#ifdef VT_GC_MPS
 extern "C" {
 #include "mps.h"
 }
+#endif
 
 #define VT_tagBits 3
 #define VT_tagMask 7

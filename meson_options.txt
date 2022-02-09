@@ -1,0 +1,3 @@
+option('gc', type: 'combo', choices: ['malloc', 'mps', 'boehm'],
+    value: 'mps',
+    description: 'Garbage collector to use.')

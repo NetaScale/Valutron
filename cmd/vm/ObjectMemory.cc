@@ -1,12 +1,14 @@
 #include <cassert>
 #include <unistd.h>
 
+#ifdef VT_GC_MPS
 extern "C" {
 #include "mps.h"
 #include "mpsavm.h"
 #include "mpscamc.h"
 #include "mpscams.h"
 }
+#endif
 
 #include "ObjectMemory.inl.hh"
 #include "Objects.hh"

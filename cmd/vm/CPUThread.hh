@@ -4,9 +4,11 @@
 #include <pthread.h>
 #include <ev++.h>
 
+#ifdef VT_GC_MPS
 extern "C" {
 	#include "mps.h"
 }
+#endif
 
 #include "Oops.hh"
 #include "ObjectMemory.hh"
